@@ -1,0 +1,79 @@
+\section{Evaluation}
+\label{sec:evaluation}
+%
+In this section, we introduce several pairs of coding solutions,
+translated to functional programs.
+%
+For each pair of programs $P_0$ and $P_1$, we identify an inductive
+set of pairs of expressions $I$, and give a map from all pairs of
+expressions in $I$ to relational invariants that prove the partial
+equivalence of $P_0$ and $P_1$.
+
+\paragraph{Solutions to Add Digits}
+%
+\NV{complete}
+
+\paragraph{Solutions to Climbing Stairs}
+%
+\begin{figure}[t]
+  \begin{minipage}{0.45\linewidth}
+    \input{code/ClimbStairs0.ml}
+  \end{minipage}
+  \begin{minipage}{0.45\linewidth}
+    \input{code/ClimbStairs1.ml}    
+  \end{minipage}
+  %
+  \caption{\cc{ClimbStairs0} and \cc{ClimbStairs1}: two solutions to
+    the Climbing Stairs problem hosted on LeetCode, manually translated
+    to OCaml.
+    %
+    All subexpressions are labeled with indices in comments.
+    %
+  }
+  \label{fig:climb-stairs}
+\end{figure}
+%
+\autoref{fig:climb-stairs} contains the pseudocode for two solutions
+to the Climbing Stairs Problem hosted on the coding platform the
+LeetCode.
+% problem statement:
+The Climbing Stairs Problem is to take an integer $n$ and return the
+number of distinct sequences of steps that can be taken to climb $n$
+steps, where in each step either one or two steps can be climbed. If
+$n$ is less than or equal to one, then the solution is one.
+%
+\BH{walk through how the two solutions work}
+
+%
+\cc{climbStairs0} and \cc{climbStairs1} have an inductive subset of
+subexpression pairs that prove their equivalence.
+%
+
+\BH{define inductive subset of expressions}
+%
+functions
+
+function bodies
+
+then case: (1, 1)
+
+else case:
+(climbStairs0Rec, climbStairs1Rec)
+
+(application of climbStairs0Rec, application of climbStairs1Rec)
+
+%
+\BH{define relational invariants of inductive subset}
+
+
+\paragraph{Solutions to Reverse}
+%
+\NV{complete}
+
+\paragraph{Solutions to Trailing Zeroes}
+\NV{complete}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
