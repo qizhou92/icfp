@@ -16,10 +16,10 @@ equivalence of $P_0$ and $P_1$.
 \paragraph{Solutions to Climbing Stairs}
 %
 \begin{figure}[t]
-  \begin{minipage}{0.45\linewidth}
+  \begin{minipage}{0.48\linewidth}
     \input{code/ClimbStairs0.ml}
   \end{minipage}
-  \begin{minipage}{0.45\linewidth}
+  \begin{minipage}{0.48\linewidth}
     \input{code/ClimbStairs1.ml}    
   \end{minipage}
   %
@@ -45,8 +45,31 @@ $n$ is less than or equal to one, then the solution is one.
 \BH{walk through how the two solutions work}
 
 %
-\cc{climbStairs0} and \cc{climbStairs1} have an inductive subset of
-subexpression pairs that prove their equivalence.
+\cc{climbStairs0} and \cc{climbStairs1} have the following proof of
+partial equivalence:
+%
+\begin{align*}
+  % pair of main subexpressions:
+  (\cc{0}, \cc{0}) & \mapsto %
+  \alpha_0^0 = \alpha_1^0 \implies \nu_0 = \nu_1 \\
+  % pair of function bodies:
+  (\cc{1}, \cc{1}) & \mapsto %
+  \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
+  % pair of if guards:
+  (\cc{2}, \cc{2}) & \mapsto %
+  \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
+  % pair of then expressions:
+  (\cc{3}, \cc{3}) & \mapsto \nu_0 = \nu_1 \\
+  % pair of else expressions:
+  (\cc{4}, \cc{4}) & \mapsto %
+  \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
+  % pair of fixpoint functions:
+  (\cc{5}, \cc{5}) & \mapsto %
+  \cc{n}_0 = \cc{n}_1 \land ... \implies \nu_0 = \nu_1
+\end{align*}
+%
+\BH{define notation for logical variables}
+
 %
 
 \BH{define inductive subset of expressions}
