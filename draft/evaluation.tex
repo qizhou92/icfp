@@ -50,44 +50,100 @@ partial equivalence:
 %
 \begin{align*}
   % pair of main subexpressions:
-  (\cc{0}, \cc{0}) & \mapsto %
+  (\cc{0}, \cc{0}) \mapsto & %
   \alpha_0^0 = \alpha_1^0 \implies \nu_0 = \nu_1 \\
   % pair of function bodies:
-  (\cc{1}, \cc{1}) & \mapsto %
+  (\cc{1}, \cc{1}) \mapsto & %
   \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
   % pair of if guards:
-  (\cc{2}, \cc{2}) & \mapsto %
+  (\cc{2}, \cc{2}) \mapsto & %
   \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
   % pair of then expressions:
-  (\cc{3}, \cc{3}) & \mapsto \nu_0 = \nu_1 \\
+  (\cc{3}, \cc{3}) \mapsto & \nu_0 = \nu_1 \\
   % pair of else expressions:
-  (\cc{4}, \cc{4}) & \mapsto %
+  (\cc{4}, \cc{4}) \mapsto & %
   \cc{n}_0 = \cc{n}_1 \implies \nu_0 = \nu_1 \\
   % pair of fixpoint functions:
-  (\cc{5}, \cc{5}) & \mapsto %
-  \cc{n}_0 = \cc{n}_1 \land ... \implies \nu_0 = \nu_1
+  (\cc{5}, \cc{5}) \mapsto & %
+  % inductive relational invariant (indices in step):
+  (\cc{n}_0 = \cc{n}_1 \land %
+  \alpha_0^0 = \alpha_1^1 \land %
+  \alpha_0^1 = \alpha_1^1 \land %
+  \alpha_0^3 + 1 = \alpha_1^2 \implies %
+  \nu_0 = \nu_1) \land \\
+  % for establishing final property:
+  & (\cc{n}_0 = \cc{n}_1 \land \cc{i}_0 \land %
+  \alpha_0^0 = \alpha_0^1 + \alpha_1^1 \land %
+  \alpha_0^1 = \alpha_1^1 \land %
+  \alpha_0^3 = \alpha_1^2 \implies %
+  \nu_0 = \nu_1) \\
+  % pair of argument vectors:
+  (\cc{6}, \cc{6}) \mapsto & %
+  \pi_0(\nu_0) = \pi_0(\nu_1) + \pi_1(\nu_1) \land %
+  \pi_1(\nu_0) = \pi_1(\nu_1) \land %
+  \pi_3(\nu_0) = \pi_3(\nu_3) \\
+  % fixpoint body:
+  (\cc{7}, \cc{7}) \mapsto & 
+  % inductive relational invariant (indices in step):
+  (\cc{n}_0 = \cc{n}_1 \land %
+  \cc{sum}_0 = \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_3 + 1 = \cc{i}_1 \implies %
+  \nu_0 = \nu_1) \land \\
+  % for establishing final property:
+  & (\cc{n}_0 = \cc{n}_1 \land %
+  \cc{sum}_0 = \cc{count1}_1 + \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_3 = \cc{i}_1 \implies %
+  \nu_0 = \nu_1) \\
+  % fixpoint body guards:
+  (\cc{8}, \cc{8}) \mapsto & \cc{i}_1 - \cc{i}_0 \leq 1 \implies %
+  \nu_0 = \nu_1 \\
+  % fixpoint body then expressions:
+  (\cc{9}, \cc{9}) \mapsto & 
+  (\cc{n}_0 = \cc{n}_1 \land %
+  \cc{sum}_0 = \cc{count2}_1 \land %
+  \cc{prev}_0 = \cc{count2}_1 \land %
+  \cc{i}_0 + 1 = \cc{i}_1 \implies %
+  \nu_0 = \nu_1) \land \\
+  % for establishing final property:
+  & (\cc{n}_0 = \cc{n}_1 \land \cc{i}_0 \land %
+  \cc{sum}_0 = \cc{count1}_1 + \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_0 = \cc{i}_1 \implies %
+  \nu_0 = \nu_1) \\
+  % fixpoint body else expressions:
+  (\cc{10}, \cc{10}) \mapsto & \cc{sum}_0 = \cc{count2}_1 \implies %
+  \nu_0 = \nu_1 \\
+  % argument steps preserve relative invariants over arguments:
+  % subcase: CS1 is one step ahead of CS0:
+  (\cc{11}, \cc{11}) \mapsto & 
+  (\cc{sum}_0 = \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_3 + 1 = \cc{i}_1 \implies \\
+  & \pi_0(\nu_0) = \pi_1(\nu_1) \land %
+  \pi_1(\nu_0) = \pi_0(\nu_1) \land %
+  \pi_3(\nu_0) = \pi_2(\nu_1)) \land \\
+  %
+  & (\cc{sum}_0 = \cc{count1}_1 + \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_0 = \cc{i}_1 \implies \\ %
+  & \pi_0(\nu_0) = \pi_0(\nu_1) + \pi_1(\nu_1) \land %
+  \pi_1(\nu_0) = \pi_1(\nu_1) \land %
+  \pi_3(\nu_0) = \pi_2(\nu_1)) \land \\
+  % for establishing final property:
+  & (\cc{n}_0 = \cc{n}_1 \land \cc{i}_0 \land %
+  \cc{sum}_0 = \cc{count1}_1 + \cc{count2}_1 \land %
+  \cc{prev}_1 = \cc{count2}_1 \land %
+  \cc{i}_3 = \cc{i}_1 \implies
+  \nu_0 = \nu_1) 
 \end{align*}
 %
 \BH{define notation for logical variables}
-
 %
+\BH{refactor entries to use common invariant meta-variables}
 
-\BH{define inductive subset of expressions}
-%
-functions
-
-function bodies
-
-then case: (1, 1)
-
-else case:
-(climbStairs0Rec, climbStairs1Rec)
-
-(application of climbStairs0Rec, application of climbStairs1Rec)
-
-%
-\BH{define relational invariants of inductive subset}
-
+\BH{walk through relational invariants}
 
 \paragraph{Solutions to Reverse}
 %
