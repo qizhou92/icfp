@@ -2,6 +2,7 @@ let climbStairs0 n =
   if n <= 1 then 1
   else
     let rec climbStairs0Rec sum prev cur i = 
-      if i < n then climbStairsRec (sum + prev) cur sum (i + 1)
+      if i < n then climbStairs0Rec (sum + prev) sum sum (i + 1)
       else sum in
-    climbStairsRec 2 1 0 2
+    climbStairs0Rec 2 1 0 2
+
