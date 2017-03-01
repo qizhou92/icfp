@@ -9,10 +9,59 @@ structures synthesized by \sys.
 In \autoref{sec:verifier}, we present the verification algorithm used
 by \sys to synthesize such structures.
 
-\subsection{A class of relational invariants as proofs}
+\subsection{Relational invariants as equivalence proofs}
 \label{sec:rel-invs}
-\BH{define class of relational invariants. Proof is a set of
-  subexpressions to a symbolic invariant}
+%
+\sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
+that $P_0$ is equivalent to $P_1$ that is represented as a set of
+subexpressions of $P_0$ and $P_1$, mapped to a relational invariant
+over the subexpressions.
+%
+For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
+arbitrary $\stlc$ programs.
+%
+For $e \in \exprs$, let $\symvars{e}$ denote a disjoint copy of
+$\freevars(e)$.
+%
+For expressions $E \subseteq \exprs$, let $\symvars{E} = \bigunion_{e
+  \in E} \symvars{e}$.
+
+% define symbolic relations:
+\begin{defn}
+  \label{defn:sym-rels}
+  Let $E = \subexps(P_0) \union \subexps(P_1)$,
+  %
+  $R: \pset(E) \to \formulas{ \symvars{E} }$ be such that %
+  for each $E_0 \subseteq E$, %
+  it holds that $R(E_0) \in \symrels{ \symvars{E_0} }$.
+  %
+  Then $R$ are \emph{symbolic relations}.
+\end{defn}
+%
+The space of symbolic relations is denoted $\symrels$.
+
+% define relational invariants
+\begin{defn}
+  \label{defn:rel-invs}
+  For $P_0, P_1 \in \stlc$, let $R \in \symrels$ be such that %
+  for each $E \subseteq \subexps(P_0) \union \subexps(P_1)$, either %
+  \textbf{(1)} there is some $e \in E \intersection \subexps(P_0)$
+  such that for all $e_0, \ldots, e_n \in \subexps(P_0)$ such that %
+  $[ e_0, \ldots, e_n ] \stepsto{P_0} e_0$, 
+  % relational invariants of E with e removed and preds added,
+  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } )
+  % and symbolic relation of the step to e entail
+  \symstep{P_0}{ e_0, \ldots, e_n }{ e } \entails 
+  % symbolic relation of E:
+  R(E)
+  \]
+  or \textbf{(2)} the symmetric condition holds for some $e \in E
+  \intersection \subexps(P_1)$.
+  %
+  Then $R$ are \emph{relational invariants}.
+\end{defn}
+%
+\BH{define equivalence proof as case of relational invariants.}
 
 \subsection{An automatic equivalence prover}
 \label{sec:verifier}
