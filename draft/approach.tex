@@ -1,0 +1,44 @@
+% give the real meat of the thing
+\section{Technical Approach}
+%
+In this section, we describe our technical approach in detail.
+%
+In \autoref{sec:rel-invs}, we define the class of proof
+structures synthesized by \sys.
+%
+In \autoref{sec:verifier}, we present the verification algorithm used
+by \sys to synthesize such structures.
+
+\subsection{A class of relational invariants as proofs}
+\label{sec:rel-invs}
+\BH{define class of relational invariants. Proof is a set of
+  subexpressions to a symbolic invariant}
+
+\subsection{An automatic equivalence prover}
+\label{sec:verifier}
+%
+\BH{define equivalence verifier. Maintains relational invariants over
+  sets of derivations.}
+
+\BH{derivation refutation: define relational invariants over sets of
+  subderivations that form a frontier in the pair of
+  derivations. Start from the set of all leaves. Get the relational
+  invariant for each set by taking disjunction over its predecessors
+  along every step, and then some context formula that will be
+  non-trivial to define.}
+
+\BH{after solving for relational invariants over sets of derivations,
+  some derivations may occur more than once in a pair of
+  derivations. The invariants for these get folded together using
+  conjunction. This normalizes the result into a relational invariant
+  per set of derivation}
+
+\BH{sets of derivations play the role of sets of paths in path-based
+  analysis. Entailment is checked over sets derivations that derive
+  the same set of expressions. Search for a sufficient set can branch:
+  we just need to find an inductive set along some expression.}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "p"
+%%% End: 
