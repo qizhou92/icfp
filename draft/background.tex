@@ -9,25 +9,113 @@ We then define partial equivalence of STLC programs
 
 \subsection{The simply-typed $\lambda$-calculus}
 \label{sec:stlc}
+\begin{figure}[t]
+  \begin{align*}
+    % expression is a constant,
+    \expr \rightarrow &\ c \\
+    % or a variable,
+    | &\ x \\
+    % or a binary operation,
+    | &\ \expr\ \ops\ \expr \\
+    % or an if-then-else, 
+    | &\ \cc{if}\ \expr\ \cc{then}\ \expr\ \cc{else}\ \expr \\
+    % or an abstraction,
+    | &\ \lambda x.\ \expr \\
+    % or an application,
+    | &\ \expr\ \expr \\
+    % or a fixpoint,
+    | &\ \cc{fix}\ f\ \expr
+  \end{align*}
+  \caption{The syntax of simply-typed $\lambda$-calculus expressions.
+    %
+    Metavariable $c$ ranges over the space of constants; %
+    metavariables $x$ and $f$ range over the space of variables.}
+  \label{fig:syntax}
+\end{figure}
 
-\BH{define fixed space of variables}
+% define STLC syntax:
+\paragraph{Syntax} \autoref{fig:syntax} defines a the space of
+simply-typed $\lambda$-calculus expressions.
+%
+An expression is a Boolean or integer constant, %
+a variable (drawn from space of variables $\vars$), %
+an application of an fixed operator to a pair of expressions, %
+an \cc{if}-\cc{then}-\cc{else} expression, %
+a $\lambda$-abstraction, %
+an application, or %
+a fixpoint expression.
+%
+For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
+$\freevars(e)$.
+%
+A STLC \emph{program} is a closed expression---i.e., an expression $e$
+such that $\freevars(e) = \emptyset$.
+%
+The space of STLC programs is denoted $\stlc$.
+%
+For $P \in \stlc$, the set of all subexpressions of $P$ is denoted
+$\subexps(P)$.
 
-\BH{define STLC with integers, Booleans, arithmetic operators, and
-  fixpoint}
+% define semantics:
+\paragraph{Semantics}
+%
+A value is a Boolean or integer;
+%
+i.e., the space of values is denoted $\values = \bools \union \ints$.
+%
+The semantics of $\stlc$ is defined by a big-step evaluation relation
+from expressions to values.
+%
+For $e \in \expr$ and $v \in \values$, the fact that $e$
+\emph{evaluates} to $v$ is denoted $e \evalsto v$.
 
-\BH{define free variables of each expression}
+\BH{define space of derivations}
 
-\BH{define STLC as space of closed expressions}
+% standard defns for logic:
+\paragraph{Logic}
+%
+\BH{include standard defns of logic}
 
-\BH{define subexpressions of a program}
+\paragraph{Symbolic encoding of semantics}
+%
+The semantics of $\stlc$ is represented symbolically using \lia
+formulas.
+%
+\BH{hoist defn of disjoint copies of variables for expressions}
+%
+In particular, for each $e \in \expr$ with subexpressions $e_0,
+\ldots, e_n \in \expr$, there is some $\varphi \in \formulas{\vars[e],
+  \vars[e_0], \ldots, \vars[e_n]}$ such that
 
 \BH{define stepsto relations over expressions. Sub-expression
-  relations, except for with fixed-point expressions.}
+  relations, except for with fixed-point expressions. Define alpha and
+  nu as result variables.}
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
+%
+If STLC programs $P_0$ and $P_1$, applied to the same input, evaluate
+to the same value, then $P_0$ and $P_1$ are partially equivalent.
+%
+\begin{defn}
+  \label{defn:peq}
+  For $P_0, P_1 \in \stlc$, if for all $v, v_0, v_1 \in values$ such
+  that $P_0 v \evalsto v_0$ and $P_1 v evalsto v_1$, it holds that
+  $v_0 = v_1$, then $P_0$ and $P_1$ are \emph{partially equivalent}.
+\end{defn}
+%
+The fact that $P_0$ and $P_1$ are partially equivalent is denoted $P_0
+\equiv P_1$.
+%
+The main problem that we address in this work is, given STLC programs
+$P_0$ and $P_1$, to determine if $P_0 \equiv P_1$.
 
-\BH{define equivalence of STLC programs}
+% disclaimer: we're keeping it simple, it doesn't matter:
+\autoref{defn:peq} only allows programs to be partially equivalent if
+they take exactly one argument.
+%
+The definition can be directly generalized to include pairs of
+programs over tuples of arguments of arbitrary length.
 
 %%% Local Variables: 
 %%% mode: latex

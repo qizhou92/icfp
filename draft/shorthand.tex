@@ -1,9 +1,17 @@
 % shorthand: paper-specific shorthand
-\newcommand{\exprs}{\mathsf{Exprs}}
+\newcommand{\const}{\mathsf{Const}}
 
-\newcommand{\formulas}[1]{\mathsf{Forms}[ #1 X]}
+\newcommand{\evalsto}{\Downarrow}
+
+\newcommand{\expr}{\mathsf{Expr}}
+
+\newcommand{\formulas}[1]{\mathsf{Forms}[ #1 ]}
 
 \newcommand{\freevars}{\mathsf{FreeVars}}
+
+\newcommand{\ops}{\mathsf{ops}}
+
+\newcommand{\relinvs}{\mathsf{RelInvs}}
 
 \newcommand{\stepsto}[1]{\rightarrow_{ #1 }}
 
@@ -13,9 +21,11 @@
 
 \newcommand{\symrels}{\mathsf{SymRels}}
 
-\newcommand{\symstep}[3]{\psi[ #1, #2, #3 ]}
+\newcommand{\symstep}[2]{\psi[ #1 ; #2 ]}
 
 \newcommand{\symvars}[1]{\mathsf{symvars}_{#1}}
+
+\newcommand{\values}{\mathsf{Values}}
 
 \newcommand{\vars}{\mathsf{Vars}}
 

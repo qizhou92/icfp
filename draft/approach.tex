@@ -20,10 +20,10 @@ over the subexpressions.
 For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
 arbitrary $\stlc$ programs.
 %
-For $e \in \exprs$, let $\symvars{e}$ denote a disjoint copy of
+For $e \in \expr$, let $\symvars{e}$ denote a disjoint copy of
 $\freevars(e)$.
 %
-For expressions $E \subseteq \exprs$, let $\symvars{E} = \bigunion_{e
+For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
   \in E} \symvars{e}$.
 
 % define symbolic relations:
@@ -33,7 +33,7 @@ For expressions $E \subseteq \exprs$, let $\symvars{E} = \bigunion_{e
   %
   $R: \pset(E) \to \formulas{ \symvars{E} }$ be such that %
   for each $E_0 \subseteq E$, %
-  it holds that $R(E_0) \in \symrels{ \symvars{E_0} }$.
+  it holds that $R(E_0) \in \formulas{ \symvars{E_0} }$.
   %
   Then $R$ are \emph{symbolic relations}.
 \end{defn}
@@ -47,21 +47,58 @@ The space of symbolic relations is denoted $\symrels$.
   for each $E \subseteq \subexps(P_0) \union \subexps(P_1)$, either %
   \textbf{(1)} there is some $e \in E \intersection \subexps(P_0)$
   such that for all $e_0, \ldots, e_n \in \subexps(P_0)$ such that %
-  $[ e_0, \ldots, e_n ] \stepsto{P_0} e_0$, 
+  $[ e_0, \ldots, e_n ] \stepsto{P_0} e$, 
   % relational invariants of E with e removed and preds added,
-  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } )
+  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } ),
   % and symbolic relation of the step to e entail
-  \symstep{P_0}{ e_0, \ldots, e_n }{ e } \entails 
+  \symstep{ e_0, \ldots, e_n }{ e } \entails
+  % symbolic relation of E:
+  R(E)
+  \] or % symmetric condition for P1
+  \textbf{(2)} there is some $e \in E \intersection \subexps(P_1)$
+  such that for all $e_0, \ldots, e_n \in \subexps(P_1)$ such that %
+  $[ e_0, \ldots, e_n ] \stepsto{P_1} e$,
+  % relational invariants of E with e removed and preds added,
+  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } ),
+  % and symbolic relation of the step to e entail
+  \symstep{ e_0, \ldots, e_n }{ e } \entails
   % symbolic relation of E:
   R(E)
   \]
-  or \textbf{(2)} the symmetric condition holds for some $e \in E
-  \intersection \subexps(P_1)$.
   %
   Then $R$ are \emph{relational invariants}.
 \end{defn}
 %
-\BH{define equivalence proof as case of relational invariants.}
+The space of relational invariants is denoted $\relinvs$.
+
+% relational invariants
+Relational invariants are evidence of partial equivalence if they are
+supported by the assumption that $P_0$ and $P_1$ are run on equal
+inputs, and they imply that $P_0$ and $P_1$ return equal values.
+%
+\begin{defn}
+  \label{defn:eq-pf}
+  Let $R \in \relinvs$ be such that $R(P_0, P_1), \alpha^0_0 =
+  \alpha^1_0 \entails \nu^0 = \nu^1$.
+  %
+  Then $R$ is \emph{evidence} of $P_0 \equiv P_1$.
+\end{defn}
+
+% example of relational invariants:
+\begin{ex}
+  \label{ex:rel-invs}
+  \BH{give example relational invariants}
+\end{ex}
+
+%
+If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
+\equiv P_1$.
+%
+\begin{lemma}
+  \label{lemma:valid-evidence}
+  If there is some $R \in \relinvs$ such that $R$ is evidence of $P_0
+  \equiv P_1$, then $P_0 \equiv P_1$.
+\end{lemma}
 
 \subsection{An automatic equivalence prover}
 \label{sec:verifier}
