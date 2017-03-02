@@ -139,12 +139,79 @@ partial equivalence:
 
 \BH{walk through relational invariants}
 
+\NV{Question: Why 9 has n0 equals tp n1 precondition but 10 does not?}
+
 \paragraph{Solutions to Reverse}
 %
 \NV{complete}
 
 \paragraph{Solutions to Trailing Zeroes}
-\NV{complete}
+\begin{hcode}
+trailingZeroes0 {- 0 -} n 
+ = {- 1 -} go0 ((0, n) {- 2 -}) {- 3 -}
+  where
+    go0 {- 4 -} (x, y) {- 5 -}
+      | 5 <= y  {- 6 -}
+      = go0 ((x + (y `div` 5), y `div` 5) {- 9-}) {- 7 -}
+      | otherwise 
+      = x {- 8 -}
+
+
+trailingZeroes1 {- 0 -} n 
+ = {- 1 -} go1 ((0, n `div` 5) {- 2 -}) {- 3 -}
+  where 
+    go1 {- 4 -} (s, n) {- 5 -}
+      | 0 < n   {- 6 -} 
+      = go1 ((s + n, n `div` 5) {- 9 -}) {- 7 -}
+      | otherwise 
+      = s {- 8 -}
+\end{hcode}
+
+
+\newcommand\rinv[3]{\ensuremath{(\cc{#1}, \cc{#2}) }}
+\newcommand\iinv[2]{\ensuremath{\mathcal{I}(#1, #2)}}
+\newcommand\precondition[2]{\ensuremath{\mathcal{P}(#1, #2)}}
+\newcommand\postcondition[2]{\ensuremath{\mathcal{Q}(#1, #2)}}
+
+$$
+\text{Invariant: }\iinv{x_0}{x_1} = x_0^0 = x_1^0 \land x_0^1 = x_0^1 / 5
+$$
+$$
+\text{Precondition: }\precondition{x_0}{x_1} = x_0^0 = x_1^0 \land x_0^1 = x_0^1 / 5
+$$
+$$
+\text{Postcondition: }\postcondition{x_0}{x_1} = x_0 = x_1
+$$
+
+$$
+\begin{array}{ r c l}
+  % pair of main subexpressions:
+  \rinv{0}{0} &\mapsto& \alpha_0 = \alpha_1 \implies \nu_0 = \nu_1 \\
+  % pair of body 
+  \rinv{1}{1} &\mapsto& n_0 = n_1 \implies \nu_0 = \nu_1 \\
+  % pair on arguments 
+  \rinv{2}{2} &\mapsto& \precondition{\nu_0}{\nu_1} \\
+  % pair of fixpoint functions (like step 5 above):
+  \rinv{3}{3} &\mapsto& n_0 = n_1 \implies \postcondition{\nu_0}{\nu_1} \\
+  % pair of fixpoint functions (like step 5 above):
+  \rinv{4}{4} &\mapsto& \precondition{\alpha_0}{\alpha_1} \implies \postcondition{\nu_0}{\nu_1} \\
+  \rinv{5}{5} &\mapsto& \precondition{(x_0, y_0)}{(s_1, n_1)} \implies \postcondition{\nu_0}{\nu_1} \\
+  % pair for condition
+  \rinv{6}{6}  &\mapsto&  \precondition{(x_0, y_0)}{(s_1, n_1)} 
+                          \implies 5 \leq y_0 \Leftrightarrow 0 < n_1 
+                          \implies \postcondition{\nu_0}{\nu_1}   \\
+  % pair for then
+  \rinv{7}{7}  &\mapsto&  \precondition{(x_0, y_0)}{(s_1, n_1)} 
+                          \implies \iinv{(x_0, y_0)}{(s_1, n_1)} 
+                          \implies \postcondition{\nu_0}{\nu_1}   \\
+  % pair for else
+  \rinv{8}{8}  &\mapsto&  \precondition{(x_0, y_0)}{(s_1, n_1)} 
+                          \implies x_0 = s_1 
+                          \implies \postcondition{\nu_0}{\nu_1} \\
+  % pair for rec call
+  \rinv{9}{9}  &\mapsto& \iinv{(x_0, y_0)}{(s_1, n_1)} \implies \iinv{\nu_0}{\nu_1}\\
+\end{array}
+$$
 
 %%% Local Variables: 
 %%% mode: latex
