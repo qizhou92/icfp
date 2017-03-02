@@ -71,10 +71,88 @@ For $e \in \expr$ and $v \in \values$, the fact that $e$
 
 \BH{define space of derivations}
 
+\paragraph{Typing}
+%
+\BH{define typing relation}
+
 % standard defns for logic:
 \paragraph{Logic}
 %
-\BH{include standard defns of logic}
+\sys uses formal logic to model the semantics of programs.
+%
+The quantifier-free fragment of the theory of linear arithmetic is
+denoted $\lia$.
+%
+For each space of logical variables $X$, the space of $\lia$ formulas
+over $X$ is denoted $\formulas{X}$.
+%
+For each formula $\varphi \in \formulas{X}$, the set of variables that
+occur in $\varphi$ (i.e., the \emph{vocabulary} of $\varphi$) is
+denoted $\vocab(\varphi)$.
+% define models, satisfaction, entailment
+A \lia \emph{model} $m$ over $X$ is an assignment from each variable
+in $X$ to an integer.
+%
+The fact that model $m$ \emph{satisfies} a formula $\varphi$ is
+denoted $m \sats \varphi$.
+%
+For formulas $\varphi_0, \ldots, \varphi_n, \varphi \in \formulas{X}$,
+the fact that $\varphi_0, \ldots, \varphi_n$ \emph{entail} $\varphi$
+is denoted $\varphi_0, \ldots, \varphi_n \entails \varphi$.
+
+% Define replacement and substitution:
+For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and $Y = [
+y_0, \ldots, y_n ]$, the \lia formula constraining the equality of
+each element in $X$ with its corresponding element in $Y$, i.e., the
+formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted $X = Y$.
+%
+The repeated replacement of variables $\varphi[ y_0 / x_0 \ldots y_{n
+  - 1} / x_{n - 1} ]$ is denoted $\replace{\varphi}{Y}{X}$.
+%
+For each formula $\varphi$ defined over free variables $X$,
+$\replace{\varphi}{X}{Y}$ is denoted alternatively as $\varphi[Y]$.
+%
+The number of free variables in formula $\varphi$ is denoted
+$\degreeof{\varphi}$.
+
+% Introduce decision procedure:
+Although determining the satisfiability of a \lia formula is
+NP-complete in general, decision procedures for \lia have been
+proposed that often determine the satisfiability of formulas that
+arise from practical verification problems
+efficiently~\cite{demoura08}.
+%
+\sys assumes access to a decision procedure for \lia, denoted \issat.
+
+% introduce interpolants over formula pairs:
+An interpolant of mutually inconsistent formulas $\varphi_0$ and
+$\varphi_1$ is a \lia formula that explains their inconsistency using
+their common vocabulary.
+%
+\begin{defn}
+  \label{defn:itps}
+  % define:
+  For spaces of logical variables $X$ and $Y$,
+  %
+  $\varphi_0 \in \formulas{X}$ and
+  %
+  $\varphi_1 \in \formulas{Y}$,
+  % 
+  if $I \in \formulas{X \intersection Y}$ is such that 
+  %
+  \textbf{(1)} $\varphi_0 \entails I$ and %
+  \textbf{(2)} $I, \varphi_1 \entails \false$, then $I$ is an
+  \emph{interpolant} of $\varphi_0$ and $\varphi_1$.
+\end{defn}
+%
+Previous work has introduced interpolating theorem provers that
+synthesize interpolants of pairs of mutually-unsatisfiable formulas in
+extensions theories used to model program semantics and
+specifications~\cite{mcmillan04}.
+%
+To present \sys, we assume access to a procedure \solveitp that, given
+mutually unsatisfiable \lia formulas $\varphi_0, \varphi_1$, returns
+an interpolant of $\varphi_0$ and $\varphi_1$.
 
 \paragraph{Symbolic encoding of semantics}
 %
