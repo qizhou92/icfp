@@ -17,23 +17,28 @@ We then define partial equivalence of STLC programs
   \label{fig:syntax}
   \begin{floatrow}[2]
     \ffigbox[.48\textwidth] %
-    { \caption{The space of program expressions, $\expr$.} %
+    { \caption{The space of program expressions, $\expr$.
+        %
+        Metavariable $e$ ranges over $\expr$, %
+        $c$ ranges over constants, %
+        $\oplus$ ranges over binary operators,
+        and $x$ and $f$ range over program variables. } %
       \label{fig:multicall-code} }
     {  \begin{align*}
         % expression is a constant,
-        \expr \rightarrow &\ c \\
+        e \rightarrow &\ c \\
         % or a variable,
         | &\ x \\
         % or a binary operation,
-        | &\ \expr\ \ops\ \expr \\
+        | &\ e \oplus e \\
         % or an if-then-else, 
-        | &\ \cc{if}\ \expr\ \cc{then}\ \expr\ \cc{else}\ \expr \\
+        | &\ \cc{if}\ e\ \cc{then}\ e\ \cc{else}\ e \\
         % or an abstraction,
-        | &\ \lambda x.\ \expr \\
+        | &\ \lambda x.\ e \\
         % or an application,
-        | &\ \expr\ \expr \\
+        | &\ e\ e \\
         % or a fixpoint,
-        | &\ \cc{fix}\ f\ \expr
+        | &\ \cc{fix}\ f\ e
       \end{align*} }
     %
     \ffigbox[.48\textwidth] %
@@ -155,7 +160,7 @@ For each formula $\varphi$ defined over free variables $X$,
 $\replace{\varphi}{X}{Y}$ is denoted alternatively as $\varphi[Y]$.
 %
 The number of free variables in formula $\varphi$ is denoted
-$\degreeof{\varphi}$.
+$\degreeof(\varphi)$.
 
 % Introduce decision procedure:
 Although determining the satisfiability of a \lia formula is
