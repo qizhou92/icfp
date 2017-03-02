@@ -10,27 +10,46 @@ We then define partial equivalence of STLC programs
 \subsection{The simply-typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
-  \begin{align*}
-    % expression is a constant,
-    \expr \rightarrow &\ c \\
-    % or a variable,
-    | &\ x \\
-    % or a binary operation,
-    | &\ \expr\ \ops\ \expr \\
-    % or an if-then-else, 
-    | &\ \cc{if}\ \expr\ \cc{then}\ \expr\ \cc{else}\ \expr \\
-    % or an abstraction,
-    | &\ \lambda x.\ \expr \\
-    % or an application,
-    | &\ \expr\ \expr \\
-    % or a fixpoint,
-    | &\ \cc{fix}\ f\ \expr
-  \end{align*}
   \caption{The syntax of simply-typed $\lambda$-calculus expressions.
     %
     Metavariable $c$ ranges over the space of constants; %
     metavariables $x$ and $f$ range over the space of variables.}
   \label{fig:syntax}
+  \begin{floatrow}[2]
+    \ffigbox[.48\textwidth] %
+    { \caption{The space of program expressions, $\expr$.} %
+      \label{fig:multicall-code} }
+    {  \begin{align*}
+        % expression is a constant,
+        \expr \rightarrow &\ c \\
+        % or a variable,
+        | &\ x \\
+        % or a binary operation,
+        | &\ \expr\ \ops\ \expr \\
+        % or an if-then-else, 
+        | &\ \cc{if}\ \expr\ \cc{then}\ \expr\ \cc{else}\ \expr \\
+        % or an abstraction,
+        | &\ \lambda x.\ \expr \\
+        % or an application,
+        | &\ \expr\ \expr \\
+        % or a fixpoint,
+        | &\ \cc{fix}\ f\ \expr
+      \end{align*} }
+    %
+    \ffigbox[.48\textwidth] %
+    {\caption{The space of types, $\types$.
+        %
+        Metavariable $\tau$ ranges over $\types$.} %
+      \label{fig:ex-deps} }
+    %
+    { \begin{align*} %
+        \tau \rightarrow &\ \base\ %
+        |\ \base \to \tau \\
+        \base \rightarrow &\ \bools\ %
+        |\ \ints
+      \end{align*} }
+  \end{floatrow}
+
 \end{figure}
 
 % define STLC syntax:
@@ -63,6 +82,8 @@ A value is a Boolean or integer;
 %
 i.e., the space of values is denoted $\values = \bools \union \ints$.
 %
+\BH{extend to include functions}
+%
 The semantics of $\stlc$ is defined by a big-step evaluation relation
 from expressions to values.
 %
@@ -73,7 +94,28 @@ For $e \in \expr$ and $v \in \values$, the fact that $e$
 
 \paragraph{Typing}
 %
-\BH{define typing relation}
+Each expression has a type that describe the spaces of values that it
+takes as input and the spaces of values to which it evaluates.
+%
+The space of types is given in \autoref{fig:types}.
+%
+A type is either a base type or a function from a base type to a type.
+%
+The definition of types in \autoref{fig:types} thus does not include
+higher-order expressions.
+%
+We will relax this restriction in future work.
+%
+\BH{It's probably reasonable to relax this assumption before a first
+  paper}
+
+% introduce has-type symbol:
+For expression $e \in \expr$ and type $\tau \in \types$, the fact that
+$e$ has type $\tau$ is denoted $e \models \tau$.
+%
+The definition of the has-type relation is standard.
+
+\BH{include in figure}
 
 % standard defns for logic:
 \paragraph{Logic}
