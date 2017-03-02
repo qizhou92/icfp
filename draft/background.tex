@@ -10,11 +10,6 @@ We then define partial equivalence of STLC programs
 \subsection{The simply-typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
-  \caption{The syntax of simply-typed $\lambda$-calculus expressions.
-    %
-    Metavariable $c$ ranges over the space of constants; %
-    metavariables $x$ and $f$ range over the space of variables.}
-  \label{fig:syntax}
   \begin{floatrow}[2]
     \ffigbox[.48\textwidth] %
     { \caption{The space of program expressions, $\expr$.
@@ -23,7 +18,7 @@ We then define partial equivalence of STLC programs
         $c$ ranges over constants, %
         $\oplus$ ranges over binary operators,
         and $x$ and $f$ range over program variables. } %
-      \label{fig:multicall-code} }
+      \label{fig:exprs} }
     {  \begin{align*}
         % expression is a constant,
         e \rightarrow &\ c \\
@@ -45,7 +40,7 @@ We then define partial equivalence of STLC programs
     {\caption{The space of types, $\types$.
         %
         Metavariable $\tau$ ranges over $\types$.} %
-      \label{fig:ex-deps} }
+      \label{fig:types} }
     %
     { \begin{align*} %
         \tau \rightarrow &\ \base\ %
@@ -58,7 +53,7 @@ We then define partial equivalence of STLC programs
 \end{figure}
 
 % define STLC syntax:
-\paragraph{Syntax} \autoref{fig:syntax} defines a the space of
+\paragraph{Syntax} \autoref{fig:exprs} defines the space of
 simply-typed $\lambda$-calculus expressions.
 %
 An expression is a Boolean or integer constant, %
