@@ -7,17 +7,12 @@ simply-typed $\lambda$-calculus (STLC) (\autoref{sec:stlc}).
 We then define partial equivalence of STLC programs
 (\autoref{sec:peq}).
 
-\subsection{The simply-typed $\lambda$-calculus}
+\subsection{The Simply-Typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
   \begin{floatrow}[2]
     \ffigbox[.48\textwidth] %
-    { \caption{The space of program expressions, $\expr$.
-        %
-        Metavariable $e$ ranges over $\expr$, %
-        $c$ ranges over constants, %
-        $\oplus$ ranges over binary operators,
-        and $x$ and $f$ range over program variables. } %
+    { \caption{The space of program expressions, $\expr$.} %
       \label{fig:exprs} }
     {  \begin{align*}
         % expression is a constant,
@@ -27,13 +22,13 @@ We then define partial equivalence of STLC programs
         % or a binary operation,
         | &\ e \oplus e \\
         % or an if-then-else, 
-        | &\ \cc{if}\ e\ \cc{then}\ e\ \cc{else}\ e \\
+        | &\ \ite{ e }{ e }{ e } \\
         % or an abstraction,
         | &\ \lambda x.\ e \\
         % or an application,
         | &\ e\ e \\
         % or a fixpoint,
-        | &\ \cc{fix}\ f\ e
+        | &\ \fix{ f }{ e }
       \end{align*} }
     %
     \ffigbox[.48\textwidth] %
@@ -49,12 +44,19 @@ We then define partial equivalence of STLC programs
         |\ \ints
       \end{align*} }
   \end{floatrow}
-
 \end{figure}
+%
+\BH{lift scope of metavariables}
 
 % define STLC syntax:
 \paragraph{Syntax} \autoref{fig:exprs} defines the space of
-simply-typed $\lambda$-calculus expressions.
+simply-typed $\lambda$-calculus expressions, $\expr$.
+%
+For the remainder of this paper, metavariable $e$ ranges over
+$\expr$, %
+$c$ ranges over constants, %
+$\oplus$ ranges over binary operators, and $x$ and $f$ range over
+program variables.
 %
 An expression is a Boolean or integer constant, %
 a variable (drawn from space of variables $\vars$), %
@@ -78,14 +80,62 @@ $\subexps(P)$.
 % define semantics:
 \paragraph{Semantics}
 %
-A value is a Boolean or integer;
+\begin{figure}
+  \centering
+  \begin{gather*}
+  % evaluate const:
+  \inference[ CONST ]{ }{ \Gamma \judges c \evalsto c } 
+  % evaluate variable:
+  \inference[ VAR ]{ }{ \Gamma \judges x \evalsto \Gamma(x) }
+  % evaluate binary operations:
+  \inference[ OP ]{ %
+    \Gamma \judges e_0 \evalsto v_0 & %
+    \Gamma \judges e_1 \evalsto v_1 } %
+  { \Gamma \judges e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\
+  \\
+  % evaluate if-then-else by then branch
+  \inference[ ITE-T ]{ %
+    \Gamma \judges e_0 \evalsto \true & %
+    \Gamma \judges e_1 \evalsto v_1 } %
+  { \Gamma \judges \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 }
+  % evaluate if-then-else by else branch
+  \inference[ ITE-F ]{ %
+    \Gamma \judges e_0 \evalsto \false & %
+    \Gamma \judges e_2 \evalsto v_2 } %
+  { \Gamma \judges \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_2 } \\
+  \\
+  % evaluate an abstraction:
+  \inference[ ABS ]{ } %
+  { \Gamma \judges \lambda x.\ e \evalsto \lambda x.\ e }
+  % evaluate a fix:
+  \inference[ FIX ]{ } %
+  { \Gamma \judges \fix{ f }{ e } \evalsto \fix{ f }{ e } } \\
+  \\
+  % apply a lambda:
+  \inference[ APP-$\lambda$ ]{ %
+    \Gamma \judges e_0 \evalsto \lambda x.\ e_0' & %
+    \Gamma \judges e_1 \evalsto v_1 & %
+    \upd{\Gamma}{x}{v_1} \judges e_0' \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } \\
+  \\
+  % apply a fixpoint:
+  \inference[ APP-FIX ]{ %
+    \Gamma \judges e_0 \evalsto \fix{ f }{ e_0' } & %
+    \upd{ \Gamma }{ f }{ \fix{ f }{ e_0' } } \judges %
+    e_0'\ e_1 \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } 
+  \end{gather*}
+  \caption{The natural semantics of $\stlc$.}
+  \label{fig:nat-sem}
+\end{figure}
 %
-i.e., the space of values is denoted $\values = \bools \union \ints$.
+A value is a Boolean, an integer, a $\lambda$ abstraction, or a
+fixpoint abstraction;
 %
-\BH{extend to include functions}
+the space of values is denoted $\values$.
 %
-The semantics of $\stlc$ is defined by a big-step evaluation relation
-from expressions to values.
+The semantics of $\stlc$ is defined by a natural semantics that
+relates expressions to values, given in \autoref{fig:nat-sem}.
 %
 For $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ is denoted $e \evalsto v$.
@@ -111,11 +161,9 @@ We will relax this restriction in future work.
 
 % introduce has-type symbol:
 For expression $e \in \expr$ and type $\tau \in \types$, the fact that
-$e$ has type $\tau$ is denoted $e \models \tau$.
+$e$ has type $\tau$ is denoted $e \hastype \tau$.
 %
 The definition of the has-type relation is standard.
-
-\BH{include in figure}
 
 % standard defns for logic:
 \paragraph{Logic}
