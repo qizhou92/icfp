@@ -13,68 +13,82 @@ by \sys to synthesize such structures.
 \label{sec:rel-invs}
 %
 \sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
-that $P_0$ is equivalent to $P_1$ that is represented as a set of
-subexpressions of $P_0$ and $P_1$, mapped to a relational invariant
-over the subexpressions.
+that $P_0$ is equivalent to $P_1$ that is represented as set of
+subexpressions of $P_0$ and $P_1$, each mapped to relational
+invariants that relate all evaluations of the subexpressions.
 %
 For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
-arbitrary $\stlc$ programs.
-%
-For $e \in \expr$, let $\symvars{e}$ denote a disjoint copy of
-$\freevars(e)$.
-%
-For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
-  \in E} \symvars{e}$.
+arbitrary $\stlc$ programs, and let $E_{0, 1} = \subexps(P_0) \union
+\subexps(P_1)$.
 
 % define symbolic relations:
 \begin{defn}
   \label{defn:sym-rels}
-  Let $E = \subexps(P_0) \union \subexps(P_1)$,
-  %
-  $R: \pset(E) \to \formulas{ \symvars{E} }$ be such that %
-  for each $E_0 \subseteq E$, %
-  it holds that $R(E_0) \in \formulas{ \symvars{E_0} }$.
+  Let $R: \pset(E) \to \formulas{ E_{0, 1} }$ be such that %
+  for each $E \subseteq E_{0, 1}$, %
+  it holds that $R(E) \in \formulas{ \symvars{E} }$.
   %
   Then $R$ are \emph{symbolic relations}.
 \end{defn}
 %
 The space of symbolic relations is denoted $\symrels$.
 
+% relational invariants
 % define relational invariants
+Relational invariants of $P_0$ and $P_1$ are a map from sets of
+subexpressions of $P_0$ and $P_1$, with each set $S$ mapped to a
+formula that relates the evaluations of all expressions in $S$.
+%
+Relational invariants soundly describe all steps of evaluation that
+can be taken by $P_0$ and $P_1$.
 \begin{defn}
   \label{defn:rel-invs}
   For $P_0, P_1 \in \stlc$, let $R \in \symrels$ be such that %
-  for each $E \subseteq \subexps(P_0) \union \subexps(P_1)$, either %
-  \textbf{(1)} there is some $e \in E \intersection \subexps(P_0)$
-  such that for all $e_0, \ldots, e_n \in \subexps(P_0)$ such that %
-  $[ e_0, \ldots, e_n ] \stepsto{P_0} e$, 
-  % relational invariants of E with e removed and preds added,
-  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } ),
-  % and symbolic relation of the step to e entail
-  \symstep{ e_0, \ldots, e_n }{ e } \entails
-  % symbolic relation of E:
-  R(E)
-  \] or % symmetric condition for P1
-  \textbf{(2)} there is some $e \in E \intersection \subexps(P_1)$
-  such that for all $e_0, \ldots, e_n \in \subexps(P_1)$ such that %
-  $[ e_0, \ldots, e_n ] \stepsto{P_1} e$,
-  % relational invariants of E with e removed and preds added,
-  \[ R( (\remove{ E }{ e }) \union \elts{ e_0, \ldots e_n } ),
-  % and symbolic relation of the step to e entail
-  \symstep{ e_0, \ldots, e_n }{ e } \entails
-  % symbolic relation of E:
-  R(E)
+  % condition: relation of empty set is entailed by true:
+  \textbf{(1)} $\true \entails R(\emptyset)$;
+  % condition: steps are valid:
+  \textbf{(2)} for each $E \not= \emptyset \in \domain(R)$, %
+  there is some $e \in E$ such that either %
+  % subcase: P0 takes a step: 
+  \textbf{(a)} $e \in \subexps(P_0)$ and for each $r \in
+  \evalrules$ that decomposes $e$ to $e_0, \ldots, e_n \in
+  \subexps(P_0)$ in $P_0$,
+  %
+  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
+    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
+  % 
+  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
+  \subs{ \symstep{P_0}{ r } }{ %
+    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
+  \entails R(E)
+  \]
+  or
+  % symmetric condition for P1
+  \textbf{(b)} $e \in \subexps(P_1)$ for each evaluation rule $r$ that
+  decomposes $e$
+  %
+  to $e_0, \ldots, e_n \in \subexps(P_1)$ in $P_1$,
+  %
+  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
+    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
+  % 
+  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
+  \subs{ \symstep{P_1}{ r } }{ %
+    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
+  \entails R(E)
   \]
   %
-  Then $R$ are \emph{relational invariants}.
+  Then $R$ are \emph{relational invariants} of $P_0$ and $P_1$.
 \end{defn}
 %
 The space of relational invariants is denoted $\relinvs$.
 
-% relational invariants
-Relational invariants are evidence of partial equivalence if they are
-supported by the assumption that $P_0$ and $P_1$ are run on equal
-inputs, and they imply that $P_0$ and $P_1$ return equal values.
+% strengthen relational invariants to evidence of equivalence:
+If relational invariants $R$ are such that the invariant for $\elts{
+  P_0, P_1 }$, combined with the assumption that $P_0$ and $P_1$ are
+given equal values, entails that $P_0$ and $P_1$ evaluate to equal
+values, then $R$ is evidence of the partial equivalence of $P_0$ and
+$P_1$.
 %
 \begin{defn}
   \label{defn:eq-pf}

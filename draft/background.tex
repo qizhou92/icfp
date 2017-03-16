@@ -45,8 +45,6 @@ We then define partial equivalence of STLC programs
       \end{align*} }
   \end{floatrow}
 \end{figure}
-%
-\BH{lift scope of metavariables}
 
 % define STLC syntax:
 \paragraph{Syntax} \autoref{fig:exprs} defines the space of
@@ -135,10 +133,15 @@ fixpoint abstraction;
 the space of values is denoted $\values$.
 %
 The semantics of $\stlc$ is defined by a natural semantics that
-relates expressions to values, given in \autoref{fig:nat-sem}.
+relates expressions to values under contexts, given in
+\autoref{fig:nat-sem}.
+%
+The space of rules used to define the $\stlc$ semantics is denoted
+$\evalrules$.
 %
 For $e \in \expr$ and $v \in \values$, the fact that $e$
-\emph{evaluates} to $v$ is denoted $e \evalsto v$.
+\emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
+v$.
 
 \BH{define space of derivations}
 
@@ -249,15 +252,32 @@ an interpolant of $\varphi_0$ and $\varphi_1$.
 The semantics of $\stlc$ is represented symbolically using \lia
 formulas.
 %
-\BH{hoist defn of disjoint copies of variables for expressions}
+For $e \in \expr$, let $\symvars{e}$ denote a disjoint copy of
+$\freevars(e)$, extended with one symbol $\alpha_i$ for each of the
+$i$ parameters in the type of $e$, and a symbol $\nu_e$ that
+models the result of fully applying $e$. 
 %
-In particular, for each $e \in \expr$ with subexpressions $e_0,
-\ldots, e_n \in \expr$, there is some $\varphi \in \formulas{\vars[e],
-  \vars[e_0], \ldots, \vars[e_n]}$ such that
+For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
+  \in E} \symvars{e}$.
 
-\BH{define stepsto relations over expressions. Sub-expression
-  relations, except for with fixed-point expressions. Define alpha and
-  nu as result variables.}
+% decomposition:
+For each $P \in \stlc$, $e \in \subexps(P)$, and rule $r \in
+\evalrules$,
+%
+there is a sequence of subexpressions $e_0, \ldots, e_n \in
+\subexps(P)$ and a formula $\psi \in \formulas{ \symvars{e_0}, \ldots,
+  \symvars{e_n}, \symvars{e} }$ that satisfy the following condition.
+%
+Let $\Gamma_0, \ldots, \Gamma_n$ be contexts, $A_0, \ldots, A_n, A \in
+\values^{*}$, and $\nu_0, \ldots, \nu_n, \nu \in \values$ be such that
+for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
+\nu_i$, and $\Gamma \judges e\ A \evalsto \nu$.
+%
+Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
+\nu \sats \psi$.
+%
+In such a case, $e$ \emph{decomposes} to $e_0, \ldots, e_n$ in $P$,
+and $\psi$ is denoted $\symstep{P}{e}$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
@@ -267,8 +287,8 @@ to the same value, then $P_0$ and $P_1$ are partially equivalent.
 %
 \begin{defn}
   \label{defn:peq}
-  For $P_0, P_1 \in \stlc$, if for all $v, v_0, v_1 \in values$ such
-  that $P_0 v \evalsto v_0$ and $P_1 v evalsto v_1$, it holds that
+  For $P_0, P_1 \in \stlc$, if for all $v, v_0, v_1 \in \values$ such
+  that $P_0\ v \evalsto v_0$ and $P_1\ v \evalsto v_1$, it holds that
   $v_0 = v_1$, then $P_0$ and $P_1$ are \emph{partially equivalent}.
 \end{defn}
 %
