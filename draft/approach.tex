@@ -1,0 +1,153 @@
+% give the real meat of the thing
+\section{Technical Approach}
+%
+In this section, we describe our technical approach in detail.
+%
+In \autoref{sec:rel-invs}, we define the class of proof
+structures synthesized by \sys.
+%
+In \autoref{sec:verifier}, we present the verification algorithm used
+by \sys to synthesize such structures.
+
+\subsection{Relational invariants as equivalence proofs}
+\label{sec:rel-invs}
+%
+\sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
+that $P_0$ is equivalent to $P_1$ that is represented as set of
+subexpressions of $P_0$ and $P_1$, each mapped to relational
+invariants that relate all evaluations of the subexpressions.
+%
+For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
+arbitrary $\stlc$ programs, and let $E_{0, 1} = \subexps(P_0) \union
+\subexps(P_1)$.
+
+% define symbolic relations:
+\begin{defn}
+  \label{defn:sym-rels}
+  Let $R: \pset(E) \to \formulas{ E_{0, 1} }$ be such that %
+  for each $E \subseteq E_{0, 1}$, %
+  it holds that $R(E) \in \formulas{ \symvars{E} }$.
+  %
+  Then $R$ are \emph{symbolic relations}.
+\end{defn}
+%
+The space of symbolic relations is denoted $\symrels$.
+
+% relational invariants
+% define relational invariants
+Relational invariants of $P_0$ and $P_1$ are a map from sets of
+subexpressions of $P_0$ and $P_1$, with each set $S$ mapped to a
+formula that relates the evaluations of all expressions in $S$.
+%
+Relational invariants soundly describe all steps of evaluation that
+can be taken by $P_0$ and $P_1$.
+\begin{defn}
+  \label{defn:rel-invs}
+  For $P_0, P_1 \in \stlc$, let $R \in \symrels$ be such that %
+  % condition: relation of empty set is entailed by true:
+  \textbf{(1)} $\true \entails R(\emptyset)$;
+  % condition: steps are valid:
+  \textbf{(2)} for each $E \not= \emptyset \in \domain(R)$, %
+  there is some $e \in E$ such that either %
+  % subcase: P0 takes a step: 
+  \textbf{(a)} $e \in \subexps(P_0)$ and for each $r \in
+  \evalrules$ that decomposes $e$ to $e_0, \ldots, e_n \in
+  \subexps(P_0)$ in $P_0$,
+  %
+  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
+    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
+  % 
+  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
+  \subs{ \symstep{P_0}{ r } }{ %
+    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
+  \entails R(E)
+  \]
+  or
+  % symmetric condition for P1
+  \textbf{(b)} $e \in \subexps(P_1)$ for each evaluation rule $r$ that
+  decomposes $e$
+  %
+  to $e_0, \ldots, e_n \in \subexps(P_1)$ in $P_1$,
+  %
+  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
+    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
+  % 
+  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
+  \subs{ \symstep{P_1}{ r } }{ %
+    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
+  \entails R(E)
+  \]
+  %
+  Then $R$ are \emph{relational invariants} of $P_0$ and $P_1$.
+\end{defn}
+%
+The space of relational invariants is denoted $\relinvs$.
+
+% strengthen relational invariants to evidence of equivalence:
+If relational invariants $R$ are such that the invariant for $\elts{
+  P_0, P_1 }$, combined with the assumption that $P_0$ and $P_1$ are
+given equal values, entails that $P_0$ and $P_1$ evaluate to equal
+values, then $R$ is evidence of the partial equivalence of $P_0$ and
+$P_1$.
+%
+\begin{defn}
+  \label{defn:eq-pf}
+  Let $R \in \relinvs$ be such that $R(P_0, P_1), \alpha^0_0 =
+  \alpha^1_0 \entails \nu^0 = \nu^1$.
+  %
+  Then $R$ is \emph{evidence} of $P_0 \equiv P_1$.
+\end{defn}
+
+% example of relational invariants:
+\begin{ex}
+  \label{ex:rel-invs}
+  \BH{give example relational invariants}
+\end{ex}
+
+% evidence is a valid proof of partial equivalence:
+If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
+\equiv P_1$.
+%
+\begin{lemma}
+  \label{lemma:valid-evidence}
+  If there is some $R \in \relinvs$ such that $R$ is evidence of $P_0
+  \equiv P_1$, then $P_0 \equiv P_1$.
+\end{lemma}
+
+\subsection{An automatic equivalence verifier}
+\label{sec:verifier}
+%
+\BH{define equivalence verifier. Maintains relational invariants over
+  sets of derivations.}
+
+\BH{derivation refutation: define relational invariants over sets of
+  subderivations that form a frontier in the pair of
+  derivations. Start from the set of all leaves. Get the relational
+  invariant for each set by taking disjunction over its predecessors
+  along every step, and then some context formula that will be
+  non-trivial to define.}
+
+\BH{after solving for relational invariants over sets of derivations,
+  some derivations may occur more than once in a pair of
+  derivations. The invariants for these get folded together using
+  conjunction. This normalizes the result into a relational invariant
+  per set of derivation}
+
+\BH{sets of derivations play the role of sets of paths in path-based
+  analysis. Entailment is checked over sets derivations that derive
+  the same set of expressions. Search for a sufficient set can branch:
+  we just need to find an inductive set along some expression.}
+
+\BH{sets of derivation nodes that we're interested in are maximal
+  anti-chains of nodes under the dependence relation.}
+
+\BH{get the relational invariant for each set of expressions as
+  interpolant. Pre-formula: disjunction of cases, one for each
+  expression. Post-formula: conjunction of rule constraints for all
+  steps left. Note that we don't need to use the other relational
+  invariants.}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "p"
+%%% End: 

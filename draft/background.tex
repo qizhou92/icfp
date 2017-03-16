@@ -1,0 +1,311 @@
+\section{Background}
+\label{sec:background}
+%
+In this section, we define as our target language an extension of the
+simply-typed $\lambda$-calculus (STLC) (\autoref{sec:stlc}).
+%
+We then define partial equivalence of STLC programs
+(\autoref{sec:peq}).
+
+\subsection{The Simply-Typed $\lambda$-calculus}
+\label{sec:stlc}
+\begin{figure}[t]
+  \begin{floatrow}[2]
+    \ffigbox[.48\textwidth] %
+    { \caption{The space of program expressions, $\expr$.} %
+      \label{fig:exprs} }
+    {  \begin{align*}
+        % expression is a constant,
+        e \rightarrow &\ c \\
+        % or a variable,
+        | &\ x \\
+        % or a binary operation,
+        | &\ e \oplus e \\
+        % or an if-then-else, 
+        | &\ \ite{ e }{ e }{ e } \\
+        % or an abstraction,
+        | &\ \lambda x.\ e \\
+        % or an application,
+        | &\ e\ e \\
+        % or a fixpoint,
+        | &\ \fix{ f }{ e }
+      \end{align*} }
+    %
+    \ffigbox[.48\textwidth] %
+    {\caption{The space of types, $\types$.
+        %
+        Metavariable $\tau$ ranges over $\types$.} %
+      \label{fig:types} }
+    %
+    { \begin{align*} %
+        \tau \rightarrow &\ \base\ %
+        |\ \base \to \tau \\
+        \base \rightarrow &\ \bools\ %
+        |\ \ints
+      \end{align*} }
+  \end{floatrow}
+\end{figure}
+
+% define STLC syntax:
+\paragraph{Syntax} \autoref{fig:exprs} defines the space of
+simply-typed $\lambda$-calculus expressions, $\expr$.
+%
+For the remainder of this paper, metavariable $e$ ranges over
+$\expr$, %
+$c$ ranges over constants, %
+$\oplus$ ranges over binary operators, and $x$ and $f$ range over
+program variables.
+%
+An expression is a Boolean or integer constant, %
+a variable (drawn from space of variables $\vars$), %
+an application of an fixed operator to a pair of expressions, %
+an \cc{if}-\cc{then}-\cc{else} expression, %
+a $\lambda$-abstraction, %
+an application, or %
+a fixpoint expression.
+%
+For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
+$\freevars(e)$.
+%
+A STLC \emph{program} is a closed expression---i.e., an expression $e$
+such that $\freevars(e) = \emptyset$.
+%
+The space of STLC programs is denoted $\stlc$.
+%
+For $P \in \stlc$, the set of all subexpressions of $P$ is denoted
+$\subexps(P)$.
+
+% define semantics:
+\paragraph{Semantics}
+%
+\begin{figure}
+  \centering
+  \begin{gather*}
+  % evaluate const:
+  \inference[ CONST ]{ }{ \Gamma \judges c \evalsto c } 
+  % evaluate variable:
+  \inference[ VAR ]{ }{ \Gamma \judges x \evalsto \Gamma(x) }
+  % evaluate binary operations:
+  \inference[ OP ]{ %
+    \Gamma \judges e_0 \evalsto v_0 & %
+    \Gamma \judges e_1 \evalsto v_1 } %
+  { \Gamma \judges e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\
+  \\
+  % evaluate if-then-else by then branch
+  \inference[ ITE-T ]{ %
+    \Gamma \judges e_0 \evalsto \true & %
+    \Gamma \judges e_1 \evalsto v_1 } %
+  { \Gamma \judges \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 }
+  % evaluate if-then-else by else branch
+  \inference[ ITE-F ]{ %
+    \Gamma \judges e_0 \evalsto \false & %
+    \Gamma \judges e_2 \evalsto v_2 } %
+  { \Gamma \judges \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_2 } \\
+  \\
+  % evaluate an abstraction:
+  \inference[ ABS ]{ } %
+  { \Gamma \judges \lambda x.\ e \evalsto \lambda x.\ e }
+  % evaluate a fix:
+  \inference[ FIX ]{ } %
+  { \Gamma \judges \fix{ f }{ e } \evalsto \fix{ f }{ e } } \\
+  \\
+  % apply a lambda:
+  \inference[ APP-$\lambda$ ]{ %
+    \Gamma \judges e_0 \evalsto \lambda x.\ e_0' & %
+    \Gamma \judges e_1 \evalsto v_1 & %
+    \upd{\Gamma}{x}{v_1} \judges e_0' \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } \\
+  \\
+  % apply a fixpoint:
+  \inference[ APP-FIX ]{ %
+    \Gamma \judges e_0 \evalsto \fix{ f }{ e_0' } & %
+    \upd{ \Gamma }{ f }{ \fix{ f }{ e_0' } } \judges %
+    e_0'\ e_1 \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } 
+  \end{gather*}
+  \caption{The natural semantics of $\stlc$.}
+  \label{fig:nat-sem}
+\end{figure}
+%
+A value is a Boolean, an integer, a $\lambda$ abstraction, or a
+fixpoint abstraction;
+%
+the space of values is denoted $\values$.
+%
+The semantics of $\stlc$ is defined by a natural semantics that
+relates expressions to values under contexts, given in
+\autoref{fig:nat-sem}.
+%
+The space of rules used to define the $\stlc$ semantics is denoted
+$\evalrules$.
+%
+For $e \in \expr$ and $v \in \values$, the fact that $e$
+\emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
+v$.
+
+\BH{define space of derivations}
+
+\paragraph{Typing}
+%
+Each expression has a type that describe the spaces of values that it
+takes as input and the spaces of values to which it evaluates.
+%
+The space of types is given in \autoref{fig:types}.
+%
+A type is either a base type or a function from a base type to a type.
+%
+The definition of types in \autoref{fig:types} thus does not include
+higher-order expressions.
+%
+We will relax this restriction in future work.
+%
+\BH{It's probably reasonable to relax this assumption before a first
+  paper}
+
+% introduce has-type symbol:
+For expression $e \in \expr$ and type $\tau \in \types$, the fact that
+$e$ has type $\tau$ is denoted $e \hastype \tau$.
+%
+The definition of the has-type relation is standard.
+
+% standard defns for logic:
+\paragraph{Logic}
+%
+\sys uses formal logic to model the semantics of programs.
+%
+The quantifier-free fragment of the theory of linear arithmetic is
+denoted $\lia$.
+%
+For each space of logical variables $X$, the space of $\lia$ formulas
+over $X$ is denoted $\formulas{X}$.
+%
+For each formula $\varphi \in \formulas{X}$, the set of variables that
+occur in $\varphi$ (i.e., the \emph{vocabulary} of $\varphi$) is
+denoted $\vocab(\varphi)$.
+% define models, satisfaction, entailment
+A \lia \emph{model} $m$ over $X$ is an assignment from each variable
+in $X$ to an integer.
+%
+The fact that model $m$ \emph{satisfies} a formula $\varphi$ is
+denoted $m \sats \varphi$.
+%
+For formulas $\varphi_0, \ldots, \varphi_n, \varphi \in \formulas{X}$,
+the fact that $\varphi_0, \ldots, \varphi_n$ \emph{entail} $\varphi$
+is denoted $\varphi_0, \ldots, \varphi_n \entails \varphi$.
+
+% Define replacement and substitution:
+For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and $Y = [
+y_0, \ldots, y_n ]$, the \lia formula constraining the equality of
+each element in $X$ with its corresponding element in $Y$, i.e., the
+formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted $X = Y$.
+%
+The repeated replacement of variables $\varphi[ y_0 / x_0 \ldots y_{n}
+/ x_{n} ]$ is denoted $\replace{\varphi}{Y}{X}$.
+%
+For each formula $\varphi$ defined over free variables $X$,
+$\replace{\varphi}{X}{Y}$ is denoted alternatively as $\varphi[Y]$.
+%
+The number of free variables in formula $\varphi$ is denoted
+$\degreeof(\varphi)$.
+
+% Introduce decision procedure:
+Although determining the satisfiability of a \lia formula is
+NP-complete in general, decision procedures for \lia have been
+proposed that often determine the satisfiability of formulas that
+arise from practical verification problems
+efficiently~\cite{demoura08}.
+%
+\sys assumes access to a decision procedure for \lia, denoted \issat.
+
+% introduce interpolants over formula pairs:
+An interpolant of mutually inconsistent formulas $\varphi_0$ and
+$\varphi_1$ is a \lia formula that explains their inconsistency using
+their common vocabulary.
+%
+\begin{defn}
+  \label{defn:itps}
+  % define:
+  For spaces of logical variables $X$ and $Y$,
+  %
+  $\varphi_0 \in \formulas{X}$ and
+  %
+  $\varphi_1 \in \formulas{Y}$,
+  % 
+  if $I \in \formulas{X \intersection Y}$ is such that 
+  %
+  \textbf{(1)} $\varphi_0 \entails I$ and %
+  \textbf{(2)} $I, \varphi_1 \entails \false$, then $I$ is an
+  \emph{interpolant} of $\varphi_0$ and $\varphi_1$.
+\end{defn}
+%
+Previous work has introduced interpolating theorem provers that
+synthesize interpolants of pairs of mutually-unsatisfiable formulas in
+extensions theories used to model program semantics and
+specifications~\cite{mcmillan04}.
+%
+To present \sys, we assume access to a procedure \solveitp that, given
+mutually unsatisfiable \lia formulas $\varphi_0, \varphi_1$, returns
+an interpolant of $\varphi_0$ and $\varphi_1$.
+
+\paragraph{Symbolic encoding of semantics}
+%
+The semantics of $\stlc$ is represented symbolically using \lia
+formulas.
+%
+For $e \in \expr$, let $\symvars{e}$ denote a disjoint copy of
+$\freevars(e)$, extended with one symbol $\alpha_i$ for each of the
+$i$ parameters in the type of $e$, and a symbol $\nu_e$ that
+models the result of fully applying $e$. 
+%
+For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
+  \in E} \symvars{e}$.
+
+% decomposition:
+For each $P \in \stlc$, $e \in \subexps(P)$, and rule $r \in
+\evalrules$,
+%
+there is a sequence of subexpressions $e_0, \ldots, e_n \in
+\subexps(P)$ and a formula $\psi \in \formulas{ \symvars{e_0}, \ldots,
+  \symvars{e_n}, \symvars{e} }$ that satisfy the following condition.
+%
+Let $\Gamma_0, \ldots, \Gamma_n$ be contexts, $A_0, \ldots, A_n, A \in
+\values^{*}$, and $\nu_0, \ldots, \nu_n, \nu \in \values$ be such that
+for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
+\nu_i$, and $\Gamma \judges e\ A \evalsto \nu$.
+%
+Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
+\nu \sats \psi$.
+%
+In such a case, $e$ \emph{decomposes} to $e_0, \ldots, e_n$ in $P$,
+and $\psi$ is denoted $\symstep{P}{e}$.
+
+\subsection{Partial equivalence of STLC programs}
+\label{sec:peq}
+%
+If STLC programs $P_0$ and $P_1$, applied to the same input, evaluate
+to the same value, then $P_0$ and $P_1$ are partially equivalent.
+%
+\begin{defn}
+  \label{defn:peq}
+  For $P_0, P_1 \in \stlc$, if for all $v, v_0, v_1 \in \values$ such
+  that $P_0\ v \evalsto v_0$ and $P_1\ v \evalsto v_1$, it holds that
+  $v_0 = v_1$, then $P_0$ and $P_1$ are \emph{partially equivalent}.
+\end{defn}
+%
+The fact that $P_0$ and $P_1$ are partially equivalent is denoted $P_0
+\equiv P_1$.
+%
+The main problem that we address in this work is, given STLC programs
+$P_0$ and $P_1$, to determine if $P_0 \equiv P_1$.
+
+% disclaimer: we're keeping it simple, it doesn't matter:
+\autoref{defn:peq} only allows programs to be partially equivalent if
+they take exactly one argument.
+%
+The definition can be directly generalized to include pairs of
+programs over tuples of arguments of arbitrary length.
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "p"
+%%% End: 
