@@ -116,9 +116,78 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
 
 \subsection{An automatic equivalence verifier}
 \label{sec:verifier}
+\begin{algorithm}[t]
+  % Declare IO markers.
+  \SetKwInOut{Input}{Input}
+  %
+  \SetKwInOut{Output}{Output}
+  % Declare sub-program (procedure) markers.
+  \SetKwProg{myproc}{Procedure}{}{}
+  % Inputs: a program
+  \Input{Programs $\cc{P}_0, \cc{P}_1 \in \stlc$.}
+  % Output: decision for safety
+  \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
+  % verify: main procedure
+  \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:verify-begin}} %
+  { \myproc{$\verifyaux(D_0, D_1, R)$ \label{line:aux-begin} }{ %
+      % check if the solution is inductive:
+      \Switch{$\chkinductive(D_0, D_1, R)$ \label{line:chkind} }{ %
+        \lCase{$\isind$}{ %
+          % case: it is. Return that P0, P1 are equivalent.
+          \Return{$\true$} \label{line:ret-equiv} %
+        } %
+        \Case{$D_0' \in \derdagsof{ \cc{P}_0 }, %
+          D_1' \in \derdagsof{ \cc{P}_1 }$ %
+          \label{line:case-cex}}{ %
+          \Switch{$\verifyders(D_0, D_1)$ %
+            \label{line:refine} }{ %
+            \lCase{$\nonequiv$:}{ %
+              \Return{$\false$} \label{line:ret-inequiv} %
+            } %
+            \Case{$R'$:}{ %
+              \Return{\BH{fix} $\verifyaux(\mergeinvs(I, I'))$} %
+              \label{line:recurse}
+            } %
+          } %
+        } %
+      } %
+    } \label{line:aux-end} %
+    \Return{$\verifyaux((\emptyset, \emptyset), %
+      (\emptyset, \emptyset), \emptyset)$} \label{line:base-call} } %
+  %
+  \caption{% verify interface:
+    \verify: given $P_0, P_1 \in \stlc$, decides if $P_0 \equiv P_1$.
+    % procedures used: 
+    \verify uses procedures \mergeinvs (\autoref{sec:der-invs}), %
+    \chkinductive (\autoref{sec:chk-ind}), and %
+    \verifyders (\autoref{sec:verify-ders}).
+  }
+  \label{alg:verify}
+\end{algorithm}
 %
-\BH{define equivalence verifier. Maintains relational invariants over
-  sets of derivations.}
+\BH{walk through verification algorithm}
+
+%
+\BH{define equivalence verifier. Maintains two unrollings of sets of
+  program derivations, represented as hyper-DAG's, and map from pairs
+  of cuts in the DAGs to relational invariants.}
+
+\BH{iteration: check that DAGs and relational invariants define valid
+  proof of equivalence. If so, done.}
+
+\BH{if not, extend one of the DAG's. If extension creates a new pair
+  of complete derivations, then pass these to the refutation
+  procedure.}
+
+\subsubsection{Representing relational invariants of derivations}
+\label{sec:der-invs}
+\BH{give representation of sets of derivations}
+
+\subsubsection{Checking inductiveness of derivation invariants}
+\label{sec:chk-ind}
+
+\subsubsection{Verifying derivation equivalence}
+\label{sec:verify-ders}
 
 \BH{derivation refutation: define relational invariants over sets of
   subderivations that form a frontier in the pair of
