@@ -54,13 +54,14 @@ can be taken by $P_0$ and $P_1$.
   \evalrules$ that decomposes $e$ to $e_0, \ldots, e_n \in
   \subexps(P_0)$ in $P_0$,
   %
-  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
-    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
+  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with
+  $\remove{ E }{ e } \union \elts{ e_0, \ldots, e_n } = \bigunion
+  \mathcal{E}$ such that
   % 
   \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
   \subs{ \symstep{P_0}{ r } }{ %
     \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
-  \entails R(E)
+  \entails R( E )
   \]
   or
   % symmetric condition for P1
