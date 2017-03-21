@@ -28,12 +28,31 @@ for l in open(pn_abst):
         continue
     if "{abstract}" in l:
         continue
+    l = l.replace("\\%", "%")
     l = l.replace("\\emph{", "")
     l = l.replace("{", "")
     l = l.replace("}", "")
     l = l.replace("~", " ")
+    l = l.replace("\\,", " ")
+    l = l.replace("\\X", "x")
     l = l.replace("---", " -- ")
+    l = l.replace("--", "-")
     l = l.replace("\\sys", SYS)
+    l = l.replace("\\ie", "i.e.")
+    l = l.replace("\\eg", "e.g.")
+    l = l.replace("\\etal", " et al.")
+    l = l.replace("\\Bs", " B/s")
+    l = l.replace("\\KBs", " KB/s")
+    l = l.replace("\\MBs", " MB/s")
+    l = l.replace("\\GBs", " GB/s")
+    l = l.replace("\\KB", " KB")
+    l = l.replace("\\MB", " MB")
+    l = l.replace("\\GB", " GB")
+    l = l.replace("\\TB", " TB")
+    l = l.replace("\\B", " B")
+    l = l.replace("\\K", " K")
+    l = l.replace("\\M", " M")
+    l = l.replace("\\T", " T")
     
     if "\\" in l:
         print("WARN: unresolved char in")
@@ -42,5 +61,4 @@ for l in open(pn_abst):
 
     abstract.append(l)
 
-abstract = "\n".join(abstract)
-print(abstract)
+print("\n".join(abstract))

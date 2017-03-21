@@ -1,4 +1,4 @@
-A paper template
+die: a paper template
 =====================
 
 ## start
@@ -13,11 +13,11 @@ A paper template
 
   - if you have none,
 
-    $ git clone --depth=1 USERNAME@REPOS
+    $ git clone --depth=1 git@github.com:tsgates/die.git
 
   - if you have a git-repo to work on,
 
-    $ git subtree add --squash USERNAME@REPOS master -P paper
+    $ git subtree add --squash git@github.com:tsgates/die.git master -P paper
 
 2. build it:
 
@@ -28,9 +28,27 @@ A paper template
 
 3. starting point, p.tex:
 
-4. clean-slate template
+    $ grep -oP 'input{\K\w+' p.tex
+    cmds
+    rev
+   *hdr
+    abstract
+   *ex
+    intro
+    overview
+    design
+    impl
+    eval
+    conclusion
+    ack
 
-    $ make init
+  - hdr: includes title/author info
+  - ex : includes latex examples
+
+4. example latex
+
+    $ git checkout example
+    $ make
 
 5. formatting rules (dependencies)
 
@@ -45,6 +63,7 @@ A paper template
 1. make a draft for revision
 
     $ make draft
+    $ make watermark
 
 2. abstract.txt (from abstract.tex)
 

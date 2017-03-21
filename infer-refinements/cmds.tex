@@ -3,8 +3,10 @@
 \newcommand{\URL}{\url}
 \newcommand{\cc}[1]{\mbox{\smaller[0.5]\texttt{#1}}}
 
+% enable the below for ACM camera ready
 %\clubpenalty=10000
 %\widowpenalty=10000
+%\renewcommand*{\bibfont}{\raggedright}
 
 %\linespread{1.2}
 
@@ -12,7 +14,7 @@
 
 \input{code/fmt}
 \newcommand{\figrule}{\hrule width \hsize height .33pt}
-\newcommand{\coderule}{\vspace{-0.4em}\figrule}
+\newcommand{\coderule}{\vspace{-0.5em}\figrule\vspace{0.2em}}
 
 \setlength{\abovedisplayskip}{0pt}
 \setlength{\abovedisplayshortskip}{0pt}
@@ -26,8 +28,6 @@
 \def\subsectionautorefname{\Snospace}
 \def\subsubsectionautorefname{\Snospace}
 \def\chapterautorefname{\Snospace}
-\def\equationautorefname{Eqn.}
-
 %\renewcommand{\figurename}{Fig.}
 %\def\figureautorefname{\figurename}
 \newcommand{\subfigureautorefname}{\figureautorefname}
@@ -39,6 +39,7 @@
 % sema
 \newcommand{\shl}{\ \cc{<}\cc{<}\ }
 \newcommand{\shr}{\ \cc{>}\cc{>}\ }
+\newcommand{\x}{$\times$\xspace}
 
 \if 0
 \renewcommand{\topfraction}{0.9}
@@ -57,11 +58,10 @@
 \newif\ifnotes\notestrue
 \ifdraft\else\notesfalse\fi
 
-% per-author notes:
-% ref. http://en.wikibooks.org/wiki/LaTeX/Colors
-\newcommand{\BH}[1]{\textcolor{Red}{BH: #1}}
-
-\newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}}
+% hide comments
+% \renewcommand{\TK}[1]{\ignorespaces}
+% \renewcommand{\XXX}[1]{\ignorespaces}
+% \renewcommand{\TODO}[1]{\ignorespaces}
 
 %% Ensure ligatures (e.g., ``fine official flag'') can be copy/pasted from PDF.
 \input{glyphtounicode}
@@ -73,7 +73,6 @@
 \newcommand{\includepdf}[1]{
   \includegraphics[width=\columnwidth]{#1}
 }
-
 \newcommand{\includeplot}[1]{
   \resizebox{\columnwidth}{!}{\input{#1}}
 }
@@ -87,6 +86,7 @@
   \end{itemize}
 }
 
+%%
 %% NOTE.
 %%  to use circled number in caption, use
 %%   (e.g., \protect\C{1})
@@ -100,9 +100,35 @@
 \newcommand*\BC[1]{%
 \begin{tikzpicture}[baseline=(C.base)]
 \node[draw,circle,fill=black,inner sep=0.2pt](C) {\textcolor{white}{#1}};
-\end{tikzpicture}}
+\end{tikzpicture}
+}
 
+\usepackage{xstring}
 \newcommand{\PP}[1]{
 \vspace{2px}
-\noindent{\bf #1}
+\noindent{\bf \IfEndWith{#1}{.}{#1}{#1.}}
 }
+
+\newcommand{\ra}[1]{\renewcommand{\arraystretch}{#1}}
+\newcommand{\V}{\checkmark}
+\newcommand{\X}{{\footnotesize $\times$}\xspace}
+\renewcommand{\O}{\phantom{0}}
+
+%% units
+\newcommand{\B}{\,\text{B}\xspace}
+\newcommand{\K}{\,\text{K}\xspace}
+\newcommand{\M}{\,\text{M}\xspace}
+\newcommand{\T}{\,\text{T}\xspace}
+\newcommand{\KB}{\,\text{KB}\xspace}
+\newcommand{\MB}{\,\text{MB}\xspace}
+\newcommand{\GB}{\,\text{GB}\xspace}
+\newcommand{\TB}{\,\text{TB}\xspace}
+
+\newcommand{\Bs}{\,\text{B/s}\xspace}
+\newcommand{\KBs}{\,\text{KB/s}\xspace}
+\newcommand{\MBs}{\,\text{MB/s}\xspace}
+\newcommand{\GBs}{\,\text{GB/s}\xspace}
+
+\newcommand{\etal}{\textit{et al}.\xspace}
+\newcommand{\ie}{\textit{i}.\textit{e}.}
+\newcommand{\eg}{\textit{e}.\textit{g}.}
