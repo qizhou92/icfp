@@ -1,0 +1,76 @@
+\section{Introduction}
+\label{s:intro}
+%
+In many cases, establishing the correctness of a program can be
+formulated as proving that the program has a particular dependent
+type
+%
+\BH{cite}.
+%
+Different classes of dependent types provide trade-offs in terms of
+program properties that they can express versus the degree to which
+checking that a program has a given type, or inferring its type, can
+be automated.
+
+% refinement types: context:
+Previous work has demonstrated that the class of \emph{refinement
+  types} often occupy a sweet spot: they can often express program
+properties of interest, but can also by inferred with some degree of
+optimization.
+%
+In particular, various engines for inferring refinement types have
+also been proposed that themselves provide tradeoffs between
+expressiveness and automation.
+% HORS model checking:
+Engines based on model checking \emph{higher-order recursion schemes
+  (HORS)} are completely automatic when applied to programs that
+operate on only scalar data
+%
+\BH{cite}
+%
+.
+% Liquid Types:
+Engines that infer \emph{liquid types} require a user to provide
+predicates from which the refinement types of expressions are
+constructed, but are complete for inferring such types
+%
+\BH{cite}
+.
+% heavyweight stuff:
+Other techniques attempt to infer refinement types completely
+automatically, using either techniques for solving constraint-logic
+programs (such as interpolation) or inference problems in machine
+learning
+%
+\BH{cite}
+%
+.
+
+% problem: all refinement types have to be given:
+While multiple approaches have been proposed that address
+refinement-type inference, all such approaches, to some extent,
+require a programmer to provide definitions of refinement types of
+interest.
+%
+I.e., many existing type inference engines synthesize refinements of
+base and function types, and infer that program expressions have such
+types.
+%
+However, even the most automated approaches~\cite{unno09} require that
+a programmer provide complete definitions of recursive types, such as
+lists or trees, which are chosen using conventional type-inference
+heuristics~\cite{pierce98}.
+%
+While a programmer typically must provide at least a few such types
+explicitly as components of the program's specification, requiring the
+programmer to provide complete definitions of types of values
+constructed during intermediate steps of a computation is an
+unfortunate burden.
+
+% our contribution: can synthesize refinement types
+
+% key feature: reduction to logic programming
+
+% discuss as framework that can be tuned to give liquid types
+
+% outline rest of paper
