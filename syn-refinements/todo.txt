@@ -1,87 +1,11 @@
--Counterexample Refinement for Functional Programs
+-overview
 
-  +logical qualifiers have to be given
+  +merge imports
 
--Dependent type inference with interpolants
+  +language: generalize to support recursive types
 
-  +very close to our idea
+-approach
 
-  +but it looks like the user still has to provide dependent types on
-   recursive data types. But it looks like they were so close. Surely
-   they figured this part out too?
+  +define syntax directed translation
 
-  +see last para of Sec 5: the user has to know to use the constructor
-   for the dependent type. This strongly indicates that the type
-   inference engine relies on complete type defns.
-
-  +can't handle refinements of types of higher-order functions. So
-   type of f can't refer to f. We should be able to support this.
-
--Dependent types from counterexamples:
-
-  +doesn't handle lists or arrays (and by implication, recursive
-  datatypes in general)
-
--HMC: verifying functional programs using abstract interpreters
-
-  +doesn't look like they can support instantiations of recursive
-   types
-
--Local type inference
-
-  +something that doesn't even have to do with dependence types. The
-   fact that the other paper would call out to it indicates that they
-   aren't synthesizing predicates on constructors
-
--Predicate abstraction and CEGAR for higher-order model checking
-
-  +intro: indicates that there's a lot of previous work on verifying
-   higher-order programs, but it only applies to finite data
-   structures
-
-  +exact same goal, but relies on predicate abstraction
-
-  +intro: claims the approach can be applied to recursive datatypes,
-   but technical approach doesn't allow recursive datatypes
-
-  +Appendix B: gives example of a list-manipulating program. Here, the
-   predicate is over a length field of the entire list. Not clear that
-   this approach could be used to infer a sufficient property over
-   each element in a list though.
-
-  +points out that approaches based on liquid type inference can't
-   infer nested intersection types, which are needed when a function
-   uses a parameter in different contexts
-
-  +related work: can only be extended to handle data structures when
-   the properties are size properties
-
--Type reconstruction for general refinement types: ??
-
-  +looks like it's solving a different problem: intro: stuff with
-   looping constructs are just translated to a fixpoint operator
-
-  +\lambda_H: doesn't look this includes dependent recursive
-   types. Refinements can only occur in very restricted ways. We can
-   probably do something more powerful.
-
-  +open: this may give some approach for generating constraints over
-   dependent instantiations of base types. But then why wouldn't
-   "Dependent Type Inference with Interpolants" use this fact when
-   describing the evaluation on the sorting function?
-
--Type-based data structure verification
-
-  +still requires some manual annotations
-
--Types and higher-order recursion schemes for verification of
- higher-order programs:
-
-  +suspicious: approach is sound and complete
-
-  +types: doesn't look like it can handle recursive datatypes
-
--A type-directed abstraction refinement approach to higher-order model
- checking
-
-  +intro: this is a model checker for higher-order Boolean programs
+  +define constraint generation per expression
