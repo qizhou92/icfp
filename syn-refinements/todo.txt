@@ -1,8 +1,18 @@
 -overview
 
-  +merge imports
+  +types: a type is:
 
-  +language: generalize to support recursive types
+    -a base type
+
+    -a type variable
+
+    -a function over types
+
+    -a recursive type over types
+
+  +define arity of constructors
+
+  +hoist logic back up before expressions
 
 -approach
 
