@@ -1,21 +1,10 @@
--overview
-
-  +types: a type is:
-
-    -a base type
-
-    -a type variable
-
-    -a function over types
-
-    -a recursive type over types
-
-  +define arity of constructors
-
-  +hoist logic back up before expressions
-
 -approach
 
   +define syntax directed translation
 
   +define constraint generation per expression
+
+-intro
+
+  +next pass: abstract what we pick up based on writing the technical
+   section
