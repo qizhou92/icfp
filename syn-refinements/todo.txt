@@ -1,3 +1,17 @@
+-background
+
+  +language: assumption: all variables that occur in abstractions and
+   fixpoints are distinct
+
+  +define component types of a type
+
+  +define space of base types
+
+    -recursive types: each uses no value parameters
+
+  +define symbolic variables of an expression (merge from equivalence
+   draft)
+
 -approach
 
   +define syntax directed translation
@@ -8,3 +22,7 @@
 
   +next pass: abstract what we pick up based on writing the technical
    section
+
+-conceptual
+
+  +what are the variables of each relational predicate

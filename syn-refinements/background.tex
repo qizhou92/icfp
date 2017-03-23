@@ -238,6 +238,26 @@ $e$ has type $\tau$ is denoted $e \hastype \tau$.
 %
 The definition of the has-type relation is standard.
 
+% define base types:
+A type $\tau$ in which the only formula is that occurs in a component
+type of $\tau$ is $\true$ is a \emph{base} type, denoted
+$\basetype(\tau)$.
+%
+Each expression that has a type has a unique base type, which can be
+inferred automatically by a conventional type-inference algorithm,
+such as Hindley-Milner algorithm.
+%
+\sys assumes access to an algorithm that, given $e \in \expr$,
+computes $\basetype(\tau)$.
+%
+\BH{extend this to give base type of all free variables of an
+  expression}
+
+% problem statement
+The problem that we address in this paper is, given program $P \in
+\rtlc$ and well-formed $\tau \in \types$, to determine if $P \hastype
+\tau$.
+
 \paragraph{Symbolic encoding of semantics}
 %
 The semantics of $\rtlc$ is represented symbolically using \lia
