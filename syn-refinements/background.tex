@@ -1,0 +1,429 @@
+\section{Background}
+\label{s:background}
+%
+In this section, we review the foundations on which \sys is built.
+%
+In \autoref{sec:logic}, we review definitions from formal logic; %
+in \autoref{sec:rtlc}, we define a $\lambda$-calculus with refinement
+types; %
+in \autoref{sec:chcs}, we define systems of Constrained Horn Clauses.
+
+% formal logic:
+\subsection{Formal logic}
+\label{sec:logic}
+%
+\sys uses logic to express and infer refinement types of programs.
+%
+All objects defined in this paper are defined over a fixed space of
+logical variables $X$.
+%
+In particular, for theory $\mathcal{T}$, the space of $\mathcal{T}$
+formulas over $X$ is denoted $\tformulas{\mathcal{T}}$.
+%
+For each formula $\varphi \in \tformulas{\mathcal{T}}$, the set of
+variables that occur in $\varphi$ (i.e., the \emph{vocabulary} of
+$\varphi$) is denoted $\vocab(\varphi)$.
+% define models, satisfaction, entailment
+For formulas $\varphi_0, \ldots, \varphi_n, \varphi \in
+\tformulas{\mathcal{T}}$, the fact that $\varphi_0, \ldots, \varphi_n$
+\emph{entail} $\varphi$ is denoted $\varphi_0, \ldots, \varphi_n
+\entails \varphi$.
+
+% Define replacement and substitution:
+For sequences of variables $Y = [ y_0, \ldots, y_n ]$ and $Z = [ z_0,
+\ldots, z_n ]$, the $\mathcal{T}$ formula constraining the equality of
+each element in $Y$ with its corresponding element in $Z$, i.e., the
+formula $\bigland_{0 \leq i \leq n} y_i = z_i$, is denoted $Y = Z$.
+%
+The repeated replacement of variables $\varphi[ z_0 / y_0 \ldots z_{n}
+/ y_{n} ]$ is denoted $\replace{\varphi}{Y}{Z}$.
+%
+For each formula $\varphi$ defined over free variables $Y$,
+$\replace{\varphi}{Y}{Z}$ is denoted alternatively as $\varphi[ Z ]$.
+%
+The number of free variables in formula $\varphi$ is denoted
+$\degreeof{\varphi}$.
+
+\subsection{A $\lambda$-calculus with refinement types}
+\label{sec:rtlc}
+\begin{figure*}[t]
+  \begin{floatrow}[2]
+    \ffigbox[.48\textwidth] %
+    { \caption{The space of program expressions, $\expr$.} %
+      \label{fig:exprs} }
+    {  \begin{align*}
+        % expression is a constant,
+        e \rightarrow &\ c \\
+        % or a variable,
+        | &\ x \\
+        % or a binary operation,
+        | &\ e \oplus e \\
+        % or a constructor application,
+        | &\ C(e_0, \ldots, e_k) \\
+        % or case split,
+        | &\ \cc{match}\ e\ \cc{with}\ %
+        C_0(\overline{x}_0)\ \cc{->}\ e_0 %
+        \ldots %
+        C_k(\overline{x}_k)\ \cc{->}\ e_k \\
+        % or an abstraction,
+        | &\ \lambda x.\ e \\
+        % or an application,
+        | &\ e\ e \\
+        % or a fixpoint,
+        | &\ \fix{ f }{ e }
+      \end{align*} }
+    %
+    \ffigbox[.48\textwidth] %
+    {\caption{The space of types, $\types$.
+        %
+        Metavariable $\tau$ ranges over $\types$, %
+        $x_i$ and $y_i$ range over individual value variables, %
+        $\overline{x}$ range over vectors of value variables, and %
+        $X$ ranges over type variables.} %
+      \label{fig:types} }
+    %
+    { \begin{align*} %
+        % a type is a base type,
+        \tau \rightarrow &\ \setformer{ \nu : \bools }{ \varphi } \\
+        | &\ \setformer{ \nu : \ints}{ \varphi } \\
+        % a type variable,
+        | &\ X \overline{x} \\
+        % a function type, or
+        | &\ x : \tau \rightarrow \tau \\
+        % a recursive type
+        | &\ \mu X \overline{x}.\ %
+        C_0(y_0^0 : \tau_0^0, \ldots, %
+        y_0^{ \arityof{C_0} } : \tau_0^{ \arityof{C_0} }), %
+        \ldots, \\
+        &\ C_n(y_n^0 : \tau_n^0, \ldots, %
+        y_n^{ \arityof{C_n} } : \tau_n^{ \arityof{C_n} })
+      \end{align*} }
+  \end{floatrow}
+\end{figure*}
+
+% define STLC syntax:
+\paragraph{Syntax}
+% define spaces:
+\autoref{fig:exprs} defines the space of
+simply-typed $\lambda$-calculus expressions, $\expr$.
+%
+For the remainder of this paper, metavariable $e$ ranges over
+$\expr$, %
+$c$ ranges over constants, %
+$\oplus$ ranges over binary operators, $x$ and $f$ range over
+program variables, and $C$ ranges over constructor symbols.
+%
+Each constructor symbol $C$ is mapped to a fixed cardinality, denoted
+$|C| \in \nats$.
+
+% define expressions:
+An expression is a Boolean or integer constant, %
+a variable (drawn from space of variables $\vars$), %
+an application of an fixed operator to a pair of expressions, %
+an application of a constructor to a sequence of expressions, %
+a match expression, %
+a $\lambda$-abstraction, %
+an application, or %
+a fixpoint expression.
+%
+For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
+$\freevars(e)$.
+%
+A \emph{refinement-typed $\lambda$-calculus (RTLC)} \emph{program} is
+a closed expression---i.e., an expression $e$ such that $\freevars(e)
+= \emptyset$.
+%
+The space of RTLC programs is denoted $\rtlc$.
+%
+For $P \in \rtlc$, the set of all subexpressions of $P$ is denoted
+$\subexps(P)$.
+
+% define semantics:
+\paragraph{Semantics}
+%
+\begin{figure*}
+  \centering
+  \begin{gather*}
+  % evaluate const:
+  \inference[ CONST ]{ }{ \Gamma \judges c \evalsto c } 
+  % evaluate variable:
+  \inference[ VAR ]{ }{ \Gamma \judges x \evalsto \Gamma(x) }
+  % evaluate binary operations:
+  \inference[ OP ]{ %
+    \Gamma \judges e_0 \evalsto v_0 & %
+    \Gamma \judges e_1 \evalsto v_1 } %
+  { \Gamma \judges e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\ \\
+  % evaluate constructor application:
+  \inference[ CONS ]{ %
+    \Gamma \judges e_0 \evalsto v_0 & \ldots & %
+    \Gamma \judges e_k \evalsto v_k } %
+  { \Gamma \judges C(e_0, \ldots, e_k) \evalsto C(v_0, \ldots, v_k) }
+  % evaluate if-then-else by then branch
+  \inference[ $\mathrm{MATCH}_{i}$ ]{ %
+    \Gamma \judges e \evalsto C_i(v_0, \ldots, v_{ |C_i| }) & %
+    X_i = x_1, \ldots, x_{|C_i|} \\ %
+    \Gamma[ x_0 \mapsto v_0, \ldots, x_{|C_i|} \mapsto v_{|C_i|} ]
+    \judges %
+    e_i \evalsto v' } %
+  { \Gamma \judges \cc{match}\ e\ \cc{with}\ %
+    C_0(X_0)\ \cc{->}\ e_0 %
+    \ldots %
+    C_k(X_k)\ \cc{->}\ e_k \evalsto v' } \\ \\
+  % evaluate an abstraction:
+  \inference[ ABS ]{ } %
+  { \Gamma \judges \lambda x.\ e \evalsto \lambda x.\ e }
+  % apply a lambda:
+  \inference[ APP-ABS ]{ %
+    \Gamma \judges e_0 \evalsto \lambda x.\ e_0' & %
+    \Gamma \judges e_1 \evalsto v_1 & %
+    \upd{\Gamma}{x}{v_1} \judges e_0' \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } \\ \\
+  % evaluate a fix:
+  \inference[ FIX ]{ } %
+  { \Gamma \judges \fix{ f }{ e } \evalsto \fix{ f }{ e } } 
+  % apply a fixpoint:
+  \inference[ APP-FIX ]{ %
+    \Gamma \judges e_0 \evalsto \fix{ f }{ e_0' } & %
+    \upd{ \Gamma }{ f }{ \fix{ f }{ e_0' } } \judges %
+    e_0'\ e_1 \evalsto v }
+  { \Gamma \judges e_0\ e_1 \evalsto v } 
+  \end{gather*}
+  \caption{The natural semantics of $\rtlc$.}
+  \label{fig:nat-sem}
+\end{figure*}
+%
+A value is a Boolean, an integer, a $\lambda$ abstraction, a fixpoint
+abstraction, or a constructor applied to a sequence of values;
+%
+the space of values is denoted $\values$.
+%
+The semantics of $\rtlc$ is defined by a natural semantics that
+relates expressions to values, given in \autoref{fig:nat-sem}.
+%
+For $e \in \expr$ and $v \in \values$, the fact that $e$
+\emph{evaluates} to $v$ is denoted $e \evalsto v$.
+
+\paragraph{Typing}
+%
+Each expression has types that describe the spaces of values that it
+takes as input and the spaces of values to which it evaluates.
+%
+The space of types, defined over a space of type variable $\typevars$
+is given in \autoref{fig:types}.
+%
+A type is either a refined Boolean value, %
+a refined Integer value, %
+a type vector applied to a vector of value variables, %
+%
+\BH{does this also need to have a refinement?}
+%
+a function over types, %
+%
+or a recursive type, defined over a type parameter $X$ abstracted over
+a sequence of value variables $\overline{x}$.
+%
+For each $\tau \in \types$, the free value variables and free type
+variables of $\tau$, denoted $\freevaluevars(\tau) \subseteq \vars$
+and $\freetypevars(\tau) \subseteq \typevars$, are the value variables
+and type variables that occur in $\tau$ that are not bound in a
+recursive type definition.
+%
+$\tau$ is \emph{well-formed} if $\freevars(\tau) = \emptyset$.
+%
+Note that $\tau$ may contain occurrences of free value variables.
+
+% introduce has-type symbol:
+For expression $e \in \expr$ and type $\tau \in \types$, the fact that
+$e$ has type $\tau$ is denoted $e \hastype \tau$.
+%
+The definition of the has-type relation is standard.
+
+% define base types:
+A type $\tau$ in which the only formula is that occurs in a component
+type of $\tau$ is $\true$ is a \emph{base} type, denoted
+$\basetype(\tau)$.
+%
+Each expression that has a type has a unique base type, which can be
+inferred automatically by a conventional type-inference algorithm,
+such as Hindley-Milner algorithm.
+%
+\sys assumes access to an algorithm that, given $e \in \expr$,
+computes $\basetype(\tau)$.
+%
+\BH{extend this to give base type of all free variables of an
+  expression}
+
+% problem statement
+The problem that we address in this paper is, given program $P \in
+\rtlc$ and well-formed $\tau \in \types$, to determine if $P \hastype
+\tau$.
+
+\paragraph{Symbolic encoding of semantics}
+%
+The semantics of $\rtlc$ is represented symbolically using \lia
+formulas.
+%
+\BH{hoist defn of disjoint copies of variables for expressions}
+%
+In particular, for each $e \in \expr$ with subexpressions $e_0,
+\ldots, e_n \in \expr$, there is some $\varphi \in \formulas{\vars[e],
+  \vars[e_0], \ldots, \vars[e_n]}$ such that
+
+\BH{merge updated defn from current draft of equivalence paper}
+
+% define CHC's:
+\subsection{Constrained Horn Clauses}
+\label{sec:chcs}
+
+\subsubsection{Structure}
+% definition of CHC
+A Constrained Horn Clause is a body, consisting of a conjunctive set
+of uninterpreted relational predicates and a constraint, and a head
+relational predicate.
+%
+Relational predicates are predicate symbols paired with a map from
+each symbol to its arity.
+%
+\begin{defn}
+  \label{defn:rel-preds}
+  For each space of symbols $\mathcal{R}$ and function $a: \mathcal{R}
+  \to \nats$, $(\mathcal{R}, a)$ is a space of \emph{relational
+    predicates}.
+\end{defn}
+%
+The space of all relational predicates is denoted $\relpreds$.
+%
+For each space of relational predicates $\mathcal{R} \in \relpreds$,
+we denote the predicate symbols and arity of $\mathcal{R}$ as
+$\relsof{\mathcal{R}}$ and $\arityof{\mathcal{R}}$, respectively.
+%
+For relational predicates $\mathcal{R} \in \relpreds$ and symbol $R$,
+we denote $R \in \relsof{ \mathcal{R} }$ alternatively as $R \in
+\mathcal{R}$.
+%
+All definitions introduced in this section are given over a fixed,
+arbitrary set of relational-predicate symbols $\mathcal{R}$.
+
+% define applications of relational predicates:
+An application of a relational predicate is a relational-predicate
+symbol $R$ paired with a sequence of variables of length equal to the
+arity of $R$.
+%
+\begin{defn}
+  \label{defn:pred-apps}
+  For $R \in \mathcal{R}$ and sequence of variables $Y \in X^{*}$ such
+  that $|Y| = \arityof{\mathcal{R}}(R)$, $(R, Y)$ is an
+  \emph{application}.
+\end{defn}
+%
+The space of applications is denoted $\apps{\mathcal{R}}$.
+%
+For each application $A \in \apps{\mathcal{R}}$, the predicate symbol
+and argument sequence of $A$ are denoted $\relof{A}$ and $\argsof{A}$
+respectively.
+
+% define CHC:
+A Constrained Horn Clause is a body of applications, a constraint, and
+a head application.
+%
+\begin{defn}
+  \label{defn:chcs-structure}
+  For $\mathcal{A} \subseteq \apps{\mathcal{R}}$ and %
+  $\varphi \in \formulas$, $\mathcal{B} = (\mathcal{A}, \varphi)$ is a
+  \emph{clause body}.
+  % 
+  For $H \in \apps{\mathcal{R}}$, $(\mathcal{B}, H)$ is a
+  \emph{Constrained Horn Clause}.
+\end{defn}
+% define space of bodies:
+The space of clause bodies is denoted $\bodies{ \mathcal{R} } =
+\pset(\apps{\mathcal{R}}) \times \formulas$.
+% define space, projection:
+The space of Constrained Horn Clauses is denoted $\chc{\mathcal{R}} =
+\bodies{ \mathcal{R} } \times \apps{\mathcal{R}}$.
+%
+For each clause $\mathcal{C} \in \chc{\mathcal{R}}$, the body and head
+of $\mathcal{C}$ are denoted $\bodyof{ \mathcal{C} }$ and $\headof{
+  \mathcal{C} }$, respectively.
+% define siblings:
+For each $\mathcal{S} \subseteq \chc{ \mathcal{R} }$, $\mathcal{C} \in
+\mathcal{S}$, and all applications $A_0, A_1 \in \appsof{ \bodyof{
+    \mathcal{C} } }$, $\relof{A_0}$ and $\relof{A_1}$ are
+\emph{siblings} in $\mathcal{S}$.
+
+% define system of CHC's
+We will present \sys as a solver for CHCs without recursive
+definitions of predicates, represented in a normalized form.
+% give conditions on normalization:
+Let $\mathcal{S} \subseteq \chc{ \mathcal{R} }$ be such that %
+\textbf{(1)} each relational predicate occurs in the head of some
+clause, %
+\textbf{(2)} each $R \in \mathcal{R}$ is applied to the same variables
+$\varsof{ \mathcal{S}}(R)$ in each of its occurrences in a clause as a
+head, %
+\textbf{(3)} all clauses with distinct head relational predicates are
+defined over disjoint spaces of variables, %
+\textbf{(4)} each relational predicate occurs in each clause body in
+at most one application, and %
+\textbf{(5)} there is exactly one relational predicate $\queryof{
+  \mathcal{S} }$ that is the dependency of no relational predicate.
+%
+Then $\mathcal{S}$ is a \emph{normalized} recursion-free system.
+%
+For the remainder of this paper, we consider only normalized sets of
+CHCs, and denote the space of such sets as $\chcs{\mathcal{R}}$.
+
+\subsubsection{Solutions}
+\label{sec:chc-solns}
+%
+A solution to a CHC system $\mathcal{S}$ is an interpretation of each
+relational predicate $R$ of arity $n$ as a formula over $n$ free
+variables such that for each clause $\mathcal{C} \in \mathcal{S}$, the
+conjunction of interpretations of all relational predicates in the
+body of $\mathcal{C}$ and the constraint of $\mathcal{C}$ entail the
+interpretation of the head of $\mathcal{C}$.
+%
+Let a map from each $R \in \relsof{ \mathcal{R} }$ to a formula over
+an ordered vector of $\arityof{ \mathcal{R} }(R)$ free variables be an
+\emph{interpretation} of $\mathcal{R}$;
+%
+let the space of interpretations of $\mathcal{R}$ be denoted
+$\interps{ \mathcal{R} }$.
+%
+\begin{defn}
+  \label{defn:chc-soln}
+  For $\mathcal{B} \in \bodies{ \mathcal{R} }$ and $H \in \apps{
+    \mathcal{R} }$, %
+  let $\sigma \in \interps{ \mathcal{R} }$ be such that for each $R
+  \in \mathcal{R}$, $\arityof{\mathcal{R}}(R) = \degreeof{\sigma(R)}$
+  and %
+  %
+  \[ \elts{ \sigma(\relof{ A })[ \argsof{ A } ] }_{ A \in \appsof{
+      \mathcal{B} } }, %
+  \ctrof{ \mathcal{B} } \entails %
+  \sigma( \relof{H} )[ \argsof{ H } ]
+  \]
+  Then $\sigma$ is a \emph{solution} of $(\mathcal{B}, H)$.
+\end{defn}
+% define partial solution 
+For $\mathcal{S} \subseteq \chc{ \mathcal{R} }$, if
+% solution respects dependence order:
+\textbf{(a)} for each $R \in \domain(\sigma)$ and $R' \in \mathcal{R}$
+a dependence of $R$ in $\mathcal{S}$, it holds that $R' \in
+\domain(\sigma)$;
+%
+\textbf{(b)} for each $\mathcal{C} \in \mathcal{S}$ such that
+$\relof{ \headof{ \mathcal{C} } } \in \domain(\sigma)$, $\sigma$ is a
+solution of $\mathcal{C}$;
+%
+then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
+%
+If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
+then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
+%
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "p"
+%%% End: 

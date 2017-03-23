@@ -1,0 +1,52 @@
+\documentclass[11pt,letterpaper]{article}
+
+% conference specific style
+\usepackage[11pt,nocopyright]{sigmin}
+\usepackage[square,comma,numbers,sort&compress]{natbib}
+
+% common packages
+\include{pkgs}
+
+\newcommand{\sys}{\mbox{\textsc{Reckon}}\xspace}
+
+% ref. http://en.wikibooks.org/wiki/LaTeX/Colors
+\newcommand{\BH}[1]{\textcolor{Red}{BH: #1}}
+\newcommand{\RJ}[1]{\textcolor{Green}{RJ: #1}}
+\newcommand{\NV}[1]{\textcolor{Purple}{NV: #1}}
+\newcommand{\QZ}[1]{\textcolor{Melon}{QZ: #1}}
+
+\input{cmds}
+\input{rev}
+
+\input{shorthand}
+
+\input{std}
+
+\begin{document}
+
+\input{hdr}
+\date{}
+\maketitle
+
+\input{abstract}
+
+\input{intro}
+
+\input{overview}
+
+\input{background}
+
+\input{approach}
+
+\input{eval}
+
+\input{relwk}
+
+\input{conclusion}
+
+\balance
+\bibliographystyle{abbrvnat}
+\footnotesize
+\setlength{\bibsep}{3pt}
+\bibliography{p,sslab,conf}
+\end{document}

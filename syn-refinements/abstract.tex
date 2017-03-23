@@ -1,0 +1,20 @@
+\begin{abstract}
+  % context:
+  Refinement types are a fragment of dependent types that can express
+  practical, desirable partial-correctness properties.
+  %
+  Previous engines that check if a program has a desired refinement
+  type synthesize refinements of base and function types, but can only
+  use provided recursive refinement types.
+
+  % primary contribution:
+  The primary contribution of this work is a type-engine, named \sys,
+  that simultaneously synthesizes sufficient refinements of recursive
+  base types, and infers types of program sub-expressions.
+  %
+  \sys can potentially synthesize recursive refinement types that are
+  universally quantified over base, function, and recursive values.
+  %
+  The key feature of \sys is a syntax-directed translation from a
+  type-checking problem to a system of Constrained Horn Clauses.
+\end{abstract}
