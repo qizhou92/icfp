@@ -1,21 +1,21 @@
 (* sum_1_inner: compute n * (n - i) *)
 let rec sum_1_inner n i =
-  if i >= n then 0
-  else n + (sum_1_inner n (i + 1))
+  if i = 0 then 0
+  else n + (sum_1_inner n (i - 1))
 
 (* sum_1_outer n m i: compute (n * n) * (n - i) *)
 let rec sum_1_outer n i =
-  if i >= n then 0
-  else (sum_1_inner n 0) + (sum_1_outer n (i + 1))
+  if i = 0 then 0
+  else (sum_1_inner n n) + (sum_1_outer n (i - 1))
 
 (* sum_1 n m: compute n * n * n *)
 let sum_1 n = sum_1_outer n 0
 
 (* sum_2_aux: compute n * (n - i) * (n - j) *)
 let rec sum_2_aux n i j =
-  if i >= n then 0
-  else if j >= n then sum_2_aux n (i + 1) 0
-  else n + (sum_2_aux n i (j + 1))
+  if i = 0 then 0
+  else if j = 0 then sum_2_aux n (i - 1) n
+  else n + (sum_2_aux n i (j - 1))
 
 (* sum_2 n c: compute n * n * n *)
 let sum_2 n = sum_2_aux n 0 0
