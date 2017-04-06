@@ -18,7 +18,7 @@ let rec sum_2_aux n i j =
   else n + (sum_2_aux n i (j - 1))
 
 (* sum_2 n c: compute n * n * n *)
-let sum_2 n = sum_2_aux n 0 0
+let sum_2 n = sum_2_aux n n n
 
 (* relational invariants proving equivalence: 
 
