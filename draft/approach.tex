@@ -82,7 +82,8 @@ can be taken by $P_0$ and $P_1$.
   Then $R$ are \emph{relational invariants} of $P_0$ and $P_1$.
 \end{defn}
 %
-The space of relational invariants is denoted $\relinvs$.
+The space of relational invariants of $P_0$ and $P_1$ is denoted
+$\relinvs{P_0}{P_1}$.
 
 % strengthen relational invariants to evidence of equivalence:
 If relational invariants $R$ are such that the invariant for $\elts{
@@ -93,8 +94,8 @@ $P_1$.
 %
 \begin{defn}
   \label{defn:eq-pf}
-  Let $R \in \relinvs$ be such that $R(P_0, P_1), \alpha^0_0 =
-  \alpha^1_0 \entails \nu^0 = \nu^1$.
+  Let $R \in \relinvs{P_0}{P_1}$ be such that $R(P_0, P_1), \alpha^0_0
+  = \alpha^1_0 \entails \nu^0 = \nu^1$.
   %
   Then $R$ is \emph{evidence} of $P_0 \equiv P_1$.
 \end{defn}
@@ -110,12 +111,75 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
 \equiv P_1$.
 %
 \begin{lemma}
-  \label{lemma:valid-evidence}
-  If there is some $R \in \relinvs$ such that $R$ is evidence of $P_0
-  \equiv P_1$, then $P_0 \equiv P_1$.
+  \label{lemma:equiv-evidence}
+  If there are some $R \in \relinvs{P_0}{P_1}$ such that $R$ is
+  evidence of $P_0 \equiv P_1$, then $P_0 \equiv P_1$.
 \end{lemma}
 
-\subsection{An automatic equivalence verifier}
+\BH{define class of invariants that are actually maintained}
+%
+\sys, given programs $P_0$ and $P_1$ attempts to determine if $P_0
+\equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
+from sets of derivations to relational invariants.
+%
+Let the space of such maps be denoted $\dersrels = \subexps(P_0)^{*}
+\times \subexps(P_1)^{*} \to \symrels$.
+%
+\begin{defn}
+  \label{defn:der-rel-invs}
+  Let $I \in \dersrels$ be such that %
+  \begin{enumerate}
+  \item 
+    % supports relational invariants of complete derivations:
+    For all $D_0 \in \dertrees{P_0}$ and $D_1 \in \dertrees{P_1}$,
+    \[ I([ D_0 ], [ D_1 ]), \alpha_0 = \alpha_1 \entails %
+    \nu_0 = \nu_1 \]
+  \item 
+    % soundly models each step of P0:
+    For all $d_0 \in \dertrees{P_0}$, %
+    $D_0 \in \dertrees{P_0}^{*}$, %
+    $D_1 \in \dertrees{P_1}^{*}$ such that $(d_0 \cons D_0, D_1) \in
+    \domain(I)$, %
+    there are some $D_0', D_0'' \in \dertrees{P_0}^{*}$ such that
+    $\immsubtrees{d_0} \concat D_0 = D_0' \concat D_0''$ and %
+    \[ I(D_0', D_1), I(D_0'', D_1), \symstep{ \immsubtrees{ d_0 } }{
+      d_0 } \entails I(D_0, D_1) \]
+  \item 
+    % soundly models each step of P1:
+    For all $D_0 \in \dertrees{P_0}^{*}$, %
+    $d_1 \in \dertrees{P_1}$, %
+    $D_1 \in \dertrees{P_1}^{*}$ such that $(D_0, d_1 \cons D_1) \in
+    \domain(I)$, %
+    there are some $D_1', D_1'' \in \dertrees{P_1}^{*}$ such that
+    $\immsubtrees{d_1} \concat D_1 = D_1' \concat D_1''$ and %
+    \[ I(D_0, D_1'), I(D_0, D_1''), \symstep{ \immsubtrees{ d_1 } }{
+      d_1 } \entails I(D_0, D_1) \]
+  \end{enumerate}
+  %
+  Then $I$ are \emph{derivation relational invariants} of $P_0$ and
+  $P_1$.
+\end{defn}
+%
+The space of all derivation relational invariants for $P_0$ and $P_1$
+is denoted $\dersinvs{P_0}{P_1}$.
+%
+\BH{add a running example}
+
+\BH{define inductive derivation relational invariants}
+%
+Derivation relational invariants are inductive if they define
+relational invariants.
+%
+In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
+\relinvs{P_0}{P_1}$ be such that for all $e_0 \in \subexps(P_0)$ and
+$e_1 \in \subexps(P_1)$,
+\[ I(e_0, e_1) = %
+\biglor \setformer{}{ D_0 \in \dertrees{P_0}, %
+  \explabel{D_0}(\head(D_0)) = e_0, %
+  D_1 \in \dertrees{P_1}, %
+  \explabel(\head(D_1)) = e_1 } \]
+
+\subsection{Verification algorithm}
 \label{sec:verifier}
 \begin{algorithm}[t]
   % Declare IO markers.
@@ -137,8 +201,8 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
           % case: it is. Return that P0, P1 are equivalent.
           \Return{$\true$} \label{line:ret-equiv} %
         } %
-        \Case{$D_0' \in \derdagsof{ \cc{P}_0 }, %
-          D_1' \in \derdagsof{ \cc{P}_1 }$ %
+        \Case{$D_0' \in \dertrees{ \cc{P}_0 }, %
+          D_1' \in \dertrees{ \cc{P}_1 }$ %
           \label{line:case-cex}}{ %
           \Switch{$\verifyders(D_0, D_1)$ %
             \label{line:refine} }{ %
@@ -156,15 +220,17 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
     \Return{$\verifyaux((\emptyset, \emptyset), %
       (\emptyset, \emptyset), \emptyset)$} \label{line:base-call} } %
   %
-  \caption{% verify interface:
+  \caption{% interface of verify:
     \verify: given $P_0, P_1 \in \stlc$, decides if $P_0 \equiv P_1$.
     % procedures used: 
-    \verify uses procedures \mergeinvs (\autoref{sec:der-invs}), %
+    \verify uses procedures \mergeinvs (\autoref{sec:verifier}), %
     \chkinductive (\autoref{sec:chk-ind}), and %
     \verifyders (\autoref{sec:verify-ders}).
   }
   \label{alg:verify}
 \end{algorithm}
+%
+\BH{derdags: replace with derivation trees}
 %
 \BH{walk through verification algorithm}
 
@@ -180,14 +246,12 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
   of complete derivations, then pass these to the refutation
   procedure.}
 
-\subsubsection{Representing relational invariants of derivations}
-\label{sec:der-invs}
-\BH{give representation of sets of derivations}
-
 \subsubsection{Checking inductiveness of derivation invariants}
 \label{sec:chk-ind}
+%
+\BH{define the inductiveness over derivation relational invariants}
 
-\subsubsection{Verifying derivation equivalence}
+\subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
 
 \BH{derivation refutation: define relational invariants over sets of

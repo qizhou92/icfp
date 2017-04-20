@@ -143,7 +143,38 @@ For $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
 v$.
 
-\BH{define space of derivations}
+% 
+A derivation is a tree that defines rules applied in order prove that
+a particular expression has a particular value.
+%
+\begin{defn}
+  Let $(N, E, f, r)$ be such that
+  \begin{enumerate}
+  \item 
+    % tree structure:
+    $(N, E)$ is a tree.
+  \item $f: N \to \subexps(P)$ is such that \textbf{(1)} for each
+    maximal set of nodes $n_0, \ldots, n_i, n' \in \subexps(P)$ with
+    $(n_j, n') \in E$ for each $0 \leq j \leq i$, $f(n)$ decomposes to
+    $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
+    %
+    \textbf{(2)} For each $n$, there are $n_0, \ldots, n_i \in N$ such
+    that $f(n)$ decomposes to $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
+  \end{enumerate}
+  Then $(N, E, f, r)$ is a \emph{derivation tree} of $P$.
+\end{defn}
+%
+The space of derivation trees for $P$ is denoted $\dertrees{P}$.
+%
+\BH{define head of a derivation tree}
+%
+\BH{define immediate subtrees of a derivation tree}
+%
+\BH{rework current defn of decomposing}
+%
+\BH{define derivation relation over a derivation tree}
+%
+\BH{fix a single program for the scope of this entire section}
 
 \paragraph{Typing}
 %
@@ -277,7 +308,7 @@ Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
 \nu \sats \psi$.
 %
 In such a case, $e$ \emph{decomposes} to $e_0, \ldots, e_n$ in $P$,
-and $\psi$ is denoted $\symstep{P}{e}$.
+and $\psi$ is denoted $\symstep{ e_0, \ldots, e_n }{e}$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
