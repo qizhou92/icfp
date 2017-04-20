@@ -116,8 +116,7 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
   evidence of $P_0 \equiv P_1$, then $P_0 \equiv P_1$.
 \end{lemma}
 
-\BH{define class of invariants that are actually maintained}
-%
+% define class of invariants that are actually maintained
 \sys, given programs $P_0$ and $P_1$ attempts to determine if $P_0
 \equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
 from sets of derivations to relational invariants.
@@ -165,19 +164,23 @@ is denoted $\dersinvs{P_0}{P_1}$.
 %
 \BH{add a running example}
 
-\BH{define inductive derivation relational invariants}
-%
+% define inductive derivation relational invariants
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
 In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
-\relinvs{P_0}{P_1}$ be such that for all $e_0 \in \subexps(P_0)$ and
-$e_1 \in \subexps(P_1)$,
-\[ I(e_0, e_1) = %
-\biglor \setformer{}{ D_0 \in \dertrees{P_0}, %
-  \explabel{D_0}(\head(D_0)) = e_0, %
-  D_1 \in \dertrees{P_1}, %
-  \explabel(\head(D_1)) = e_1 } \]
+\relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps(P_0)^{*}$
+and $e_1 \in \subexps(P_1)^{*}$,
+\begin{align*}
+  I'(E_0, E_1) = %
+  \biglor \setformer{ I(D_0, D_1)}{ %
+    & d_0^0, \ldots, d_0^m \in \dertrees{P_0}^{*}, %
+    \explabel{d_0^0}(\head{d_0^0}), \ldots,
+    \explabel{d_0^m}(\head{d_0^m}) = E_0, \\
+    & d_1^0, \ldots, d_1^n \in \dertrees{P_1}^{*},  %
+    \explabel{d_1^0}(\head{d_1^0}), \ldots,
+    \explabel{d_1^n}(\head{d_1^n}) = E_1 }
+\end{align*}
 
 \subsection{Verification algorithm}
 \label{sec:verifier}

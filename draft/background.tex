@@ -10,40 +10,39 @@ We then define partial equivalence of STLC programs
 \subsection{The Simply-Typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
-  \begin{floatrow}[2]
-    \ffigbox[.48\textwidth] %
-    { \caption{The space of program expressions, $\expr$.} %
-      \label{fig:exprs} }
-    {  \begin{align*}
-        % expression is a constant,
-        e \rightarrow &\ c \\
-        % or a variable,
-        | &\ x \\
-        % or a binary operation,
-        | &\ e \oplus e \\
-        % or an if-then-else, 
-        | &\ \ite{ e }{ e }{ e } \\
-        % or an abstraction,
-        | &\ \lambda x.\ e \\
-        % or an application,
-        | &\ e\ e \\
-        % or a fixpoint,
-        | &\ \fix{ f }{ e }
-      \end{align*} }
-    %
-    \ffigbox[.48\textwidth] %
-    {\caption{The space of types, $\types$.
-        %
-        Metavariable $\tau$ ranges over $\types$.} %
-      \label{fig:types} }
-    %
-    { \begin{align*} %
-        \tau \rightarrow &\ \base\ %
-        |\ \base \to \tau \\
-        \base \rightarrow &\ \bools\ %
-        |\ \ints
-      \end{align*} }
-  \end{floatrow}
+  \begin{minipage}{0.48\linewidth}
+    \begin{align*}
+      % expression is a constant,
+      e \rightarrow &\ c \\
+      % or a variable,
+      | &\ x \\
+      % or a binary operation,
+      | &\ e \oplus e \\
+      % or an if-then-else, 
+      | &\ \ite{ e }{ e }{ e } \\
+      % or an abstraction,
+      | &\ \lambda x.\ e \\
+      % or an application,
+      | &\ e\ e \\
+      % or a fixpoint,
+      | &\ \fix{ f }{ e }
+    \end{align*}
+    \caption{The space of program expressions, $\expr$.} %
+    \label{fig:exprs}
+  \end{minipage}
+  %
+  \begin{minipage}{0.48\linewidth}
+    \begin{align*} %
+      \tau \rightarrow &\ \base\ %
+      |\ \base \to \tau \\
+      \base \rightarrow &\ \bools\ %
+      |\ \ints
+    \end{align*}
+    \caption{The space of types, $\types$.
+      % 
+      Metavariable $\tau$ ranges over $\types$.} %
+    \label{fig:types}
+  \end{minipage}
 \end{figure}
 
 % define STLC syntax:

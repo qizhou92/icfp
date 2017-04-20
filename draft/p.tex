@@ -1,29 +1,30 @@
-\documentclass{article}
+\documentclass[acmlarge]{acmart}
 
 % Define to fix sigplanconf.
 % \doi{}
 
 \setlength{\paperheight}{11in}
 \setlength{\paperwidth}{8.5in}
-\usepackage[
-  pass,% keep layout unchanged 
-  % showframe,% show the layout
-]{geometry}
+% \usepackage[
+%   pass,% keep layout unchanged 
+%   % showframe,% show the layout
+% ]{geometry}
 
 % Breaks sigplanconf.
 % \usepackage[square,comma,numbers,sort&compress]{natbib}
-\usepackage[hyphens]{url}
-\usepackage[breaklinks,colorlinks]{hyperref}
-\usepackage[usenames,dvipsnames]{xcolor}
-\hypersetup{citecolor=blue,linkcolor=blue}
-\usepackage{amsmath,amsopn,amssymb}
-\usepackage{subfig}
+% \usepackage[hyphens]{url}
+% \usepackage[breaklinks,colorlinks]{hyperref}
+% \usepackage[usenames,dvipsnames]{xcolor}
+% \hypersetup{citecolor=blue,linkcolor=blue}
+% \usepackage{amsmath,amsopn,amssymb}
+% \usepackage{subfig}
 \usepackage{endnotes,microtype,xspace,graphicx,fancyvrb,multirow}
 \usepackage{booktabs}
 \usepackage{array,underscore,relsize}
 \usepackage[T1]{fontenc}
 % \usepackage{times}
-\usepackage{fancyhdr,lastpage}
+% \usepackage{fancyhdr,lastpage}
+\usepackage{fancyhdr}
 \usepackage{enumitem}
 % Makes sigplanconf throw warning.
 % \usepackage[labelfont=bf,font=small,skip=5pt]{caption}
@@ -34,7 +35,7 @@
 % algorithm2e: algorithms
 \usepackage[linesnumbered]{algorithm2e}
 
-\usepackage{floatrow}
+% \usepackage{floatrow}
 
 % semantic: inference rules
 \usepackage{semantic}
