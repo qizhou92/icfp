@@ -62,9 +62,15 @@ can be taken by $P_0$ and $P_1$.
   \subexps(P_0)^{*}$, %
   there are some $E_0'', E_0''' \in \subexps{P_0}^{*}$ such that $E_0'
   \concat E_0 = E_0'' \concat E_0'''$ and
-  \[ R_0(E_0'' \concat E_0''', E_1) \lor R_1(E_0'' \concat E_0''', E_1), %
+  \begin{align*}
+    R_0(E_0'' \concat E_0''', E_1), %
+    \subs{ \symstep{P_0}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] } 
+    & \entails R_0(e_0 \cons E_0, E_1) \\
+    %
+    R_1(E_0'' \concat E_0''', E_1), %
     \subs{ \symstep{P_0}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] }
-    \entails R_0(E_0, E_1) \]
+    & \entails R_0(e_0 \cons E_0, E_1)
+  \end{align*}
   % symmetric condition for P1
   \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
   $e_1 \in \subexps{P_1}$, %
@@ -73,9 +79,14 @@ can be taken by $P_0$ and $P_1$.
   \subexps(P_1)^{*}$, %
   there are some $E_1'', E_1''' \in \subexps{P_1}^{*}$ such that
   $E_1' \concat E_1 = E_1'' \concat E_1'''$ and
-  \[ R_0(E_0, E_1'' \concat E_0''') \lor R_1(E_0, E_1'' \concat E_1'''), %
-  \subs{ \symstep{P_1}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] }
-  \entails R_0(E_0, E_1) \]
+  \begin{align*}
+    R_0(E_0, E_1'' \concat E_0'''), %
+    \subs{ \symstep{P_1}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] }
+    & \entails R_1(E_0, e_1 \cons E_1) \\
+    R_1(E_0, E_1'' \concat E_1'''), %
+    \subs{ \symstep{P_1}{ r } }{ \vars[ E_1' ], \vars[ e_1 ] }
+    & \entails R_1(E_0, e_1 \cons E_1) 
+  \end{align*}
   %
   Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
   $P_1$.
@@ -157,6 +168,9 @@ Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
   Then $I$ are \emph{derivation relational invariants} of $P_0$ and
   $P_1$.
 \end{defn}
+%
+\BH{fix: project subtrees to expressions before defining semantic
+  constraint}
 %
 The space of all derivation relational invariants for $P_0$ and $P_1$
 is denoted $\dersinvs{P_0}{P_1}$.
