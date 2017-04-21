@@ -18,20 +18,27 @@ subexpressions of $P_0$ and $P_1$, each mapped to relational
 invariants that relate all evaluations of the subexpressions.
 %
 For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
-arbitrary $\stlc$ programs, and let $E_{0, 1} = \subexps(P_0) \union
-\subexps(P_1)$.
+arbitrary $\stlc$ programs.
 
 % define symbolic relations:
+For each $i \in \elts{0, 1}$ and $n \in nats$, let $\symvarsidx{i}{n}$
+denote a distinct set of symbolic variables.
+%
 \begin{defn}
   \label{defn:sym-rels}
-  Let $R: \pset(E) \to \formulas{ E_{0, 1} }$ be such that %
-  for each $E \subseteq E_{0, 1}$, %
-  it holds that $R(E) \in \formulas{ \symvars{E} }$.
+  Let $R: \subexps(P_0)^{*} \times \subexps(P_1)^{*} \partto
+  \formulas{ \bigunion_{i \in \elts{0 , 1}, n \in \nats }
+    \symvarsidx{i}{n} }$ be such that %
+  for all $E_0 \in \subexps(P_0)^{*}$ and $E_1 \in \subexps(P_1)^{*}$,
+  $R(E_0, E_1) \in \formulas{ %
+    \bigunion_{ 0 \leq i < |P_0|} \symvarsidx{0}{i} \union %
+    \bigunion_{0 \leq j < |P_1|} \symvarsidx{1}{j} }$.
   %
   Then $R$ are \emph{symbolic relations}.
 \end{defn}
 %
-The space of symbolic relations is denoted $\symrels$.
+The space of symbolic relations of $P_0$ and $P_1$ is denoted
+$\symrels{P_0}{P_1}$.
 
 % relational invariants
 % define relational invariants
@@ -43,43 +50,35 @@ Relational invariants soundly describe all steps of evaluation that
 can be taken by $P_0$ and $P_1$.
 \begin{defn}
   \label{defn:rel-invs}
-  For $P_0, P_1 \in \stlc$, let $R \in \symrels$ be such that %
+  Let $R_0, R_1 \in \symrels{P_0}{P_1}$ be such that %
   % condition: relation of empty set is entailed by true:
-  \textbf{(1)} $\true \entails R(\emptyset)$;
+  \textbf{(1)} $\true \entails R_0(\epsilon, \epsilon) \lor
+  R_1(\epsilon, \epsilon)$;
   % condition: steps are valid:
-  \textbf{(2)} for each $E \not= \emptyset \in \domain(R)$, %
-  there is some $e \in E$ such that either %
-  % subcase: P0 takes a step: 
-  \textbf{(a)} $e \in \subexps(P_0)$ and for each $r \in
-  \evalrules$ that decomposes $e$ to $e_0, \ldots, e_n \in
-  \subexps(P_0)$ in $P_0$,
-  %
-  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with
-  $\remove{ E }{ e } \union \elts{ e_0, \ldots, e_n } = \bigunion
-  \mathcal{E}$ such that
-  % 
-  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
-  \subs{ \symstep{P_0}{ r } }{ %
-    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
-  \entails R( E )
-  \]
-  or
+  \textbf{(2)} for all $e_0 \in \subexps{P_0}^{*}$, %
+  $E_0 \in \subexps{P_0}^{*}$, %
+  $E_1 \in \subexps{P_1}^{*}$, and %
+  each $r \in \evalrules$ that decomposes $e_0$ to $E_0' \in
+  \subexps(P_0)^{*}$, %
+  there are some $E_0'', E_0''' \in \subexps{P_0}^{*}$ such that $E_0'
+  \concat E_0 = E_0'' \concat E_0'''$ and
+  \[ R_0(E_0'' \concat E_0''', E_1) \lor R_1(E_0'' \concat E_0''', E_1), %
+    \subs{ \symstep{P_0}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] }
+    \entails R_0(E_0, E_1) \]
   % symmetric condition for P1
-  \textbf{(b)} $e \in \subexps(P_1)$ for each evaluation rule $r$ that
-  decomposes $e$
+  \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
+  $e_1 \in \subexps{P_1}$, %
+  $E_1 \in \subexps{P_1}^{*}$, and %
+  each $r \in \evalrules$ that decomposes $e_1$ to $E_1' \in
+  \subexps(P_1)^{*}$, %
+  there are some $E_1'', E_1''' \in \subexps{P_1}^{*}$ such that
+  $E_1' \concat E_1 = E_1'' \concat E_1'''$ and
+  \[ R_0(E_0, E_1'' \concat E_0''') \lor R_1(E_0, E_1'' \concat E_1'''), %
+  \subs{ \symstep{P_1}{ r } }{ \vars[ E_0' ], \vars[ e_0 ] }
+  \entails R_0(E_0, E_1) \]
   %
-  to $e_0, \ldots, e_n \in \subexps(P_1)$ in $P_1$,
-  %
-  there are some $\mathcal{E} \subseteq \pset(E_{0, 1})$ with $\elts{
-    e_0, \ldots, e_n } = \bigunion \mathcal{E}$ such that
-  % 
-  \[ \setformer{ R(E') }{ E' \in \mathcal{E} }, %
-  \subs{ \symstep{P_1}{ r } }{ %
-    \vars[ e_0 ], \ldots, \vars[ e_n ], \vars[ e ] } %
-  \entails R(E)
-  \]
-  %
-  Then $R$ are \emph{relational invariants} of $P_0$ and $P_1$.
+  Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
+  $P_1$.
 \end{defn}
 %
 The space of relational invariants of $P_0$ and $P_1$ is denoted
@@ -121,12 +120,12 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
 \equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
 from sets of derivations to relational invariants.
 %
-Let the space of such maps be denoted $\dersrels = \subexps(P_0)^{*}
-\times \subexps(P_1)^{*} \to \symrels$.
+Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
+\subexps(P_0)^{*} \times \subexps(P_1)^{*} \to \symrels{P_0}{P_1}$.
 %
 \begin{defn}
   \label{defn:der-rel-invs}
-  Let $I \in \dersrels$ be such that %
+  Let $I \in \dersrels{P_0}{P_1}$ be such that %
   \begin{enumerate}
   \item 
     % supports relational invariants of complete derivations:
@@ -172,7 +171,7 @@ In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
 \relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps(P_0)^{*}$
 and $e_1 \in \subexps(P_1)^{*}$,
 \begin{align*}
-  I'(E_0, E_1) = %
+  \exprel{I}(E_0, E_1) = %
   \biglor \setformer{ I(D_0, D_1)}{ %
     & d_0^0, \ldots, d_0^m \in \dertrees{P_0}^{*}, %
     \explabel{d_0^0}(\head{d_0^0}), \ldots,
@@ -181,6 +180,25 @@ and $e_1 \in \subexps(P_1)^{*}$,
     \explabel{d_1^0}(\head{d_1^0}), \ldots,
     \explabel{d_1^n}(\head{d_1^n}) = E_1 }
 \end{align*}
+%
+Derivation invariants $I$ are inductive for $P_0$ and $P_1$ if they
+are the union of two derivation relations that define relational
+invariants of $P_0$ and $P_1$.
+%
+\begin{defn}
+  \label{defn:inductive-der-rels}
+  For $I_0, I_1 \in \dersrels{P_0}{P_1}$, if $(\exprel{I_0},
+  \exprel{I_1})$ are relational invariants of $P_0$ and $P_1$, then
+  $I_0 \union I_1$ are \emph{inductive} derivation relational
+  invariants.
+\end{defn}
+%
+Derivation relational invariants are evidence of partial equivalence,
+by \autoref{lemma:equiv-evidence}.
+%
+\sys, given programs $P_0$ and $P_1$ attempts to determine their
+partial equivalence by synthesizing inductive derivation relational
+invariants.
 
 \subsection{Verification algorithm}
 \label{sec:verifier}
