@@ -335,30 +335,76 @@ pairs of tuples of sub-derivations of $D_0$ and $D_1$ that prove $D_0
 D_1$.
 %
 \verifyders reduces the problem of determining $D_0 \equiv D_1$ to
-solving a recursion-free system $\mathcal{S}$ of Constrained Horn
-Clauses (\autoref{sec:chcs}), defined as follows.
-
-% define relational predicates:
-The relational predicates of $\mathcal{S}$ are defined as follows.
+solving a series of recursion-free systems of Constrained Horn Clauses
+(\autoref{sec:chcs}).
 %
-Let $C_0 \subseteq \nodes{D_0}^{*}$ and $C_1 \subseteq
-\nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$, respectively, and let
-$C_0' \subseteq \nodes{D_0}$ and $C_1' \subseteq \nodes{D_1}$ be the
-subsequences of $C_0$ and $C_1$, respectively.
+Let $\mathcal{C}_0 \subseteq \nodes{D_0}^{*}$ and $\mathcal{C}_1
+\subseteq \nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$,
+respectively, and let $\mathcal{C}_0' \subseteq \nodes{D_0}$ and
+$\mathcal{C}_1' \subseteq \nodes{D_1}$ be the subsequences of
+$\mathcal{C}_0$ and $\mathcal{C}_1$, respectively.
 %
-The relational predicates of $\mathcal{S}$ are $C_0 \times C_1$.
+For $C \in \mathcal{C}_0$ and $T \subseteq \mathcal{C}_0$, if $C$ is
+the union of $T$, then $T$ is a \emph{tiling} of $C$, and similarly
+for $\mathcal{C}_1$.
 
-% define clauses:
+% introduce tiling relation:
+For $E \subseteq (\pset(\mathcal{C}_0) \times \pset(\mathcal{C}_1))
+\times (\mathcal{C}_0 \union \mathcal{C}_1)$ an arbitrary relation
+from pairs of tilings to the pair of cuts that they tile, the
+recursion-free CHC system $\mathcal{S}$ for $D_0$, $D_1$, and $E$ is
+defined as follows.
+%
+\BH{restate this to put decompositions context}
+% define relational predicates per tiling:
+The relational predicates of $\mathcal{S}$ are $\mathcal{C}_0 \times
+\mathcal{C}_1$.
+
+% define clauses per tiling:
 The clauses of $\mathcal{S}$ are defined as follows.
-
 %
-\BH{clauses that model steps of $P_0$}
-
+$\mathcal{S}$ contains clauses that model all steps of evaluation
+taken by $P_0$.
 %
-\BH{clauses that model steps of $P_1$}
-
-The query node of $\mathcal{S}$ is thus $( [ \head{D_0} ], [
-\head{D_1} ])$.
+In particular, for each $n' \in \nodes{D_0}$ with children $N \in
+\nodes{D_0}^{*}$, %
+$C_0 \in \mathcal{C}_0$ such that $n' \cons C_0 \in \mathcal{C}_0$,
+$C_1 \in \mathcal{C}_1$, there is a clause %
+\[ (N \concat C_0, C_1)[ \symvars{N}, \symvars{C_0}, \symvars{C_1} ], %
+\derstep{D_0}{ n' } \entails %
+(n' \cons C_0, C_1) \]
+%
+\BH{define shorthand, symbolic variables used}
+%
+$\mathcal{S}$ contains clauses that model all steps of evaluation
+taken by $P_1$.
+%
+In particular, for each $n' \in \nodes{D_1}$ with children $N \in
+\nodes{D_1}^{*}$, %
+$C_0 \in \mathcal{C}_0$, and %
+$n' \in \nodes{C_1}$, %
+$C_1 \in \mathcal{C}_1$ such that $n' \cons C_1 \in \mathcal{C}_1$, %
+there is a clause %
+\[ (C_0, N \concat C_1)[ \symvars{C_0}, \symvars{N}, \symvars{C_1} ], %
+\derstep{D_1}{ n' } \entails %
+(n' \cons C_0, C_1) \]
+%
+For each decomposition in $E$, there is a clause that constrains that
+the combination of invariants of a tiling entail the invariant of the
+pair of cuts that they tile.
+%
+I.e., for each $\mathcal{M}_0 \subseteq \mathcal{C}_0$, %
+$\mathcal{M}_1 \subseteq \mathcal{C}_1$, %
+$C_0 \in \mathcal{C}_0$, and %
+$C_1 \in \mathcal{C}_1$, there is a clause
+%
+\[ \setformer{ M_0[ \symvars{ M_0 } ]}{ M_0 \in \mathcal{M}_0 }, %
+\setformer{ M_1[ \symvars{ M_1 } ] }{ M_1 \in \mathcal{M}_1 } \entails %
+(C_0[ \symvars{C_0} ], C_1[ \symvars{C_1} ])
+\]
+%
+The query node of $\mathcal{S}$ is $( [ \head{D_0} ], [ \head{D_1}
+])$.
 
 %%% Local Variables: 
 %%% mode: latex
