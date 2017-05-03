@@ -151,8 +151,9 @@ Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
     \domain(I)$, %
     there are some $D_0', D_0'' \in \dertrees{P_0}^{*}$ such that
     $\immsubtrees{d_0} \concat D_0 = D_0' \concat D_0''$ and %
-    \[ I(D_0', D_1), I(D_0'', D_1), \symstep{ \immsubtrees{ d_0 } }{
-      d_0 } \entails I(D_0, D_1) \]
+    \[ I(D_0', D_1), I(D_0'', D_1), %
+    \symstep{ \head{ \immsubtrees{ d_0 } } }{ d_0 } \entails %
+    I(D_0, D_1) \]
   \item 
     % soundly models each step of P1:
     For all $D_0 \in \dertrees{P_0}^{*}$, %
@@ -161,16 +162,14 @@ Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
     \domain(I)$, %
     there are some $D_1', D_1'' \in \dertrees{P_1}^{*}$ such that
     $\immsubtrees{d_1} \concat D_1 = D_1' \concat D_1''$ and %
-    \[ I(D_0, D_1'), I(D_0, D_1''), \symstep{ \immsubtrees{ d_1 } }{
-      d_1 } \entails I(D_0, D_1) \]
+    \[ I(D_0, D_1'), I(D_0, D_1''), %
+    \symstep{ \head { \immsubtrees{ d_1 } } }{ d_1 } \entails %
+    I(D_0, D_1) \]
   \end{enumerate}
   %
   Then $I$ are \emph{derivation relational invariants} of $P_0$ and
   $P_1$.
 \end{defn}
-%
-\BH{fix: project subtrees to expressions before defining semantic
-  constraint}
 %
 The space of all derivation relational invariants for $P_0$ and $P_1$
 is denoted $\dersinvs{P_0}{P_1}$.
@@ -229,31 +228,29 @@ invariants.
   \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
   % verify: main procedure
   \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:verify-begin}} %
-  { \myproc{$\verifyaux(D_0, D_1, R)$ \label{line:aux-begin} }{ %
+  { \myproc{$\verifyaux(I)$ \label{line:aux-begin} }{ %
       % check if the solution is inductive:
-      \Switch{$\chkinductive(D_0, D_1, R)$ \label{line:chkind} }{ %
+      \Switch{$\chkinductive(I)$ \label{line:chkind} }{ %
         \lCase{$\isind$}{ %
           % case: it is. Return that P0, P1 are equivalent.
           \Return{$\true$} \label{line:ret-equiv} %
         } %
-        \Case{$D_0' \in \dertrees{ \cc{P}_0 }, %
-          D_1' \in \dertrees{ \cc{P}_1 }$ %
+        \Case{$D_0 \in \dertrees{ \cc{P}_0 }, %
+          D_1 \in \dertrees{ \cc{P}_1 }$ %
           \label{line:case-cex}}{ %
-          \Switch{$\verifyders(D_0, D_1)$ %
-            \label{line:refine} }{ %
+          \Switch{$\verifyders(D_0, D_1)$ \label{line:verify-ders} }{ %
             \lCase{$\nonequiv$:}{ %
-              \Return{$\false$} \label{line:ret-inequiv} %
+              \Return{$\false$} \label{line:ret-non-equiv} %
             } %
-            \Case{$R'$:}{ %
-              \Return{\BH{fix} $\verifyaux(\mergeinvs(I, I'))$} %
+            \Case{$I'$: \label{line:case-ders-invs} }{ %
+              \Return{$\verifyaux(\mergeinvs(I, I'))$} %
               \label{line:recurse}
             } %
           } %
         } %
       } %
     } \label{line:aux-end} %
-    \Return{$\verifyaux((\emptyset, \emptyset), %
-      (\emptyset, \emptyset), \emptyset)$} \label{line:base-call} } %
+    \Return{$\verifyaux(\emptyset)$} \label{line:base-call} } %
   %
   \caption{% interface of verify:
     \verify: given $P_0, P_1 \in \stlc$, decides if $P_0 \equiv P_1$.
@@ -264,22 +261,62 @@ invariants.
   }
   \label{alg:verify}
 \end{algorithm}
+% verifier top-level:
+The equivalence verifier \verify is given in \autoref{alg:verify}.
 %
-\BH{derdags: replace with derivation trees}
+\verify, given $P_0, P_1 \in \stlc$ (\autoref{line:verify-begin}),
+defines a procedure $\verifyaux$ that, given derivation relational
+invariants $I$, attempts to determine if $P_0 \equiv P_1$ by finding
+inductive derivation relational invariants built from $I$
+(\autoref{line:aux-begin}---\autoref{line:aux-end}).
 %
-\BH{walk through verification algorithm}
+\verify calls \verifyaux on the empty map of derivation relational
+invariants and returns the result (\autoref{line:base-call}).
 
+% verify auxiliary procedure:
+\verifyaux, given derivation relational invariants $I$, runs procedure
+\chkinductive on $I$ (\autoref{line:chkind}; \chkinductive is given in
+\autoref{sec:chk-ind}).
 %
-\BH{define equivalence verifier. Maintains two unrollings of sets of
-  program derivations, represented as hyper-DAG's, and map from pairs
-  of cuts in the DAGs to relational invariants.}
+If \chkinductive determines that some restriction of $I$ are
+inductive, then \chkinductive returns the value $\isind$, and
+\verifyaux returns that $P_0 \equiv P_1$ (\autoref{line:ret-equiv}).
 
-\BH{iteration: check that DAGs and relational invariants define valid
-  proof of equivalence. If so, done.}
+% case: no inductive restriction found:
+Otherwise, \chkinductive returns a derivation $D_0$ of $P_0$ and $D_1$
+of $P_1$ that do not have derivation relational
+invariants in $I$ (\autoref{line:case-cex}).
+%
+\verifyaux then runs a procedure \verifyders on $D_0$ and $D_1$
+(\autoref{line:verify-ders}; \verifyders is given in
+\autoref{sec:verify-ders}).
+%
+If \verifyders returns the value $\nonequiv$ to denote that $D_0$ and
+$D_1$ are not equivalent, then \verifyaux returns that $P_0 \not\equiv
+P_1$ (\autoref{line:ret-non-equiv}).
 
-\BH{if not, extend one of the DAG's. If extension creates a new pair
-  of complete derivations, then pass these to the refutation
-  procedure.}
+% subcase: finds path-pair invariants:
+Otherwise, \verifyders returns relational derivation invariants $I'$
+of $D_0$ and $D_1$ (\autoref{line:case-ders-invs}).
+%
+\verifyaux runs a procedure \mergeinvs on $I$ and $I'$, which
+generates derivation relational invariants of all pairs of derivations
+with relational invariants in both $I$ and $I'$.
+%
+\verifyaux recurses on the generated invariants and returns the result
+(\autoref{line:recurse}).
+
+% mergeinvs: combine using disjunction:
+\mergeinvs, given derivation relational invariants $I, I' \in
+\dersinvs{P_0}{P_1}$, generates $I'' \in \dersinvs{P_0}{P_1}$ such
+that for each $D_0 \in \dertrees{P_0}$ and $D_1 \in \dertrees{P_1}$, %
+\textbf{(1)} if $(D_0, D_1) \in \domain(I) \setminus \domain(I')$,
+then $I''(D_0, D_1) = I(D_0, D_1)$;
+%
+\textbf{(2)} if $(D_0, D_1) \in \domain(I') \setminus \domain(I)$,
+then $I''(D_0, D_1) = I'(D_0, D_1)$; %
+\textbf{(3)} otherwise, $I''(D_0, D_1) = I(D_0, D_1) \lor I'(D_0,
+D_1)$.
 
 \subsubsection{Checking inductiveness of derivation invariants}
 \label{sec:chk-ind}
@@ -288,33 +325,36 @@ invariants.
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
+%
+\verifyders, given derivations $D_0 \in \dertrees{P_0}$ and $D_1 \in
+\dertrees{P_1}$, returns either relational derivation invariants of
+pairs of tuples of sub-derivations of $D_0$ and $D_1$ that prove $D_0
+\equiv D_1$ or the value $\nonequiv$ to denote that $D_0 \not\equiv
+D_1$.
+%
+\verifyders reduces the problem of determining $D_0 \equiv D_1$ to
+solving a recursion-free system $\mathcal{S}$ of Constrained Horn
+Clauses (\autoref{sec:chcs}), defined as follows.
 
-\BH{derivation refutation: define relational invariants over sets of
-  subderivations that form a frontier in the pair of
-  derivations. Start from the set of all leaves. Get the relational
-  invariant for each set by taking disjunction over its predecessors
-  along every step, and then some context formula that will be
-  non-trivial to define.}
+% define relational predicates:
+The relational predicates of $\mathcal{S}$ are defined as follows.
+%
+Let $C_0 \subseteq \nodes{D_0}^{*}$ and $C_1 \subseteq
+\nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$, respectively, and let
+$C_0' \subseteq \nodes{D_0}$ and $C_1' \subseteq \nodes{D_1}$ be the
+subsequences of $C_0$ and $C_1$, respectively.
+%
+The relational predicates of $\mathcal{S}$ are $C_0 \times C_1$.
 
-\BH{after solving for relational invariants over sets of derivations,
-  some derivations may occur more than once in a pair of
-  derivations. The invariants for these get folded together using
-  conjunction. This normalizes the result into a relational invariant
-  per set of derivation}
+% define clauses:
+The clauses of $\mathcal{S}$ are defined as follows.
+%
+\BH{clauses that model steps of $P_0$}
+%
+\BH{clauses that model steps of $P_1$}
 
-\BH{sets of derivations play the role of sets of paths in path-based
-  analysis. Entailment is checked over sets derivations that derive
-  the same set of expressions. Search for a sufficient set can branch:
-  we just need to find an inductive set along some expression.}
-
-\BH{sets of derivation nodes that we're interested in are maximal
-  anti-chains of nodes under the dependence relation.}
-
-\BH{get the relational invariant for each set of expressions as
-  interpolant. Pre-formula: disjunction of cases, one for each
-  expression. Post-formula: conjunction of rule constraints for all
-  steps left. Note that we don't need to use the other relational
-  invariants.}
+The query node of $\mathcal{S}$ is thus $( [ \head{D_0} ], [
+\head{D_1} ])$.
 
 %%% Local Variables: 
 %%% mode: latex
