@@ -230,31 +230,30 @@ invariants.
   % Output: decision for safety
   \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
   % verify: main procedure
-  \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:verify-begin}} %
-  { \myproc{$\verifyaux(I)$ \label{line:aux-begin} }{ %
+  \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:core-begin}} %
+  { \myproc{$\verifyaux(I)$ \label{line:core-aux-begin} }{ %
       % check if the solution is inductive:
-      \Switch{$\chkinductive(I)$ \label{line:chkind} }{ %
+      \Switch{$\chkinductive(I)$ \label{line:core-chkind} }{ %
         \lCase{$\isind$}{ %
           % case: it is. Return that P0, P1 are equivalent.
-          \Return{$\true$} \label{line:ret-equiv} %
+          \Return{$\true$} \label{line:core-ret-equiv} %
         } %
-        \Case{$D_0 \in \dertrees{ \cc{P}_0 }, %
-          D_1 \in \dertrees{ \cc{P}_1 }$ %
-          \label{line:case-cex}}{ %
-          \Switch{$\verifyders(D_0, D_1)$ \label{line:verify-ders} }{ %
-            \Case{$\nonequiv$:}{ %
-              \Return{$\false$} \label{line:ret-non-equiv} %
-            } %
+        \Case{$D_0 \in \dertrees{ \cc{P}_0 }$, %
+          $D_1 \in \dertrees{ \cc{P}_1 }$ %
+          \label{line:core-case-cex}}{ %
+          \Switch{$\verifyders(D_0, D_1)$ \label{line:core-vders} }{ %
+            \Case{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
+              \Return{$\false$} \label{line:core-ret-non-equiv} } %
             \Case{$I' \in \dersrels{P_0}{P_1}$: %
-              \label{line:case-ders-invs} }{ %
-              \Return{$\verifyaux(\mergeinvs(I, I'))$} %
-              \label{line:recurse}
+              \label{line:core-subcase-invs} }{ %
+              \Return{ $\verifyaux(\mergeinvs(I, I'))$ } %
+              \label{line:core-recurse}
             } %
           } %
         } %
       } %
-    } \label{line:aux-end} %
-    \Return{$\verifyaux(\emptyset)$} \label{line:base-call} } %
+    } \label{line:core-aux-end} %
+    \Return{$\verifyaux(\emptyset)$} \label{line:core-base} } %
   %
   \caption{% interface of verify:
     \verify: given $P_0, P_1 \in \stlc$, decides if $P_0 \equiv P_1$.
@@ -276,37 +275,42 @@ invariants.
   % Declare sub-program (procedure) markers.
   \SetKwProg{myproc}{Procedure}{}{}
   % Inputs: a program
-  \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$.}
+  \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, %
+    $T \in \tilings{D_0}{D_1}$.}
   % Output: decision for safety
   \Output{Derivation relational invariants of $D_0$ and $D_1$ or the
     value $\nonequiv$.}
   % verify: main procedure
-  \myproc{$\verifyders(D_0, D_1)$ \label{line:verify-ders-begin}} %
-  { \myproc{$\verifydersaux(E)$ \label{line:ders-aux-begin} }{ %
-      % construct CHC for pair of derivation and tilings:
+  \myproc{$\verifyders(D_0, D_1, T)$ \label{line:vders-begin}} %
+  { \myproc{$\verifydersaux(T')$ \label{line:vders-aux-begin} } %
+    { % construct CHC for pair of derivation and tilings:
       $\mathcal{S} \assign \derschc(D_0, D_1, E)$ %
-      \label{line:defn-chc} \;
+      \label{line:vders-cons-chc} \;
       % try to solve system:
       \Switch{$\solvechc(\mathcal{S})$ %
-        \label{line:solve-chc} }{ %
-        \Case{$\sigma \in \interps{ \mathcal{S} }$}{ %
+        \label{line:vders-solve-chc} }{ %
+        \Case{$\sigma \in \interps{ \mathcal{S} }$ %
+          \label{line:vders-case-soln} }{ %
           % case: system is solvable. Return solution:
-          \Return{$(E, \sigma)$} \label{line:ret-pf} %
+          \Return{$(T, \sigma)$} \label{line:vders-ret-invs} %
         } %
         \Case{$D \in \ders{ \mathcal{S} }$ %
-          \label{line:case-chc-der}}{ %
+          \label{line:vders-case-cex}}{ %
           % check if D is valid counter-example:
-          \Switch{$\isvalidcex(D)$ \label{line:chk-cex}}{
-            \Case{$\isvalid$}{
+          \Switch{$\isvalidcex(D)$ \label{line:vders-chk-cex}}{
+            \Case{$\isvalid$ \label{line:vders-subcase-valid} }{
               % subcase: the counterexample is valid:
-              \Return{$\nonequiv$} } %
-            \Case{$C \in \mathcal{S}$}{ %
-              \Return{ $\verifydersaux(\remove{ E }{ \decomp(C) })$ }
+              \Return{$\nonequiv$} \label{line:vders-ret-nonequiv} } %
+            \Case{$C \in \mathcal{S}$ %
+              \label{line:vders-subcase-extra} }{ %
+              \Return{ $\verifydersaux(\remove{ E }{ \decomp(C) })$ %
+                \label{line:vders-recurse} } %
             }
           } %
         } %
       } %
-    } %
+    \label{line:vders-aux-end} } %
+    \Return{ $\verifydersaux(T)$ } \label{line:vders-base} \;
   } %
   %
   \caption{% interface of verifyders:
@@ -325,47 +329,50 @@ invariants.
 % verifier top-level:
 The equivalence verifier \verify is given in \autoref{alg:verify}.
 %
-\verify, given $P_0, P_1 \in \stlc$ (\autoref{line:verify-begin}),
+\verify, given $P_0, P_1 \in \stlc$ (\autoref{line:core-begin}),
 defines a procedure $\verifyaux$ that, given derivation relational
 invariants $I$, attempts to determine if $P_0 \equiv P_1$ by finding
 inductive derivation relational invariants built from $I$
-(\autoref{line:aux-begin}---\autoref{line:aux-end}).
+(\autoref{line:core-aux-begin}---\autoref{line:core-aux-end}).
 %
 \verify calls \verifyaux on the empty map of derivation relational
-invariants and returns the result (\autoref{line:base-call}).
+invariants and returns the result (\autoref{line:core-base}).
 
 % verify auxiliary procedure:
 \verifyaux, given derivation relational invariants $I$, runs procedure
-\chkinductive on $I$ (\autoref{line:chkind}; \chkinductive is given in
-\autoref{sec:chk-ind}).
+\chkinductive on $I$ (\autoref{line:core-chkind}; 
+%
+\chkinductive is given in \autoref{sec:chk-ind}).
 %
 If \chkinductive determines that some restriction of $I$ are
 inductive, then \chkinductive returns the value $\isind$, and
-\verifyaux returns that $P_0 \equiv P_1$ (\autoref{line:ret-equiv}).
+\verifyaux returns that $P_0 \equiv P_1$
+(\autoref{line:core-ret-equiv}).
 
 % case: no inductive restriction found:
 Otherwise, \chkinductive returns a derivation $D_0$ of $P_0$ and $D_1$
 of $P_1$ that do not have derivation relational
-invariants in $I$ (\autoref{line:case-cex}).
+invariants in $I$ (\autoref{line:core-case-cex}).
 %
 \verifyaux then runs a procedure \verifyders on $D_0$ and $D_1$
-(\autoref{line:verify-ders}; \verifyders is given in
+(\autoref{line:core-vders}; \verifyders is given in
 \autoref{sec:verify-ders}).
 %
 If \verifyders returns the value $\nonequiv$ to denote that $D_0$ and
-$D_1$ are not equivalent, then \verifyaux returns that $P_0 \not\equiv
-P_1$ (\autoref{line:ret-non-equiv}).
+$D_1$ are not equivalent (\autoref{line:core-subcase-non-equiv}), then
+\verifyaux returns that $P_0 \not\equiv P_1$
+(\autoref{line:core-ret-non-equiv}).
 
 % subcase: finds path-pair invariants:
 Otherwise, \verifyders returns relational derivation invariants $I'$
-of $D_0$ and $D_1$ (\autoref{line:case-ders-invs}).
+of $D_0$ and $D_1$ (\autoref{line:core-subcase-invs}).
 %
 \verifyaux runs a procedure \mergeinvs on $I$ and $I'$, which
 generates derivation relational invariants of all pairs of derivations
 with relational invariants in both $I$ and $I'$.
 %
 \verifyaux recurses on the generated invariants and returns the result
-(\autoref{line:recurse}).
+(\autoref{line:core-recurse}).
 
 % mergeinvs: combine using disjunction:
 \mergeinvs, given derivation relational invariants $I, I' \in
@@ -383,22 +390,42 @@ D_1)$.
 \label{sec:chk-ind}
 
 %
-\BH{define procedure that checks inductiveness of given relational
+\BH{define algorithm that checks inductiveness of given relational
   invariants}
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
 %
-\verifyders, given derivations $D_0 \in \dertrees{P_0}$ and $D_1 \in
-\dertrees{P_1}$, returns either relational derivation invariants of
-pairs of tuples of sub-derivations of $D_0$ and $D_1$ that prove $D_0
-\equiv D_1$ or the value $\nonequiv$ to denote that $D_0 \not\equiv
+\verifyders (\autoref{alg:verify-ders}), given $D_0 \in
+\dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, and $T \in
+\tilings{D_0}{D_1}$, returns either \textbf{(1)} relational derivation
+invariants of $D_0$ and $D_1$ with a tiling relation contained by $T$
+or %
+\textbf{(2)} the value $\nonequiv$ to denote that $D_0 \not\equiv
 D_1$.
 %
 \verifyders reduces the problem of determining $D_0 \equiv D_1$ to
 solving a series of recursion-free systems of Constrained Horn Clauses
 (\autoref{sec:chcs}).
+
+% introduce aux function:
+$\verifyders$ defines a procedure $\verifydersaux$
+(\autoref{line:vders-aux-begin}---\autoref{line:vders-aux-end}) that,
+given tilings $T' \in \tilings{D_0}{D_1}$, either returns derivation
+relational invariants of $D_0$ and $D_1$ with a tiling contained by
+$T'$ or the value $\nonequiv$ to denote that $D_0$ and $D_1$ have no
+such relational invariants.
 %
+$\verifyders$ calls $\verifydersaux$ on $T$ and returns the result
+(\autoref{line:vders-base}).
+%
+\BH{hoist definition of tilings}
+
+% 
+\BH{walk through verifydersaux}
+
+% give DersCHC:
+\paragraph{Relational Invariants as CHC solutions}
 Let $\mathcal{C}_0 \subseteq \nodes{D_0}^{*}$ and $\mathcal{C}_1
 \subseteq \nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$,
 respectively, and let $\mathcal{C}_0' \subseteq \nodes{D_0}$ and
@@ -466,6 +493,10 @@ $C_1 \in \mathcal{C}_1$, there is a clause
 %
 The query node of $\mathcal{S}$ is $( [ \head{D_0} ], [ \head{D_1}
 ])$.
+
+\paragraph{Checking validity of a counter-derivation as a
+  counterexample to equivalence}
+\BH{complete}
 
 %%% Local Variables: 
 %%% mode: latex
