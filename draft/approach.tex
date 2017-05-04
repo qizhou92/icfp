@@ -213,11 +213,22 @@ by \autoref{lemma:equiv-evidence}.
 partial equivalence by synthesizing inductive derivation relational
 invariants.
 
+\BH{integrate this, define space of cuts, define space of tilings}
+%
+Let $\mathcal{C}_0 \subseteq \nodes{D_0}^{*}$ and $\mathcal{C}_1
+\subseteq \nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$,
+respectively, and let $\mathcal{C}_0' \subseteq \nodes{D_0}$ and
+$\mathcal{C}_1' \subseteq \nodes{D_1}$ be the subsequences of
+$\mathcal{C}_0$ and $\mathcal{C}_1$, respectively.
+%
+For $C \in \mathcal{C}_0$ and $T \subseteq \mathcal{C}_0$, if $C$ is
+the union of $T$, then $T$ is a \emph{tiling} of $C$, and similarly
+for $\mathcal{C}_1$.
+
 \subsection{Verification algorithm}
 \label{sec:verifier}
 \begin{figure}
   \centering
-  \begin{minipage}{0.48\linewidth}
 \begin{algorithm}[H]
   % Declare IO markers.
   \SetKwInOut{Input}{Input}
@@ -242,9 +253,9 @@ invariants.
           $D_1 \in \dertrees{ \cc{P}_1 }$ %
           \label{line:core-case-cex}}{ %
           \Switch{$\verifyders(D_0, D_1)$ \label{line:core-vders} }{ %
-            \Case{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
+            \lCase{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
               \Return{$\false$} \label{line:core-ret-non-equiv} } %
-            \Case{$I' \in \dersrels{P_0}{P_1}$: %
+            \lCase{$I' \in \dersrels{P_0}{P_1}$: %
               \label{line:core-subcase-invs} }{ %
               \Return{ $\verifyaux(\mergeinvs(I, I'))$ } %
               \label{line:core-recurse}
@@ -256,74 +267,10 @@ invariants.
     \Return{$\verifyaux(\emptyset)$} \label{line:core-base} } %
   %
   \caption{% interface of verify:
-    \verify: given $P_0, P_1 \in \stlc$, decides if $P_0 \equiv P_1$.
-    % procedures used: 
-    \verify uses procedures \mergeinvs (\autoref{sec:verifier}), %
-    \chkinductive (\autoref{sec:chk-ind}), and %
-    \verifyders (\autoref{sec:verify-ders}).
+    \verify: an equivalence verifier.
   }
   \label{alg:verify}
 \end{algorithm}
-  \end{minipage}
-  % algorithm for verifying a pair of derivations:
-  \begin{minipage}{0.48\linewidth}
-\begin{algorithm}[H]
-  % Declare IO markers.
-  \SetKwInOut{Input}{Input}
-  %
-  \SetKwInOut{Output}{Output}
-  % Declare sub-program (procedure) markers.
-  \SetKwProg{myproc}{Procedure}{}{}
-  % Inputs: a program
-  \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, %
-    $T \in \tilings{D_0}{D_1}$.}
-  % Output: decision for safety
-  \Output{Derivation relational invariants of $D_0$ and $D_1$ or the
-    value $\nonequiv$.}
-  % verify: main procedure
-  \myproc{$\verifyders(D_0, D_1, T)$ \label{line:vders-begin}} %
-  { \myproc{$\verifydersaux(T')$ \label{line:vders-aux-begin} } %
-    { % construct CHC for pair of derivation and tilings:
-      $\mathcal{S} \assign \derschc(D_0, D_1, E)$ %
-      \label{line:vders-cons-chc} \;
-      % try to solve system:
-      \Switch{$\solvechc(\mathcal{S})$ %
-        \label{line:vders-solve-chc} }{ %
-        \Case{$\sigma \in \interps{ \mathcal{S} }$ %
-          \label{line:vders-case-soln} }{ %
-          % case: system is solvable. Return solution:
-          \Return{$(T, \sigma)$} \label{line:vders-ret-invs} %
-        } %
-        \Case{$D \in \ders{ \mathcal{S} }$ %
-          \label{line:vders-case-cex}}{ %
-          % check if D is valid counter-example:
-          \Switch{$\isvalidcex(D)$ \label{line:vders-chk-cex}}{
-            \Case{$\isvalid$ \label{line:vders-subcase-valid} }{
-              % subcase: the counterexample is valid:
-              \Return{$\nonequiv$} \label{line:vders-ret-nonequiv} } %
-            \Case{$C \in \mathcal{S}$ %
-              \label{line:vders-subcase-extra} }{ %
-              \Return{ $\verifydersaux(\remove{ E }{ \decomp(C) })$ %
-                \label{line:vders-recurse} } %
-            }
-          } %
-        } %
-      } %
-    \label{line:vders-aux-end} } %
-    \Return{ $\verifydersaux(T)$ } \label{line:vders-base} \;
-  } %
-  %
-  \caption{% interface of verifyders:
-    \verifyders: given $D_0 \in \dertrees{P_0}, D_1 \in
-    \dertrees{P_1}$, decides if $D_0 \equiv D_1$.
-    % procedures used: 
-    \verify uses procedures \mergeinvs (\autoref{sec:verifier}), %
-    \chkinductive (\autoref{sec:chk-ind}), and %
-    \verifyders (\autoref{sec:verify-ders}).
-  }
-  \label{alg:verify-ders}
-\end{algorithm}
-  \end{minipage}
 \end{figure}
 
 % verifier top-level:
@@ -386,15 +333,121 @@ then $I''(D_0, D_1) = I'(D_0, D_1)$; %
 \textbf{(3)} otherwise, $I''(D_0, D_1) = I(D_0, D_1) \lor I'(D_0,
 D_1)$.
 
-\subsubsection{Checking inductiveness of derivation invariants}
+\subsubsection{Determining inductiveness of derivation invariants}
 \label{sec:chk-ind}
-
-%
-\BH{define algorithm that checks inductiveness of given relational
+% algorithm for checking inductiveness:
+\begin{figure}
+  \centering
+  \begin{algorithm}[H]
+    % Declare IO markers.
+    \SetKwInOut{Input}{Input}
+    % 
+    \SetKwInOut{Output}{Output}
+    % Declare sub-program (procedure) markers.
+    \SetKwProg{myproc}{Procedure}{}{}
+    % Inputs: a program
+    \Input{$T \in \tilings{P_0}{P_1}$, $I \in \dersinvs{P_0}{P_1}$
+      such that $(T, I) \in \dersinvs{P_0}{P_1}$.
+      %
+      \BH{fix spaces}
+      }
+    % Output: decision for safety
+    \Output{$\isind$ to denote that some restriction of $(T, I)$ are
+      inductive or derivations not defined in $I$.}
+    % verify: main procedure
+    \myproc{$\chkinductive(T, I)$ \label{line:chkind-begin}} %
+    { \myproc{$\chkindaux(O, I')$ \label{line:vders-aux-begin} } %
+      { % check set of obligations:
+        \Switch{$O$} %
+        { \lCase{$\emptyset$} {
+            % case: no obligations remain:
+            \Return{$\isind$}
+          } %
+          \Case{$\elts{ (\mathcal{D}_0, \mathcal{D}_1) } \union O'$}{
+            % check if obligation is undefined in I:
+            \lIf{$(\mathcal{D}_0, \mathcal{D}_1) \notin \domain(I)$}{ %
+              % obligation isn't defined. Return derivations:
+              \Return{ $(\chooseder(\mathcal{D}_0), %
+                \chooseder(\mathcal{D}_1)$ } 
+            } %
+            \Else{ %
+            } %
+          } %
+        } %
+      } %
+      % base call:
+      \Return{$\chkindaux(\elts{ ([ P_0 ], [ P_1 ]) }, %
+        \alltrue)$} \label{line:chkind-base}
+    } %
+    % 
+    \caption{% interface of chkinductive:
+      \chkinductive: determines the inductiveness of derivation
+      relational invariants. }
+    \label{alg:verify-ders}
+  \end{algorithm}
+\end{figure}
+\BH{define algorithm that determines inductiveness of given relational
   invariants}
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
+\begin{figure}
+  \centering
+  \begin{algorithm}[H]
+    % Declare IO markers.
+    \SetKwInOut{Input}{Input}
+    % 
+    \SetKwInOut{Output}{Output}
+    % Declare sub-program (procedure) markers.
+    \SetKwProg{myproc}{Procedure}{}{}
+    % Inputs: a program
+    \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, %
+      $T \in \tilings{D_0}{D_1}$.}
+    % Output: decision for safety
+    \Output{Derivation relational invariants of $D_0$ and $D_1$ or the
+      value $\nonequiv$.}
+    % verify: main procedure
+    \myproc{$\verifyders(D_0, D_1, T)$ \label{line:vders-begin}} %
+    { \myproc{$\verifydersaux(T')$ \label{line:vders-aux-begin} } %
+      { % construct CHC for pair of derivation and tilings:
+        $\mathcal{S} \assign \derschc(D_0, D_1, T')$ %
+        \label{line:vders-cons-chc} \;
+        % try to solve system:
+        \Switch{$\solvechc(\mathcal{S})$ %
+          \label{line:vders-solve-chc} }{ %
+          \lCase{$\sigma \in \interps{ \mathcal{S} }$ %
+            \label{line:vders-case-soln} }{ %
+            % case: system is solvable. Return solution:
+            \Return{$(T, \sigma)$} \label{line:vders-ret-invs} %
+          } %
+          \Case{$D \in \ders{ \mathcal{S} }$ %
+            \label{line:vders-case-cex}}{ %
+            % check if D is valid counter-example:
+            \Switch{$\isvalidcex(D)$ \label{line:vders-chk-cex}}{
+              \lCase{$\isvalid$ \label{line:vders-subcase-valid} }{
+                % subcase: the counterexample is valid:
+                \Return{$\nonequiv$} \label{line:vders-ret-nonequiv} } %
+              \lCase{$C \in \mathcal{S}$ %
+                \label{line:vders-subcase-extra} }{ %
+                \Return{ $\verifydersaux(\remove{ T' }{ \decomp(C) })$ %
+                  \label{line:vders-recurse} } %
+              }
+            } %
+          } %
+        } %
+        \label{line:vders-aux-end} } %
+      \Return{ $\verifydersaux(T)$ } \label{line:vders-base} \;
+    } %
+    % 
+    \caption{% interface of verifyders:
+      \verifyders: given a pair of derivations, determines their
+      equivalence, using procedures \solvechc and \isvalidcex, given
+      in \autoref{sec:verify-ders}.
+    }
+    \label{alg:verify-ders}
+  \end{algorithm}
+\end{figure}
+
 %
 \verifyders (\autoref{alg:verify-ders}), given $D_0 \in
 \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, and $T \in
@@ -418,73 +471,88 @@ such relational invariants.
 %
 $\verifyders$ calls $\verifydersaux$ on $T$ and returns the result
 (\autoref{line:vders-base}).
-%
-\BH{hoist definition of tilings}
 
-% 
-\BH{walk through verifydersaux}
+% walk through verifydersaux
+\verifydersaux, given tilings $T'$ (\autoref{line:vders-cons-chc}),
+constructs a CHC system $\mathcal{S}$ for which each solution defines
+relational invariants that combined, with $T'$, are derivation
+relational invariants of $D_0$ and $D_1$ by running the procedure
+$\derschc$ on $D_0$, $D_1$, and $T'$ (\autoref{line:vders-cons-chc};
+%
+the definition of $\derschc$ is given below).
+%
+\verifydersaux then runs \solvechc on $\mathcal{S}$
+(\autoref{line:vders-solve-chc}).
+% case: system has solution:
+If \solvechc returns a solution $\sigma \in \interps{ \mathcal{S} }$
+(\autoref{line:vders-case-soln}), then \verifydersaux returns $(T,
+\sigma)$ as derivation relational invariants of $D_0$ and $D_1$.
+
+% case: system has counter-derivation:
+Otherwise, if \solvechc returns a counter-derivation $D \in \ders{
+  \mathcal{S} }$ (\autoref{line:vders-case-cex}), then \verifydersaux
+determines if $D$ is valid evidence that $D_0 \not\equiv D_1$ by
+running a procedure \isvalidcex on $D$ (\autoref{line:vders-chk-cex};
+%
+\isvalidcex is defined below).
+% subcase: counterexample is valid:
+If \isvalidcex returns the value $\isvalid$, then \verifydersaux
+returns $\nonequiv$.
+
+% subcase: counterexample is not valid:
+Otherwise, \isvalidcex returns $C \in \mathcal{S}$ such that each
+solution to $\remove{T'}{C}$ defines derivation relational invariants
+of $D_0$ and $D_1$ (\autoref{line:vders-subcase-extra}).
+%
+\verifydersaux recurses on $\remove{T'}{C}$ and returns the result
+(\autoref{line:vders-recurse}).
 
 % give DersCHC:
 \paragraph{Relational Invariants as CHC solutions}
-Let $\mathcal{C}_0 \subseteq \nodes{D_0}^{*}$ and $\mathcal{C}_1
-\subseteq \nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$,
-respectively, and let $\mathcal{C}_0' \subseteq \nodes{D_0}$ and
-$\mathcal{C}_1' \subseteq \nodes{D_1}$ be the subsequences of
-$\mathcal{C}_0$ and $\mathcal{C}_1$, respectively.
-%
-For $C \in \mathcal{C}_0$ and $T \subseteq \mathcal{C}_0$, if $C$ is
-the union of $T$, then $T$ is a \emph{tiling} of $C$, and similarly
-for $\mathcal{C}_1$.
-
 % introduce tiling relation:
-For $E \subseteq (\pset(\mathcal{C}_0) \times \pset(\mathcal{C}_1))
-\times (\mathcal{C}_0 \union \mathcal{C}_1)$ an arbitrary relation
-from pairs of tilings to the pair of cuts that they tile, the
-recursion-free CHC system $\mathcal{S}$ for $D_0$, $D_1$, and $E$ is
-defined as follows.
-%
-\BH{restate this to put decompositions context}
+The CHC system $\mathcal{S} = \derschc(D_0, D_1, T')$ is defined as
+follows.
 % define relational predicates per tiling:
-The relational predicates of $\mathcal{S}$ are $\mathcal{C}_0 \times
-\mathcal{C}_1$.
+The relational predicates of $\mathcal{S}$ are $\cuts{D_0} \times
+\cuts{D_1}$.
 
 % define clauses per tiling:
 The clauses of $\mathcal{S}$ are defined as follows.
 %
-$\mathcal{S}$ contains clauses that model all steps of evaluation
-taken by $P_0$.
+$\mathcal{S}$ contains clauses $\stepclauses_0$ that model all steps
+of evaluation taken by $P_0$.
 %
 In particular, for each $n' \in \nodes{D_0}$ with children $N \in
 \nodes{D_0}^{*}$, %
-$C_0 \in \mathcal{C}_0$ such that $n' \cons C_0 \in \mathcal{C}_0$,
-$C_1 \in \mathcal{C}_1$, there is a clause %
+$C_0 \in \cuts{D_0}$ such that $n' \cons C_0 \in \cuts{D_0}$,
+$C_1 \in \cuts{D_1}$, there is a clause %
 \[ (N \concat C_0, C_1)[ \symvars{N}, \symvars{C_0}, \symvars{C_1} ], %
 \derstep{D_0}{ n' } \entails %
 (n' \cons C_0, C_1) \]
 %
 \BH{define shorthand, symbolic variables used}
 %
-$\mathcal{S}$ contains clauses that model all steps of evaluation
-taken by $P_1$.
+$\mathcal{S}$ contains clauses $\stepclauses_1$ that model all steps
+of evaluation taken by $P_1$.
 %
 In particular, for each $n' \in \nodes{D_1}$ with children $N \in
 \nodes{D_1}^{*}$, %
-$C_0 \in \mathcal{C}_0$, and %
+$C_0 \in \cuts{D_0}$, and %
 $n' \in \nodes{C_1}$, %
-$C_1 \in \mathcal{C}_1$ such that $n' \cons C_1 \in \mathcal{C}_1$, %
+$C_1 \in \cuts{D_1}$ such that $n' \cons C_1 \in \cuts{D_1}$, %
 there is a clause %
 \[ (C_0, N \concat C_1)[ \symvars{C_0}, \symvars{N}, \symvars{C_1} ], %
 \derstep{D_1}{ n' } \entails %
 (n' \cons C_0, C_1) \]
 %
-For each decomposition in $E$, there is a clause that constrains that
-the combination of invariants of a tiling entail the invariant of the
-pair of cuts that they tile.
+For each tiling in $T'$, there is a clause in the set $\decompclauses$
+that constrains that the combination of invariants of a tiling entail
+the invariant of the pair of cuts that they tile.
 %
-I.e., for each $\mathcal{M}_0 \subseteq \mathcal{C}_0$, %
-$\mathcal{M}_1 \subseteq \mathcal{C}_1$, %
-$C_0 \in \mathcal{C}_0$, and %
-$C_1 \in \mathcal{C}_1$, there is a clause
+I.e., for each $\mathcal{M}_0 \subseteq \cuts{D_0}$, %
+$\mathcal{M}_1 \subseteq \cuts{D_1}$, %
+$C_0 \in \cuts{D_0}$, and %
+$C_1 \in \cuts{D_1}$, there is a clause
 %
 \[ \setformer{ M_0[ \symvars{ M_0 } ]}{ M_0 \in \mathcal{M}_0 }, %
 \setformer{ M_1[ \symvars{ M_1 } ] }{ M_1 \in \mathcal{M}_1 } \entails %
@@ -493,10 +561,24 @@ $C_1 \in \mathcal{C}_1$, there is a clause
 %
 The query node of $\mathcal{S}$ is $( [ \head{D_0} ], [ \head{D_1}
 ])$.
+%
 
 \paragraph{Checking validity of a counter-derivation as a
   counterexample to equivalence}
-\BH{complete}
+%
+The procedure \isvalidcex, given $D_0 \in \dertrees{P_0}$, $D_1 \in
+\dertrees{P_1}$, $T \in \tilings{D_0}{D_1}$ and $D \in \ders{
+  \mathcal{S} = \derschc(D_0, D_1, T)}$, collects the union $D'
+\subseteq \mathcal{S}$ of the instances
+%
+\BH{background: define instances of clauses in a CHC derivation}
+%
+of clauses $\decompclauses \subseteq \mathcal{S}$ that occur in $D$.
+%
+If $D' = \emptyset$, then \isvalidcex returns $\isvalid$ to denote
+that $D_0 \not\equiv D_1$.
+%
+Otherwise, \isvalidcex returns an element in $D'$.
 
 %%% Local Variables: 
 %%% mode: latex
