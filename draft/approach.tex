@@ -215,7 +215,10 @@ invariants.
 
 \subsection{Verification algorithm}
 \label{sec:verifier}
-\begin{algorithm}[t]
+\begin{figure}
+  \centering
+  \begin{minipage}{0.48\linewidth}
+\begin{algorithm}[H]
   % Declare IO markers.
   \SetKwInOut{Input}{Input}
   %
@@ -239,10 +242,11 @@ invariants.
           D_1 \in \dertrees{ \cc{P}_1 }$ %
           \label{line:case-cex}}{ %
           \Switch{$\verifyders(D_0, D_1)$ \label{line:verify-ders} }{ %
-            \lCase{$\nonequiv$:}{ %
+            \Case{$\nonequiv$:}{ %
               \Return{$\false$} \label{line:ret-non-equiv} %
             } %
-            \Case{$I'$: \label{line:case-ders-invs} }{ %
+            \Case{$I' \in \dersrels{P_0}{P_1}$: %
+              \label{line:case-ders-invs} }{ %
               \Return{$\verifyaux(\mergeinvs(I, I'))$} %
               \label{line:recurse}
             } %
@@ -261,6 +265,63 @@ invariants.
   }
   \label{alg:verify}
 \end{algorithm}
+  \end{minipage}
+  % algorithm for verifying a pair of derivations:
+  \begin{minipage}{0.48\linewidth}
+\begin{algorithm}[H]
+  % Declare IO markers.
+  \SetKwInOut{Input}{Input}
+  %
+  \SetKwInOut{Output}{Output}
+  % Declare sub-program (procedure) markers.
+  \SetKwProg{myproc}{Procedure}{}{}
+  % Inputs: a program
+  \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$.}
+  % Output: decision for safety
+  \Output{Derivation relational invariants of $D_0$ and $D_1$ or the
+    value $\nonequiv$.}
+  % verify: main procedure
+  \myproc{$\verifyders(D_0, D_1)$ \label{line:verify-ders-begin}} %
+  { \myproc{$\verifydersaux(E)$ \label{line:ders-aux-begin} }{ %
+      % construct CHC for pair of derivation and tilings:
+      $\mathcal{S} \assign \derschc(D_0, D_1, E)$ %
+      \label{line:defn-chc} \;
+      % try to solve system:
+      \Switch{$\solvechc(\mathcal{S})$ %
+        \label{line:solve-chc} }{ %
+        \Case{$\sigma \in \interps{ \mathcal{S} }$}{ %
+          % case: system is solvable. Return solution:
+          \Return{$(E, \sigma)$} \label{line:ret-pf} %
+        } %
+        \Case{$D \in \ders{ \mathcal{S} }$ %
+          \label{line:case-chc-der}}{ %
+          % check if D is valid counter-example:
+          \Switch{$\isvalidcex(D)$ \label{line:chk-cex}}{
+            \Case{$\isvalid$}{
+              % subcase: the counterexample is valid:
+              \Return{$\nonequiv$} } %
+            \Case{$C \in \mathcal{S}$}{ %
+              \Return{ $\verifydersaux(\remove{ E }{ \decomp(C) })$ }
+            }
+          } %
+        } %
+      } %
+    } %
+  } %
+  %
+  \caption{% interface of verifyders:
+    \verifyders: given $D_0 \in \dertrees{P_0}, D_1 \in
+    \dertrees{P_1}$, decides if $D_0 \equiv D_1$.
+    % procedures used: 
+    \verify uses procedures \mergeinvs (\autoref{sec:verifier}), %
+    \chkinductive (\autoref{sec:chk-ind}), and %
+    \verifyders (\autoref{sec:verify-ders}).
+  }
+  \label{alg:verify-ders}
+\end{algorithm}
+  \end{minipage}
+\end{figure}
+
 % verifier top-level:
 The equivalence verifier \verify is given in \autoref{alg:verify}.
 %
