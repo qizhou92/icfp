@@ -346,39 +346,32 @@ D_1)$.
     % Declare sub-program (procedure) markers.
     \SetKwProg{myproc}{Procedure}{}{}
     % Inputs: a program
-    \Input{$T \in \tilings{P_0}{P_1}$, $I \in \dersinvs{P_0}{P_1}$
-      such that $(T, I) \in \dersinvs{P_0}{P_1}$.
-      %
-      \BH{fix spaces}
-      }
+    \Input{$D \in \dersinvs{P_0}{P_1}$.}
     % Output: decision for safety
-    \Output{$\isind$ to denote that some restriction of $(T, I)$ are
-      inductive or derivations not defined in $I$.}
+    \Output{$\isind$ to denote that some restriction of $D$ is
+      inductive, or derivations of $P_0$ and $P_1$ not defined in $D$.}
     % verify: main procedure
-    \myproc{$\chkinductive(T, I)$ \label{line:chkind-begin}} %
-    { \myproc{$\chkindaux(O, I')$ \label{line:vders-aux-begin} } %
-      { % check set of obligations:
-        \Switch{$O$} %
-        { \lCase{$\emptyset$} {
-            % case: no obligations remain:
-            \Return{$\isind$}
-          } %
-          \Case{$\elts{ (\mathcal{D}_0, \mathcal{D}_1) } \union O'$}{
-            % check if obligation is undefined in I:
-            \lIf{$(\mathcal{D}_0, \mathcal{D}_1) \notin \domain(I)$}{ %
-              % obligation isn't defined. Return derivations:
-              \Return{ $(\chooseder(\mathcal{D}_0), %
-                \chooseder(\mathcal{D}_1)$ } 
-            } %
-            \Else{ %
-            } %
-          } %
-        } %
-      } %
-      % base call:
-      \Return{$\chkindaux(\elts{ ([ P_0 ], [ P_1 ]) }, %
-        \alltrue)$} \label{line:chkind-base}
-    } %
+    \myproc{$\chkinductive(D)$ \label{line:chkind-begin}} %
+    { \myproc{$\chkindaux(n, I)$ \label{line:chkind-aux-begin} } %
+      { % check given node:
+        \lIf{$\dersexps{D}(n) = (\epsilon, \epsilon)$ %
+          \label{line:chkind-is-empty} }{
+          % case: node is mapped to empty sets of expressions:
+          \Return{$\true$}
+        }
+        \lElseIf{$I(\dersexps{D}(n)) \entails \dersrelinvs{D}(n)$ %
+          \label{line:chkind-is-entailed} }
+        {
+          % case: node is discharged:
+          \Return{$\true$}
+        }
+        \lElse{
+          \Return{$\chooseres(\unwind(n, D, I, P_0), %
+            \unwind(n, D, I, P_1))$ \label{line:chkind-unwind} } %
+        }
+      \label{line:chkind-aux-end} } %
+    \Return{$\chkindaux(\head{D}, \lambda x.\ \true)$} %
+    \label{line:chkind-base} } %
     % 
     \caption{% interface of chkinductive:
       \chkinductive: determines the inductiveness of derivation
@@ -386,8 +379,66 @@ D_1)$.
     \label{alg:verify-ders}
   \end{algorithm}
 \end{figure}
-\BH{define algorithm that determines inductiveness of given relational
-  invariants}
+%
+The algorithm \chkinductive for checking the inductiveness of
+derivation relational invariants is given in
+\autoref{alg:verify-ders}.
+%
+\chkinductive, given derivation relational invariants $D$
+(\autoref{line:chkind-begin}), defines a procedure \chkindaux that
+takes $n \in \nodes(D)$ and $I: \subcuts{P_0}{P_1} \to
+\symrels{P_0}{P_1}$ and returns either %
+\textbf{(1)} $\isind$ to denote that if $I$ are inductive relational
+invariants, then $\dersexps{D}(n)$ have inductive relational
+invariants that entail $I$ or
+%
+\textbf{(2)} derivations of the expressions in $\dersexps{D}(n)$ that
+are not defined in $D$
+(\autoref{line:chkind-aux-begin}---\autoref{line:chkind-aux-end}).
+%
+If case \textbf{(1)} holds, we say that $n$ in $D$ is inductive under
+$I$.
+%
+\chkinductive calls \chkindaux on the head of the $D$ and a map from
+each subcut pair to $\true$, and returns the result
+(\autoref{line:chkind-base}).
+
+\BH{walk through algorithm}
+% auxiliary function:
+\chkindaux, given $n \in \nodes{D}$, $I : \subcuts{P_0}{P_1}$,
+tests if $n$ is mapped to the pair of empty subcuts, and if so,
+returns $\isind$ (\autoref{line:chkind-is-empty}).
+%
+Otherwise, \chkindaux tests if the relational invariant of the
+expressions of $n$ under $I$ entails the relational invariant of $n$,
+and if so, returns $\isind$ (\autoref{line:chkind-is-entailed}).
+%
+Otherwise, \chkindaux runs the procedure \unwind on $n$, $D$, $I$,
+and $P_0$, which returns either \textbf{(1)} $\isind$ to denote that
+under each evaluation rule that can be applied to the subcut of $P_0$
+%
+\BH{define applicability of rule to subcut}
+%
+in $\dersexps{D}(n)$, there is some tiling that is inductive under
+$I$ or %
+\textbf{(2)} returns derivations of $\dersexps{D}(n)$ that are not
+defined in $D$;
+%
+the implementation of \unwind is defined in detail below.
+%
+\chkindaux runs \unwind similarly on $n$, $D$, $I$, and $P_1$.
+
+% chooseres:
+\chkindaux runs \chooseres on the results of the two calls.
+%
+If either call to \unwind returns $\isind$, then \chooseres returns
+$\isind$.
+%
+Otherwise, \chooseres returns some set of derivations returned by one
+of the calls to \unwind.
+
+\paragraph{Implementation of \unwind}
+\BH{complete}
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
