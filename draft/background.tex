@@ -10,40 +10,39 @@ We then define partial equivalence of STLC programs
 \subsection{The Simply-Typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
-  \begin{floatrow}[2]
-    \ffigbox[.48\textwidth] %
-    { \caption{The space of program expressions, $\expr$.} %
-      \label{fig:exprs} }
-    {  \begin{align*}
-        % expression is a constant,
-        e \rightarrow &\ c \\
-        % or a variable,
-        | &\ x \\
-        % or a binary operation,
-        | &\ e \oplus e \\
-        % or an if-then-else, 
-        | &\ \ite{ e }{ e }{ e } \\
-        % or an abstraction,
-        | &\ \lambda x.\ e \\
-        % or an application,
-        | &\ e\ e \\
-        % or a fixpoint,
-        | &\ \fix{ f }{ e }
-      \end{align*} }
-    %
-    \ffigbox[.48\textwidth] %
-    {\caption{The space of types, $\types$.
-        %
-        Metavariable $\tau$ ranges over $\types$.} %
-      \label{fig:types} }
-    %
-    { \begin{align*} %
-        \tau \rightarrow &\ \base\ %
-        |\ \base \to \tau \\
-        \base \rightarrow &\ \bools\ %
-        |\ \ints
-      \end{align*} }
-  \end{floatrow}
+  \begin{minipage}{0.48\linewidth}
+    \begin{align*}
+      % expression is a constant,
+      e \rightarrow &\ c \\
+      % or a variable,
+      | &\ x \\
+      % or a binary operation,
+      | &\ e \oplus e \\
+      % or an if-then-else, 
+      | &\ \ite{ e }{ e }{ e } \\
+      % or an abstraction,
+      | &\ \lambda x.\ e \\
+      % or an application,
+      | &\ e\ e \\
+      % or a fixpoint,
+      | &\ \fix{ f }{ e }
+    \end{align*}
+    \caption{The space of program expressions, $\expr$.} %
+    \label{fig:exprs}
+  \end{minipage}
+  %
+  \begin{minipage}{0.48\linewidth}
+    \begin{align*} %
+      \tau \rightarrow &\ \base\ %
+      |\ \base \to \tau \\
+      \base \rightarrow &\ \bools\ %
+      |\ \ints
+    \end{align*}
+    \caption{The space of types, $\types$.
+      % 
+      Metavariable $\tau$ ranges over $\types$.} %
+    \label{fig:types}
+  \end{minipage}
 \end{figure}
 
 % define STLC syntax:
@@ -143,7 +142,38 @@ For $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
 v$.
 
-\BH{define space of derivations}
+% 
+A derivation is a tree that defines rules applied in order prove that
+a particular expression has a particular value.
+%
+\begin{defn}
+  Let $(N, E, f, r)$ be such that
+  \begin{enumerate}
+  \item 
+    % tree structure:
+    $(N, E)$ is a tree.
+  \item $f: N \to \subexps(P)$ is such that \textbf{(1)} for each
+    maximal set of nodes $n_0, \ldots, n_i, n' \in \subexps(P)$ with
+    $(n_j, n') \in E$ for each $0 \leq j \leq i$, $f(n)$ decomposes to
+    $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
+    %
+    \textbf{(2)} For each $n$, there are $n_0, \ldots, n_i \in N$ such
+    that $f(n)$ decomposes to $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
+  \end{enumerate}
+  Then $(N, E, f, r)$ is a \emph{derivation tree} of $P$.
+\end{defn}
+%
+The space of derivation trees for $P$ is denoted $\dertrees{P}$.
+%
+\BH{define head of a derivation tree}
+%
+\BH{define immediate subtrees of a derivation tree}
+%
+\BH{rework current defn of decomposing}
+%
+\BH{define derivation relation over a derivation tree}
+%
+\BH{fix a single program for the scope of this entire section}
 
 \paragraph{Typing}
 %
@@ -217,36 +247,6 @@ efficiently~\cite{demoura08}.
 %
 \sys assumes access to a decision procedure for \lia, denoted \issat.
 
-% introduce interpolants over formula pairs:
-An interpolant of mutually inconsistent formulas $\varphi_0$ and
-$\varphi_1$ is a \lia formula that explains their inconsistency using
-their common vocabulary.
-%
-\begin{defn}
-  \label{defn:itps}
-  % define:
-  For spaces of logical variables $X$ and $Y$,
-  %
-  $\varphi_0 \in \formulas{X}$ and
-  %
-  $\varphi_1 \in \formulas{Y}$,
-  % 
-  if $I \in \formulas{X \intersection Y}$ is such that 
-  %
-  \textbf{(1)} $\varphi_0 \entails I$ and %
-  \textbf{(2)} $I, \varphi_1 \entails \false$, then $I$ is an
-  \emph{interpolant} of $\varphi_0$ and $\varphi_1$.
-\end{defn}
-%
-Previous work has introduced interpolating theorem provers that
-synthesize interpolants of pairs of mutually-unsatisfiable formulas in
-extensions theories used to model program semantics and
-specifications~\cite{mcmillan04}.
-%
-To present \sys, we assume access to a procedure \solveitp that, given
-mutually unsatisfiable \lia formulas $\varphi_0, \varphi_1$, returns
-an interpolant of $\varphi_0$ and $\varphi_1$.
-
 \paragraph{Symbolic encoding of semantics}
 %
 The semantics of $\stlc$ is represented symbolically using \lia
@@ -277,7 +277,7 @@ Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
 \nu \sats \psi$.
 %
 In such a case, $e$ \emph{decomposes} to $e_0, \ldots, e_n$ in $P$,
-and $\psi$ is denoted $\symstep{P}{e}$.
+and $\psi$ is denoted $\symstep{ e_0, \ldots, e_n }{e}$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
@@ -304,6 +304,149 @@ they take exactly one argument.
 %
 The definition can be directly generalized to include pairs of
 programs over tuples of arguments of arbitrary length.
+
+\subsection{Constrained Horn Clauses}
+\label{sec:chcs}
+
+\subsubsection{Structure}
+% definition of CHC
+A Constrained Horn Clause is a body, consisting of a conjunctive set
+of uninterpreted relational predicates and a constraint, and a head
+relational predicate.
+%
+Relational predicates are predicate symbols paired with a map from
+each symbol to its arity.
+%
+\begin{defn}
+  \label{defn:rel-preds}
+  For each space of symbols $\mathcal{R}$ and function $a: \mathcal{R}
+  \to \nats$, $(\mathcal{R}, a)$ is a space of \emph{relational
+    predicates}.
+\end{defn}
+%
+The space of all relational predicates is denoted $\relpreds$.
+%
+For each space of relational predicates $\mathcal{R} \in \relpreds$,
+we denote the predicate symbols and arity of $\mathcal{R}$ as
+$\relsof{\mathcal{R}}$ and $\arityof{\mathcal{R}}$, respectively.
+%
+For relational predicates $\mathcal{R} \in \relpreds$ and symbol $R$,
+we denote $R \in \relsof{ \mathcal{R} }$ alternatively as $R \in
+\mathcal{R}$.
+%
+All definitions introduced in this section are given over a fixed,
+arbitrary set of relational-predicate symbols $\mathcal{R}$.
+
+% define applications of relational predicates:
+An application of a relational predicate is a relational-predicate
+symbol $R$ paired with a sequence of variables of length equal to the
+arity of $R$.
+%
+\begin{defn}
+  \label{defn:pred-apps}
+  For $R \in \mathcal{R}$ and sequence of variables $Y \in X^{*}$ such
+  that $|Y| = \arityof{\mathcal{R}}(R)$, $(R, Y)$ is an
+  \emph{application}.
+\end{defn}
+%
+The space of applications is denoted $\apps{\mathcal{R}}$.
+%
+For each application $A \in \apps{\mathcal{R}}$, the predicate symbol
+and argument sequence of $A$ are denoted $\relof{A}$ and $\argsof{A}$
+respectively.
+
+% define CHC:
+A Constrained Horn Clause is a body of applications, a constraint, and
+a head application.
+%
+\begin{defn}
+  \label{defn:chcs-structure}
+  For $\mathcal{A} \subseteq \apps{\mathcal{R}}$ and %
+  $\varphi \in \formulas$, $\mathcal{B} = (\mathcal{A}, \varphi)$ is a
+  \emph{clause body}.
+  % 
+  For $H \in \apps{\mathcal{R}}$, $(\mathcal{B}, H)$ is a
+  \emph{Constrained Horn Clause}.
+\end{defn}
+% define space of bodies:
+The space of clause bodies is denoted $\bodies{ \mathcal{R} } =
+\pset(\apps{\mathcal{R}}) \times \formulas$.
+%
+For each $\mathcal{B} \in \bodies{ \mathcal{R} }$, the constraint of
+$\mathcal{B}$ is denoted $\ctrof{ \mathcal{B} }$.
+% define space, projection:
+The space of Constrained Horn Clauses is denoted $\chc{ \mathcal{R} }
+= \bodies{ \mathcal{R} } \times \apps{ \mathcal{R} }$.
+%
+For each clause $\mathcal{C} \in \chc{\mathcal{R}}$, the body and head
+of $\mathcal{C}$ are denoted $\bodyof{ \mathcal{C} }$ and $\headof{
+  \mathcal{C} }$, respectively.
+% define siblings:
+For each $\mathcal{S} \subseteq \chc{ \mathcal{R} }$, $\mathcal{C} \in
+\mathcal{S}$, and all applications $A_0, A_1 \in \appsof{ \bodyof{
+    \mathcal{C} } }$, $\relof{A_0}$ and $\relof{A_1}$ are
+\emph{siblings} in $\mathcal{S}$.
+
+% give conditions on normalization:
+Let $\mathcal{S} \subseteq \chc{ \mathcal{R} }$ that is recursion-free
+be such that there is exactly one relational predicate $\queryof{
+  \mathcal{S} }$ that is the dependency of no relational predicate.
+%
+Then $\mathcal{S}$ is a \emph{normalized} recursion-free system.
+%
+For the remainder of this paper, we consider only normalized
+recursion-free sets of CHCs, and denote the space of such sets as
+$\chcs{ \mathcal{R} }$.
+
+\subsubsection{Solutions}
+\label{sec:chc-solns}
+%
+A solution to a CHC system $\mathcal{S}$ is an interpretation of each
+relational predicate $R$ of arity $n$ as a formula over $n$ free
+variables such that for each clause $\mathcal{C} \in \mathcal{S}$, the
+conjunction of interpretations of all relational predicates in the
+body of $\mathcal{C}$ and the constraint of $\mathcal{C}$ entail the
+interpretation of the head of $\mathcal{C}$.
+%
+Let a map from each $R \in \relsof{ \mathcal{R} }$ to a formula over
+an ordered vector of $\arityof{ \mathcal{R} }(R)$ free variables be an
+\emph{interpretation} of $\mathcal{R}$;
+%
+let the space of interpretations of $\mathcal{R}$ be denoted
+$\interps{ \mathcal{R} }$.
+%
+\begin{defn}
+  \label{defn:chc-soln}
+  For $\mathcal{B} \in \bodies{ \mathcal{R} }$ and $H \in \apps{
+    \mathcal{R} }$, %
+  let $\sigma \in \interps{ \mathcal{R} }$ be such that for each $R
+  \in \mathcal{R}$, $\arityof{\mathcal{R}}(R) = \degreeof{\sigma(R)}$
+  and %
+  %
+  \[ \elts{ \sigma(\relof{ A })[ \argsof{ A } ] }_{ A \in \appsof{
+      \mathcal{B} } }, %
+  \ctrof{ \mathcal{B} } \entails %
+  \sigma( \relof{H} )[ \argsof{ H } ]
+  \]
+  Then $\sigma$ is a \emph{solution} of $(\mathcal{B}, H)$.
+\end{defn}
+% define partial solution 
+For $\mathcal{S} \in \chcs{ \mathcal{R} }$, if
+% solution respects dependence order:
+\textbf{(a)} for each $R \in \domain(\sigma)$ (where $\domain(\sigma)$
+denotes the domain of $\sigma$) and $R' \in \mathcal{R}$ a dependence
+of $R$ in $\mathcal{S}$, it holds that $R' \in \domain(\sigma)$;
+%
+\textbf{(b)} for each $\mathcal{C} \in \mathcal{S}$ such that
+$\relof{ \headof{ \mathcal{C} } } \in \domain(\sigma)$, $\sigma$ is a
+solution of $\mathcal{C}$;
+%
+then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
+%
+If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
+then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
+
+\QZ{define derivations of a CHC system}
 
 %%% Local Variables: 
 %%% mode: latex

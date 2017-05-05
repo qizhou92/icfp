@@ -1,19 +1,71 @@
 % shorthand: paper-specific shorthand
+\newcommand{\alltrue}{\mathsf{AllTrue}}
+
+\newcommand{\apps}[1]{\mathsf{Apps}_{#1}}
+
+\newcommand{\appsof}[1]{\mathsf{Apps}[ #1 ]}
+
+\newcommand{\argsof}[1]{\mathsf{Args}[ #1 ]}
+
+\newcommand{\arityof}[1]{\mathsf{Arity}_{#1}}
+
+\newcommand{\bodies}[1]{\mathsf{Bodies}_{#1}}
+
+\newcommand{\bodyof}[1]{\mathsf{Body}_{#1}}
+
 \newcommand{\base}{\mathsf{Base}}
+
+\newcommand{\chc}[1]{\mathsf{CHC}[ #1 ]}
+
+\newcommand{\chcs}[1]{\mathsf{CHCs}[ #1 ]}
+
+\newcommand{\chkindaux}{\textsc{ChkIndAux}\xspace}
 
 \newcommand{\chkinductive}{\textsc{ChkInd}\xspace}
 
+\newcommand{\chooseder}{\mathsf{ChooseDer}}
+
+\newcommand{\chooseres}{\textsc{ChooseRes}\xspace}
+
+\newcommand{\clauses}[1]{\mathsf{Clauses}[ #1 ]}
+
 \newcommand{\const}{\mathsf{Const}}
+
+\newcommand{\ctrof}[1]{\mathsf{Ctr}[#1]}
+
+\newcommand{\cuts}[1]{\mathsf{Cuts}[ #1 ]}
+
+\newcommand{\decomp}{\mathsf{Dec}}
+
+\newcommand{\decompclauses}{\mathsf{Decomp}}
 
 \newcommand{\degreeof}{\mathsf{deg}}
 
-\newcommand{\derdagsof}[1]{\mathsf{DerDAGs}[ #1 ]}
+\newcommand{\ders}[1]{\mathsf{Ders}[ #1 ]}
+
+\newcommand{\derschc}{\textsc{DersCHC}\xspace}
+
+\newcommand{\dersexps}[1]{\mathsf{Exps}[ #1 ]}
+
+\newcommand{\dersinvs}[2]{\mathsf{DersInvs}[ #1, #2 ]}
+
+\newcommand{\dersrelinvs}[1]{\mathsf{DersRels}[ #1 ]}
+
+\newcommand{\dersrels}[2]{\mathsf{DersRels}[ #1, #2 ]}
+
+\newcommand{\derstep}[2]{\mathsf{DerStep}[ #1, #2 ]}
+
+\newcommand{\dertrees}[1]{\mathsf{DerTrees}[ #1 ]}
 
 \newcommand{\evalrules}{\mathsf{EvalRules}}
 
 \newcommand{\evalsto}{\Downarrow}
 
+\newcommand{\explabel}[1]{\mathsf{ExpLbl}[ #1 ]}
+
 \newcommand{\expr}{\mathsf{Exprs}}
+
+\newcommand{\exprel}[1]{\mathsf{ExpRel}[ #1 ]}
 
 \newcommand{\fix}[2]{\cc{fix}\ #1\ #2}
 
@@ -23,37 +75,69 @@
 
 \newcommand{\hastype}{\vdash}
 
+\newcommand{\head}[1]{\mathsf{hd}[ #1 ]}
+
+\newcommand{\headof}[1]{\mathsf{Head}_{#1}}
+
+\newcommand{\immsubtrees}[1]{\mathsf{ImmSubtrees}[ #1 ]}
+
+\newcommand{\interps}[1]{\mathsf{Interps[ #1 ]}}
+
 \newcommand{\isind}{\mathsf{IsInd}}
 
 \newcommand{\issat}{\textsc{IsSat}\xspace}
+
+\newcommand{\isvalid}{\mathsf{IsValid}}
+
+\newcommand{\isvalidcex}{\textsc{IsValidCex}\xspace}
 
 \newcommand{\ite}[3]{\cc{if}\ #1\ \cc{then}\ #2\ \cc{else}\ #3}
 
 \newcommand{\judges}{\vdash}
 
-\newcommand{\mergeinvs}{\textsc{MergeInvs}\xspace}
+\newcommand{\mergeinvs}{\textsc{Mrg}\xspace}
+
+\newcommand{\nodes}[1]{\mathsf{Nodes}[ #1 ]}
 
 \newcommand{\nonequiv}{\mathsf{NonEquiv}}
 
 \newcommand{\ops}{\mathsf{ops}}
 
-\newcommand{\relinvs}{\mathsf{RelInvs}}
+\newcommand{\queryof}[1]{\mathsf{Query}_{#1}}
 
-\newcommand{\solveitp}{\textsc{SolveItp}\xspace}
+\newcommand{\relinvs}[2]{\mathsf{RelInvs}[ #1, #2 ]}
+
+\newcommand{\relpreds}{\mathsf{Preds}}
+
+\newcommand{\relof}[1]{\mathsf{Rel}[ #1 ]}
+
+\newcommand{\relsof}[1]{\mathsf{Rels}_{#1}}
+
+\newcommand{\solvechc}{\textsc{SolveCHC}\xspace}
+
+\newcommand{\stepclauses}{\mathsf{Step}}
 
 \newcommand{\stepsto}[1]{\rightarrow_{ #1 }}
 
 \newcommand{\stlc}{\mathsf{STLC}}
 
-\newcommand{\subexps}{\mathsf{SubExps}}
+\newcommand{\subcuts}[2]{\mathsf{SubCuts}[ #1, #2 ]}
 
-\newcommand{\symrels}{\mathsf{SymRels}}
+\newcommand{\subexps}[1]{\mathsf{SubExps}[ #1 ]}
+
+\newcommand{\symrels}[2]{\mathsf{SymRels}[ #1, #2 ]}
 
 \newcommand{\symstep}[2]{\psi[ #1 ; #2 ]}
 
 \newcommand{\symvars}[1]{\mathsf{symvars}_{#1}}
 
+\newcommand{\symvarsidx}[2]{\mathsf{SymVarsIdx}[ #1, #2 ]}
+
+\newcommand{\tilings}[2]{\mathsf{Tilings}[ #1, #2 ]}
+
 \newcommand{\types}{\mathsf{Types}}
+
+\newcommand{\unwind}{\textsc{Unwind}\xspace}
 
 \newcommand{\values}{\mathsf{Values}}
 
@@ -61,9 +145,11 @@
 
 \newcommand{\verify}{\textsc{Verify}\xspace}
 
-\newcommand{\verifyaux}{\textsc{VerifyAux}\xspace}
+\newcommand{\verifyaux}{\textsc{VAux}\xspace}
 
 \newcommand{\verifyders}{\textsc{VerifyDers}\xspace}
+
+\newcommand{\verifydersaux}{\textsc{VD}'\xspace}
 
 \newcommand{\vocab}{\mathsf{Vocab}}
 
