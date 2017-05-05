@@ -9,7 +9,7 @@ let rec sum_1_outer n i =
   else (sum_1_inner n n) + (sum_1_outer n (i - 1))
 
 (* sum_1 n m: compute n * n * n *)
-let sum_1 n = sum_1_outer n 0
+let sum_1 n = sum_1_outer n n
 
 (* sum_2_aux: compute n * (n - i) * (n - j) *)
 let rec sum_2_aux n i j =
