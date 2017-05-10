@@ -129,13 +129,22 @@ If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
 % define class of invariants that are actually maintained
 \sys, given programs $P_0$ and $P_1$ attempts to determine if $P_0
 \equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
-from sets of derivations to relational invariants.
+pairs of sequences of derivations of subexpressions of $P_0$ and $P_1$
+to relational invariants.
+%
+\BH{fix defn to include derivations of subexpressions}
+%
+Let $\dersubtrees{P_0} = \bigunion_{e \in \subexps{P_0}} \dertrees{ e
+}$ and $\dersubtrees{P_1} = \bigunion_{e \in \subexps{P_1}} \dertrees{
+  e }$.
 %
 Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
-\subexps(P_0)^{*} \times \subexps(P_1)^{*} \to \symrels{P_0}{P_1}$.
+\dersubtrees{P_0}^{*} \times \dersubtrees{P_1}^{*} \to
+\symrels{P_0}{P_1}$.
 %
 \begin{defn}
   \label{defn:der-rel-invs}
+  % DAG:
   Let $I \in \dersrels{P_0}{P_1}$ be such that %
   \begin{enumerate}
   \item 
@@ -145,22 +154,22 @@ Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
     \nu_0 = \nu_1 \]
   \item 
     % soundly models each step of P0:
-    For all $d_0 \in \dertrees{P_0}$, %
-    $D_0 \in \dertrees{P_0}^{*}$, %
-    $D_1 \in \dertrees{P_1}^{*}$ such that $(d_0 \cons D_0, D_1) \in
-    \domain(I)$, %
-    there are some $D_0', D_0'' \in \dertrees{P_0}^{*}$ such that
+    For all $d_0 \in \dersubtrees{P_0}$, %
+    $D_0 \in \dersubtrees{P_0}^{*}$, %
+    $D_1 \in \dersubtrees{P_1}^{*}$ such that $(d_0 \cons D_0, D_1)
+    \in \domain(I)$, %
+    there are some $D_0', D_0'' \in \dersubtrees{P_0}^{*}$ such that
     $\immsubtrees{d_0} \concat D_0 = D_0' \concat D_0''$ and %
     \[ I(D_0', D_1), I(D_0'', D_1), %
     \symstep{ \head{ \immsubtrees{ d_0 } } }{ d_0 } \entails %
     I(D_0, D_1) \]
   \item 
     % soundly models each step of P1:
-    For all $D_0 \in \dertrees{P_0}^{*}$, %
-    $d_1 \in \dertrees{P_1}$, %
-    $D_1 \in \dertrees{P_1}^{*}$ such that $(D_0, d_1 \cons D_1) \in
-    \domain(I)$, %
-    there are some $D_1', D_1'' \in \dertrees{P_1}^{*}$ such that
+    For all $D_0 \in \dersubtrees{P_0}^{*}$, %
+    $d_1 \in \dersubtrees{P_1}$, %
+    $D_1 \in \dersubtrees{P_1}^{*}$ such that $(D_0, d_1 \cons D_1)
+    \in \domain(I)$, %
+    there are some $D_1', D_1'' \in \dersubtrees{P_1}^{*}$ such that
     $\immsubtrees{d_1} \concat D_1 = D_1' \concat D_1''$ and %
     \[ I(D_0, D_1'), I(D_0, D_1''), %
     \symstep{ \head { \immsubtrees{ d_1 } } }{ d_1 } \entails %
@@ -386,7 +395,7 @@ derivation relational invariants is given in
 %
 \chkinductive, given derivation relational invariants $D$
 (\autoref{line:chkind-begin}), defines a procedure \chkindaux that
-takes $n \in \nodes(D)$ and $I: \subcuts{P_0}{P_1} \to
+takes $n \in \nodes{D}$ and $I: \subcuts{P_0}{P_1} \to
 \symrels{P_0}{P_1}$ and returns either %
 \textbf{(1)} $\isind$ to denote that if $I$ are inductive relational
 invariants, then $\dersexps{D}(n)$ have inductive relational
