@@ -144,44 +144,64 @@ Let the space of such maps be denoted $\dersrels{P_0}{P_1} =
 %
 \begin{defn}
   \label{defn:der-rel-invs}
-  % DAG:
-  Let $I \in \dersrels{P_0}{P_1}$ be such that %
-  \begin{enumerate}
-  \item 
-    % supports relational invariants of complete derivations:
-    For all $D_0 \in \dertrees{P_0}$ and $D_1 \in \dertrees{P_1}$,
-    \[ I([ D_0 ], [ D_1 ]), \alpha_0 = \alpha_1 \entails %
-    \nu_0 = \nu_1 \]
-  \item 
-    % soundly models each step of P0:
-    For all $d_0 \in \dersubtrees{P_0}$, %
-    $D_0 \in \dersubtrees{P_0}^{*}$, %
-    $D_1 \in \dersubtrees{P_1}^{*}$ such that $(d_0 \cons D_0, D_1)
-    \in \domain(I)$, %
-    there are some $D_0', D_0'' \in \dersubtrees{P_0}^{*}$ such that
-    $\immsubtrees{d_0} \concat D_0 = D_0' \concat D_0''$ and %
-    \[ I(D_0', D_1), I(D_0'', D_1), %
-    \symstep{ \head{ \immsubtrees{ d_0 } } }{ d_0 } \entails %
-    I(D_0, D_1) \]
-  \item 
-    % soundly models each step of P1:
-    For all $D_0 \in \dersubtrees{P_0}^{*}$, %
-    $d_1 \in \dersubtrees{P_1}$, %
-    $D_1 \in \dersubtrees{P_1}^{*}$ such that $(D_0, d_1 \cons D_1)
-    \in \domain(I)$, %
-    there are some $D_1', D_1'' \in \dersubtrees{P_1}^{*}$ such that
-    $\immsubtrees{d_1} \concat D_1 = D_1' \concat D_1''$ and %
-    \[ I(D_0, D_1'), I(D_0, D_1''), %
-    \symstep{ \head { \immsubtrees{ d_1 } } }{ d_1 } \entails %
-    I(D_0, D_1) \]
-  \end{enumerate}
+  % nodes:
+  Let \textbf{(1)} $N$, %
+  % expressions annotations:
+  \textbf{(2)} $E_0 : N \to \subexps{P_0}^{*}$, %
+  \textbf{(3)} $E_1 : N \to \subexps{P_1}^{*}$, %
+  % invariants annotations:
+  \textbf{(4)} $I: N \to \relinvs{P_}{P_1}$,
+  % step edges in P0:
+  \textbf{(5)} $S_0 \subseteq N \times \evalrules \times N$, 
+  % step edges in P1:
+  \textbf{(6)} $S_1 \subseteq N \times \evalrules \times N$, and
+  % tiling relations:
+  \textbf{(7)} $T \subseteq N \times N \times N$ be such that%
+  % each E0 edge models a step of P0:
+  \textbf{(a)} for all $n, n' \in N$ and $r \in \evalrules$ such that
+  $(n, r, n') \in S_0$, there are $E_0^0, E_0^1 \in
+  \subexps{P_0}^{*}$, $e' \in \subexps{P_0}$, and $E_1 \in
+  \subexps{P_1}^{*}$ such that $E(n) = (E_0^0 \concat E_0^1, E_1)$,
+  $E(n') = (e' \cons E_0^1, E_1)$, and
   %
-  Then $I$ are \emph{derivation relational invariants} of $P_0$ and
-  $P_1$.
+  \[ I(n), \symstep{ r } \entails I(n')
+  \]
+  \BH{fix vocab}
+  % each E1 edge models a step of P1:
+  \textbf{(b)} for all $n, n' \in N$ and $r \in \evalrules$ such that
+  $(n, r, n') \in S_1$, there are $E_0 \in \subexps{P_0}^{*}$, $e' \in
+  \subexps{P_0}$, $E_1^0, E_1^1 \in \subexps{P_1}^{*}$ and such that
+  $E(n) = (E_0, E_1^0 \concat E_1^1)$, $E(n') = (E_0, e' \cons
+  E_1^1)$, and
+  %
+  \[ I(n), \symstep{r} \entails I(n') 
+  \]
+  \BH{fix vocab}
+  % edges for a hyper-DAG H:
+  \textbf{(c)} $H = (N, S_0 \union S_1)$ is a hyper-DAG,
+  % H has a unique source annotated with empty seqs
+  \textbf{(d)} $H$ has a unique source node $n \in N$, where $E(n) =
+  (\epsilon, \epsilon)$ and $\true \entails I(n)$, and
+  % H has a unique sink annotated with P0, P1
+  \textbf{(e)} $H$ has a unique sink node $n' \in N$, where $E(n') =
+  ([ P_0 ], [ P_1 ])$ and $I(n), \alpha_0 = \alpha_1 \entails \nu_0 =
+  \nu_1$, %
+  \textbf{(f)} for all $n_0, n_1, n' \in N$ such that $T_0(n_0, n_1,
+  n')$, 
+  \[ I(n_0), I(n_1) \entails I(n')
+  \]
+  %
+  \BH{fix vocab of invariants}
+  %
+  Then $(N, E, I, S_0, S_1)$ are \emph{derivation relational
+    invariants} of $P_0$ and $P_1$.
 \end{defn}
 %
 The space of all derivation relational invariants for $P_0$ and $P_1$
 is denoted $\dersinvs{P_0}{P_1}$.
+%
+For each $D \in \dersinvs{P_0}{P_1}$, the source and sink nodes of
+$D$ are denoted $\srcof{D}$ and $\sinkof{D}$, respectively.
 %
 \BH{add a running example}
 
@@ -361,25 +381,29 @@ D_1)$.
       inductive, or derivations of $P_0$ and $P_1$ not defined in $D$.}
     % verify: main procedure
     \myproc{$\chkinductive(D)$ \label{line:chkind-begin}} %
-    { \myproc{$\chkindaux(n, I)$ \label{line:chkind-aux-begin} } %
-      { % check given node:
-        \lIf{$\dersexps{D}(n) = (\epsilon, \epsilon)$ %
-          \label{line:chkind-is-empty} }{
-          % case: node is mapped to empty sets of expressions:
-          \Return{$\true$}
-        }
-        \lElseIf{$I(\dersexps{D}(n)) \entails \dersrelinvs{D}(n)$ %
-          \label{line:chkind-is-entailed} }
-        {
-          % case: node is discharged:
-          \Return{$\true$}
-        }
-        \lElse{
-          \Return{$\chooseres(\unwind(n, D, I, P_0), %
-            \unwind(n, D, I, P_1))$ \label{line:chkind-unwind} } %
-        }
+    { \myproc{$\chkindaux(n, I)$ %
+        \label{line:chkind-aux-begin} } %
+      { % n is inductive under D,
+        \lIf{$I(\dersexps{D}(n)) \entails \dersrelinvs{D}(n)$ %
+          \label{line:chkind-is-entailed} } {
+          % case: node is inductive:
+          \Return{$\true$} } %
+        % 
+        \Else{ %
+          $I' = \upd{I}{ \dersexps{D}(n) }{ %
+            I(\dersexps{D}(n)) \land \invsof{I}(n) }$ %
+          \label{line:str-invs} \;
+          \lIf{$\biglor \setformer{ %
+              \chkindaux(n_0, I') = \chkindaux(n_1, I') = \isind }{ %
+              n_0, n_1 \in \nodes{D}, (n_0, n_1, n') \in T }$}{ %
+            \Return{$\true$} \label{line:decomp-isind} } %
+          \lElse{ %
+            \Return{$\chooseres( %
+              \unwind{ P_0 }(n, D, I'), %
+              \unwind{ P_1 }(n, D, I'))$ %
+              \label{line:chkind-unwind} } } } %
       \label{line:chkind-aux-end} } %
-    \Return{$\chkindaux(\head{D}, \lambda x.\ \true)$} %
+    \Return{$\chkindaux(\sinkof{D}, \lambda x.\ \true)$} %
     \label{line:chkind-base} } %
     % 
     \caption{% interface of chkinductive:
@@ -412,42 +436,81 @@ $I$.
 each subcut pair to $\true$, and returns the result
 (\autoref{line:chkind-base}).
 
-\BH{walk through algorithm}
-% auxiliary function:
-\chkindaux, given $n \in \nodes{D}$, $I : \subcuts{P_0}{P_1}$,
-tests if $n$ is mapped to the pair of empty subcuts, and if so,
-returns $\isind$ (\autoref{line:chkind-is-empty}).
+% auxiliary function: check entailment in context:
+\chkindaux, given $n \in \nodes{D}$, $I : \subcuts{P_0}{P_1}$, tests
+if the invariant under $I$ of the sub-expressions of $n$ entails the
+relational invariant of $n$;
+% 
+if so, then \chkindaux returns that $n$ is inductive under $I$
+(\autoref{line:chkind-is-entailed}).
+% check if some decomposition is entailed
+Otherwise, \chkindaux constructs relational invariants $I'$ over
+sub-expression sequences that strengthen $I$ at the sub-expressions of
+$n$ with the relational invariants of $n$ in $D$
+(\autoref{line:str-invs}).
 %
-Otherwise, \chkindaux tests if the relational invariant of the
-expressions of $n$ under $I$ entails the relational invariant of $n$,
-and if so, returns $\isind$ (\autoref{line:chkind-is-entailed}).
+\chkindaux determines if there is some decomposition tiling $n_0, n_1
+\in N$ of $n$ such that $n_0$ and $n_1$ are inductive under $I'$;
 %
-Otherwise, \chkindaux runs the procedure \unwind on $n$, $D$, $I$,
-and $P_0$, which returns either \textbf{(1)} $\isind$ to denote that
-under each evaluation rule that can be applied to the subcut of $P_0$
-%
-\BH{define applicability of rule to subcut}
-%
-in $\dersexps{D}(n)$, there is some tiling that is inductive under
-$I$ or %
-\textbf{(2)} returns derivations of $\dersexps{D}(n)$ that are not
-defined in $D$;
-%
-the implementation of \unwind is defined in detail below.
-%
-\chkindaux runs \unwind similarly on $n$, $D$, $I$, and $P_1$.
+if so, then \chkindaux returns that $n$ is inductive under $I$
+(\autoref{line:decomp-isind}).
 
+% case: unwind
+Otherwise, \chkindaux runs the procedure $\unwind{P_0}$ and on $n$,
+$D$, $I'$, which returns either \textbf{(1)} $\isind$ to denote that
+the components under each evaluation rule that can be applied to the
+sub-expressions of $P_0$ in $\dersexps{D}(n)$ are inductive or %
+\textbf{(2)} returns derivations of $\dersexps{D}(n)$ that do not have
+relational invariants in $\invsof{D}$;
+%
+the implementation of $\unwind{P_0}$ is defined below.
+%
+\chkindaux runs a similar procedure $\unwind{P_1}$ on $n$, $D$, and
+$I'$.
 % chooseres:
 \chkindaux runs \chooseres on the results of the two calls.
 %
-If either call to \unwind returns $\isind$, then \chooseres returns
-$\isind$.
+If either call returns $\isind$, then \chooseres returns $\isind$.
 %
-Otherwise, \chooseres returns some set of derivations returned by one
-of the calls to \unwind.
+Otherwise, \chooseres returns some sequence of derivations returned by
+one of the calls.
 
-\paragraph{Implementation of \unwind}
-\BH{complete}
+\paragraph{Implementation of \textsc{unwind}}
+%
+$\unwind{P_0}$, given $D \in \dersinvs{P_0}{P_1}$, $n \in \nodes{D}$,
+and $I \in \dersinvs$, determines if $n$ is inductive in $D$ under $I$
+by performing the following steps.
+% case: empty sequence of derivations:
+For $E = \dersexps_0(n)$, first determines if $E = \epsilon$.
+%
+If so, then $\unwind{P_0}$ returns the empty sequence of derivations.
+
+% case: non-empty sequence of derivations:
+Otherwise, let $e \in \subexps{P_0}$, $E' \in \subexps{P_0}^{*}$ be
+such that $E = e \cons E'$.
+%
+For each $r \in \evalrules$ and $E_r \in \subexps{P_0}^{*}$ such that
+$E_r$ step to $e$ on $r$ in $P_0$, checks if there is some $n_r \in
+\nodes{D}$ such that $\dersexps{P_0} = E_r \concat E'$, and if so,
+runs \chkindaux on $n_r$, $D$, and $I'$.
+%
+If for each $r$ there is such an $n_r$ and $\chkindaux(D, n_r, I') =
+\isind$, then $\unwind{P_0}$ returns $\isind$.
+%
+Otherwise, if there is some $r$ for which there is no such $n_r$, then
+\chkindaux returns a sequence of derivations for $E$ consisting of a
+derivation for $e$ rooted at $r$, followed by arbitrary derivations of
+the expressions in $E'$.
+%
+Otherwise---in which case there is some $r' \in \evalrules$ with
+$n_{r'} \in \nodes{D}$, $D, D' \in \ders{P_0}^{*}$ such that $D$ are
+derivations of $E_{r'}$ and $\chkindaux(n_{r'}, D, I') = D \concat
+D'$, $\unwind{P_0}$ returns the derivation sequence consisting of $r'$
+applied to $D$, followed by $D'$.
+
+% handwave P0:
+The implementation of $\unwind{P_1}$ is symmetric to that of
+$\unwind{P_0}$.
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
