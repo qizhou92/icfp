@@ -170,11 +170,13 @@ to relational invariants.
   \textbf{(e)} $H$ has a unique sink node $n' \in N$, such that $I(n'),
   \alpha_0 = \alpha_1 \entails \nu_0 = \nu_1$, %
   % invariants respect entailments over decompositions:
-  \textbf{(f) \& (g)} for all $n_0, n_1, n' \in N$ such that $T_0(n_0,
-  n_1, n')$ or $T_1(n_0, n_1, n')$,
-  \[ I(n_0), I(n_1) \entails I(n')
-  \]
-
+  for all $n_0, n_1, n' \in N$, %
+  \textbf{(f)} for all $E_0, E_0' \in \subexps{P_0}^{*}$ such that
+  $T_0(n', E_0, E_0') = (n_0, n_1)$,
+  \[ I(n_0), I(n_1) \entails I(n') \] %
+  \textbf{(g)} for all $E_1, E_1' \in \subexps{P_1}^{*}$ such that 
+  $T_1(n', E_0, E_0') = (n_0, n_1)$, %
+  \[ I(n_0), I(n_1) \entails I(n') \]
   %
   Then $(N, I, S_0, S_1, T_0, T_1)$ is a \emph{derivation structure}
   of $P_0$ and $P_1$.
@@ -434,12 +436,19 @@ with relational invariants in both $I$ and $I'$.
         \Else{ %
           $I' = \upd{I}{ E_n }{ \varphi_n \land \invsof{ I }(n) }$ %
           \label{line:str-invs} \; %
-          $\tileind \assign %
+          $\tileind_0 \assign %
           \biglor \setformer{ %
             \chkindaux(n_0, I') = \chkindaux(n_1, I') = \isind }{ %
-              n_0, n_1 \in \nodes{D}, \tilesof{D}(n_0, n_1, n') }$ %
-            \label{line:det-is-ind} \; %
-          \lIf{$\tileind$}{ %
+              n_0, n_1 \in \nodes{D}, E_0, E_0' \in \subexps{P_0}^{*},
+              \tilesof{D}(n, E_0, E_0') = (n_0, n_1) }$ %
+            \label{line:det-is-ind0} \; %
+          $\tileind_1 \assign %
+          \biglor \setformer{ %
+            \chkindaux(n_0, I') = \chkindaux(n_1, I') = \isind }{ %
+              n_0, n_1 \in \nodes{D}, E_1, E_1' \in \subexps{P_1}^{*},
+              \tilesof{D}(n, E_1, E_1') = (n_0, n_1) }$ %
+            \label{line:det-is-ind1} \; %
+          \lIf{$\tileind_0 \lor \tileind_1$}{ %
             \Return{$\isind$} \label{line:decomp-isind} } %
           \lElse{ %
             \Return{$\chooseres( %
@@ -459,7 +468,7 @@ with relational invariants in both $I$ and $I'$.
 %
 The algorithm \chkinductive for checking the inductiveness of
 derivation relational invariants is given in
-\autoref{alg:verify-ders}.
+\autoref{alg:chk-ind}.
 %
 \chkinductive, given derivation relational invariants $D$
 (\autoref{line:chkind-begin}), defines a procedure \chkindaux that
@@ -498,10 +507,12 @@ Otherwise, \chkindaux constructs relational invariants $I'$ over
 sub-expression sequences that strengthen $I$ at $E_n$ with $\varphi_n$
 (\autoref{line:str-invs}).
 %
-\chkindaux determines if there is some decomposition tiling $n_0, n_1
-\in N$ of $n$ such that $n_0$ and $n_1$ are inductive under $I'$;
+\chkindaux determines if there is some tiling $n_0, n_1 \in N$ of $n$
+under either $P_0$ (\autoref{line:det-is-ind0}) or $P_1$
+(\autoref{line:det-is-ind1}) such that each of $n_0$ and $n_1$ are
+inductive under $I'$.
 %
-if so, then \chkindaux returns that $n$ is inductive under $I$
+If so, then \chkindaux returns that $n$ is inductive under $I$
 (\autoref{line:decomp-isind}).
 
 % case: unwind
@@ -568,9 +579,9 @@ $\unwind{P_0}$.
 \BH{maybe simplify this but defining derivation trees inductively,
   instead of as annotated graphs}
 %
-\verifyders (\autoref{alg:verify-ders}), given $D_0 \in
-\dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, returns either \textbf{(1)}
-derivation relational invariants of $D_0$ and $D_1$ or %
+\verifyders , given $D_0 \in \dertrees{P_0}$, $D_1 \in
+\dertrees{P_1}$, returns either \textbf{(1)} derivation relational
+invariants of $D_0$ and $D_1$ or %
 \textbf{(2)} the value $\nonequiv$ to denote that $D_0 \not\equiv
 D_1$.
 %
