@@ -50,8 +50,6 @@ formula that relates the evaluations of all expressions in $S$.
 Relational invariants soundly describe all steps of evaluation that
 can be taken by $P_0$ and $P_1$.
 %
-\BH{fix this defn: take conjunction of predecessors, not disjunction
-  of successors}
 \begin{defn}
   \label{defn:rel-invs}
   Let $R_0, R_1 \in \symrels{P_0}{P_1}$ be such that %
@@ -65,7 +63,7 @@ can be taken by $P_0$ and $P_1$.
   there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ such that
   $\rulepreds{r} \concat E_0 = E_0' \concat E_0''$ and
   \[ R_0(E_0' \concat E_0'', E_1), %
-  R_1(E_0' \concat E_0'', E_1) %
+  R_1(E_0' \concat E_0'', E_1), %
   \symstep{ P_0 }{ r } \entails R_0(\rulesucc{r} \cons E_0, E_1) \]
   % symmetric condition for P1:
   \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
@@ -139,12 +137,23 @@ to relational invariants.
   \textbf{(6)} $T_1 : N \times \subexps{P_1}^{*} \times
   \subexps{P_1}^{*} \to N$ be such that the following conditions
   hold.
+  % define the dependence relation:
+  \textbf{(a)} Let $E \subseteq N \times N$ be such that for each $n
+  \in N$, %
+  for each $r \in \instrules{P_0}$ such that $(n, r) \in
+  \domain(S_0)$, it holds that $(S_0(n, r), n) \in E$, %
+  for each $r \in \instrules{P_1}$ such that $(n, r) \in
+  \domain(S_1)$, it holds that $(S_1(n, r), n) \in E$, %
+  for all $n_0, n_1 \in N$, %
+  for all $E_0, E_0' \in \subexps{P_0}^{*}$ such that $T_0(n, E_0, E_0')
+  = (n_0, n_1)$, it holds that $E(n_0, n)$ and $E(n_1, n)$, %
+  for all $E_1, E_1' \in \subexps{P_1}^{*}$ such that $T_1(n, E_1,
+  E_1') = (n_0, n_1)$, it holds that $E(n_0, n)$ and $E(n_1, n)$.
   %
-  \textbf{(a)} $(N, S_0, \union S_1 \union T_1 \union T_1)$ is a
-  hyper-DAG.
+  Then $(N, E)$ is a DAG.
   %
   \textbf{(b)} For each $n \in N$ and $r \in \instrules{P_0}$ such
-  that $S_0(n, r)$ is defined,
+  that $(n, r) \in \domain(S_0)$,
   % each E0 edge models a step of P0:
   \[ I(n), \symstep{ P_0 }{ r } \entails I(S_0(n, r))
   \]
@@ -237,12 +246,12 @@ $\dersexps{P_0}{I}$ and $\dersexps{P_1}{I}$, respectively.
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
-In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
+In particular, for $I \in \derstructs{P_b0}{P_1}$, let $I' \in
 \relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps{P_0}^{*}$
 and $E_1 \in \subexps{P_1}^{*}$,
 \begin{align*}
   % the invariant of the sequences of expressions is
-  \exprel{I}(E_0, E_1) = %
+  \exprel{I'}(E_0, E_1) = %
   % the conjunction of invariants over all nodes:
   \bigland \setformer{ I(n_0, n_1) }{ %
     n_0, n_1 \in \nodes{I},
@@ -250,9 +259,23 @@ and $E_1 \in \subexps{P_1}^{*}$,
     \dersexps{P_0}{I}(n_0) = E_0, \dersexps{P_1}{I}(n_1) = E_1 }
 \end{align*}
 %
-Derivation invariants $I$ are inductive for $P_0$ and $P_1$ if they
-are the union of two derivation relations that define relational
-invariants of $P_0$ and $P_1$.
+$I \in \derstructs{P_0}{P_1}$ are inductive if they can be decomposed
+to form derivation structures that define relational invariants of
+$P_0$ and $P_1$.
+%
+For all $I_0, I_1 \in \derstructs{P_0}{P_1}$, let $I_0 \union I_1 =
+(\nodes{I_0} \union \nodes{I_1}, I', %
+\stepedges{P_0}{I_0} \union \stepedges{P_0}{I_1}, %
+\stepedges{P_1}{I_1} \union \stepedges{P_1}{I_1}, %
+\tilesof{P_0}{I_0} \union \tilesof{P_0}{I_1}, %
+\tilesof{P_1}{I_1} \union \tilesof{P_1}{I_1})$, where %
+for all $n \in \nodes{I_0} \setminus \nodes{I_1}$, 
+$\restrict{I'}{N_0 \setminus N_1} = \restrict{I_0}{N_0 \setminus
+  N_1}$, %
+$\restrict{I'}{N_1 \setminus N_0} = \restrict{I_0}{N_1 \setminus
+  N_0}$, and %
+for each $n \in N_0 \intersection N_1$, $I'(n) = I_0(n) \land
+I_1(n)$.
 %
 \begin{defn}
   \label{defn:inductive-der-rels}
@@ -765,8 +788,10 @@ $h(T_1^0(n, E_1, E_1')) = T_1^1(h(n), E_1, E_1')$.
 \textbf{(3)} let $E_1' = E_1^0 \union E_1^1$.
 % invariants:
 \textbf{(4)} Let $I' : N' \to \symrels{P_0}{P_1}$ be such that %
-\textbf{(a)} for each $n \in N_0 \setminus N_1$, $I'(n) = I^0(n)$, %
-for each $n \in N_1 \setminus N_0$, $I'(n) = I^1(n)$, and %
+\textbf{(a)} $\restrict{I'}{N_0 \setminus N_1} = \restrict{I^0}{N_0
+  \setminus N_1}$, %
+$\restrict{I'}{N_1 \setminus N_0} = \restrict{I^1}{N_1
+  \setminus N_0}$, and %
 for each $n \in N_0 \intersection N_1$, $I'(n) = I^0(n) \lor
 I^1(n)$.
 % P0 steps: 
