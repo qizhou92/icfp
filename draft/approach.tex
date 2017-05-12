@@ -192,6 +192,7 @@ respectively.
 %
 The sink node of $I$ is denoted $\sinkof{I}$.
 
+\BH{define tilings of sequences}
 % derive map for derivation relational invariants:
 Some derivation structures define invariants of all evaluations of
 sequences of expressions.
@@ -243,8 +244,6 @@ $\dersexps{P_0}{I}$ and $\dersexps{P_1}{I}$, respectively.
 \BH{reference running example}
 
 % define inductive derivation relational invariants
-\BH{fix}
-%
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
@@ -293,18 +292,6 @@ by \autoref{lemma:equiv-evidence}.
 \sys, given programs $P_0$ and $P_1$ attempts to determine their
 partial equivalence by synthesizing inductive derivation relational
 invariants.
-
-\BH{integrate this, define space of cuts, define space of tilings}
-%
-Let $\mathcal{C}_0 \subseteq \nodes{D_0}^{*}$ and $\mathcal{C}_1
-\subseteq \nodes{D_1}^{*}$ be the cuts of $D_0$ and $D_1$,
-respectively, and let $\mathcal{C}_0' \subseteq \nodes{D_0}$ and
-$\mathcal{C}_1' \subseteq \nodes{D_1}$ be the subsequences of
-$\mathcal{C}_0$ and $\mathcal{C}_1$, respectively.
-%
-For $C \in \mathcal{C}_0$ and $T \subseteq \mathcal{C}_0$, if $C$ is
-the union of $T$, then $T$ is a \emph{tiling} of $C$, and similarly
-for $\mathcal{C}_1$.
 
 \subsection{Verification algorithm}
 \label{sec:verifier}
@@ -486,8 +473,8 @@ If case \textbf{(1)} holds, we say that $n$ in $D$ is inductive under
 $I$.
 %
 \chkinductive calls \chkindaux on the head of the $D$ and a map from
-each subcut pair to $\true$, and returns the result
-(\autoref{line:chkind-base}).
+each pair of sequences of sub-expressions to $\true$, and returns the
+result (\autoref{line:chkind-base}).
 
 % auxiliary function: check entailment in context:
 \chkindaux, given $n \in \nodes{D}$, $I : \subexpseqs \to
@@ -589,6 +576,8 @@ D_1$.
 solving a recursion-free system of Constrained Horn Clauses
 (\autoref{sec:chcs}).
 
+\BH{define cuts of derivation tree}
+%
 \verifyders constructs a system $\mathcal{S}$, defined as follows.
 % define relational predicates per tiling:
 The relational predicates of $\mathcal{S}$ are $\cuts{D_0} \times
