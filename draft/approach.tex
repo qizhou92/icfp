@@ -564,127 +564,21 @@ $\unwind{P_0}$.
 
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
-\begin{figure}
-  \centering
-  \begin{algorithm}[H]
-    % Declare IO markers.
-    \SetKwInOut{Input}{Input}
-    % 
-    \SetKwInOut{Output}{Output}
-    % Declare sub-program (procedure) markers.
-    \SetKwProg{myproc}{Procedure}{}{}
-    % Inputs: a program
-    \Input{$D_0 \in \dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, %
-      $T \in \tilings{D_0}{D_1}$.}
-    % Output: decision for safety
-    \Output{Some $I \in \dersinvs{D_0}{D_1}$ or the value
-      $\nonequiv$.}
-    % verify: main procedure
-    \myproc{$\verifyders(D_0, D_1, T)$ \label{line:vders-begin}} %
-    { \myproc{$\verifydersaux(T')$ \label{line:vders-aux-begin} } %
-      { % construct CHC for pair of derivation and tilings:
-        $\mathcal{S} \assign \derschc(D_0, D_1, T')$ %
-        \label{line:vders-cons-chc} \;
-        % try to solve system:
-        \Switch{$\solvechc(\mathcal{S})$ %
-          \label{line:vders-solve-chc} }{ %
-          \lCase{$\sigma \in \interps{ \mathcal{S} }$ %
-            \label{line:vders-case-soln} }{ %
-            % case: system is solvable. Return solution:
-            \Return{$(T, \sigma)$} \label{line:vders-ret-invs} %
-          } %
-          \Case{$D \in \ders{ \mathcal{S} }$ %
-            \label{line:vders-case-cex}}{ %
-            % check if D is valid counter-example:
-            \Switch{$\isvalidcex(D)$ \label{line:vders-chk-cex}}{
-              \lCase{$\isvalid$ \label{line:vders-subcase-valid} }{
-                % subcase: the counterexample is valid:
-                \Return{$\nonequiv$} \label{line:vders-ret-nonequiv} } %
-              \lCase{$C \in \mathcal{S}$ %
-                \label{line:vders-subcase-extra} }{ %
-                \Return{ $\verifydersaux(\remove{ T' }{ \decomp(C) })$ %
-                  \label{line:vders-recurse} } %
-              }
-            } %
-          } %
-        } %
-        \label{line:vders-aux-end} } %
-      \Return{ $\verifydersaux(T)$ } \label{line:vders-base} \;
-    } %
-    % 
-    \caption{% interface of verifyders:
-      \verifyders: given a pair of derivations, determines their
-      equivalence, using procedures \solvechc and \isvalidcex, given
-      in \autoref{sec:verify-ders}.
-    }
-    \label{alg:verify-ders}
-  \end{algorithm}
-\end{figure}
-
+%
+\BH{maybe simplify this but defining derivation trees inductively,
+  instead of as annotated graphs}
 %
 \verifyders (\autoref{alg:verify-ders}), given $D_0 \in
-\dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, and $T \in
-\tilings{D_0}{D_1}$, returns either \textbf{(1)} relational derivation
-invariants of $D_0$ and $D_1$ with a tiling relation contained by $T$
-or %
+\dertrees{P_0}$, $D_1 \in \dertrees{P_1}$, returns either \textbf{(1)}
+derivation relational invariants of $D_0$ and $D_1$ or %
 \textbf{(2)} the value $\nonequiv$ to denote that $D_0 \not\equiv
 D_1$.
 %
 \verifyders reduces the problem of determining $D_0 \equiv D_1$ to
-solving a series of recursion-free systems of Constrained Horn Clauses
+solving a recursion-free system of Constrained Horn Clauses
 (\autoref{sec:chcs}).
 
-% introduce aux function:
-$\verifyders$ defines a procedure $\verifydersaux$
-(\autoref{line:vders-aux-begin}---\autoref{line:vders-aux-end}) that,
-given tilings $T' \in \tilings{D_0}{D_1}$, either returns derivation
-relational invariants of $D_0$ and $D_1$ with a tiling contained by
-$T'$ or the value $\nonequiv$ to denote that $D_0$ and $D_1$ have no
-such relational invariants.
-%
-$\verifyders$ calls $\verifydersaux$ on $T$ and returns the result
-(\autoref{line:vders-base}).
-
-% walk through verifydersaux
-\verifydersaux, given tilings $T'$ (\autoref{line:vders-cons-chc}),
-constructs a CHC system $\mathcal{S}$ for which each solution defines
-relational invariants that combined, with $T'$, are derivation
-relational invariants of $D_0$ and $D_1$ by running the procedure
-$\derschc$ on $D_0$, $D_1$, and $T'$ (\autoref{line:vders-cons-chc};
-%
-the definition of $\derschc$ is given below).
-%
-\verifydersaux then runs \solvechc on $\mathcal{S}$
-(\autoref{line:vders-solve-chc}).
-% case: system has solution:
-If \solvechc returns a solution $\sigma \in \interps{ \mathcal{S} }$
-(\autoref{line:vders-case-soln}), then \verifydersaux returns $(T,
-\sigma)$ as derivation relational invariants of $D_0$ and $D_1$.
-
-% case: system has counter-derivation:
-Otherwise, if \solvechc returns a counter-derivation $D \in \ders{
-  \mathcal{S} }$ (\autoref{line:vders-case-cex}), then \verifydersaux
-determines if $D$ is valid evidence that $D_0 \not\equiv D_1$ by
-running a procedure \isvalidcex on $D$ (\autoref{line:vders-chk-cex};
-%
-\isvalidcex is defined below).
-% subcase: counterexample is valid:
-If \isvalidcex returns the value $\isvalid$, then \verifydersaux
-returns $\nonequiv$.
-
-% subcase: counterexample is not valid:
-Otherwise, \isvalidcex returns $C \in \mathcal{S}$ such that each
-solution to $\remove{T'}{C}$ defines derivation relational invariants
-of $D_0$ and $D_1$ (\autoref{line:vders-subcase-extra}).
-%
-\verifydersaux recurses on $\remove{T'}{C}$ and returns the result
-(\autoref{line:vders-recurse}).
-
-% give DersCHC:
-\paragraph{Relational Invariants as CHC solutions}
-% introduce tiling relation:
-The CHC system $\mathcal{S} = \derschc(D_0, D_1, T')$ is defined as
-follows.
+\verifyders constructs a system $\mathcal{S}$, defined as follows.
 % define relational predicates per tiling:
 The relational predicates of $\mathcal{S}$ are $\cuts{D_0} \times
 \cuts{D_1}$.
@@ -732,26 +626,8 @@ $C_1 \in \cuts{D_1}$, there is a clause
 (C_0[ \symvars{C_0} ], C_1[ \symvars{C_1} ])
 \]
 %
-The query node of $\mathcal{S}$ is $( [ \head{D_0} ], [ \head{D_1}
-])$.
-%
-
-\paragraph{Checking validity of a counter-derivation as a
-  counterexample to equivalence}
-%
-The procedure \isvalidcex, given $D_0 \in \dertrees{P_0}$, $D_1 \in
-\dertrees{P_1}$, $T \in \tilings{D_0}{D_1}$ and $D \in \ders{
-  \mathcal{S} = \derschc(D_0, D_1, T)}$, collects the union $D'
-\subseteq \mathcal{S}$ of the instances
-%
-\BH{background: define instances of clauses in a CHC derivation}
-%
-of clauses $\decompclauses \subseteq \mathcal{S}$ that occur in $D$.
-%
-If $D' = \emptyset$, then \isvalidcex returns $\isvalid$ to denote
-that $D_0 \not\equiv D_1$.
-%
-Otherwise, \isvalidcex returns an element in $D'$.
+The query relational predicate of $\mathcal{S}$ is $( [ \head{D_0} ],
+[ \head{D_1} ])$.
 
 \subsubsection{Merging Derivation Relational Invariants}
 % mergeinvs: combine using disjunction:
