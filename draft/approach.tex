@@ -317,8 +317,8 @@ invariants.
           % case: it is. Return that P0, P1 are equivalent.
           \Return{$\true$} \label{line:core-ret-equiv} %
         } %
-        \Case{$D_0 \in \dertrees{ \cc{P}_0 }$, %
-          $D_1 \in \dertrees{ \cc{P}_1 }$ %
+        \Case{$D_0 \in \dertrees{ \cc{P}_0 }{ P_0 }$, %
+          $D_1 \in \dertrees{ \cc{P}_1 }{ P_1 }$ %
           \label{line:core-case-cex}}{ %
           \Switch{$\verifyders(D_0, D_1)$ \label{line:core-vders} }{ %
             \lCase{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
@@ -426,14 +426,14 @@ with relational invariants in both $I$ and $I'$.
           $\tileind_0 \assign %
           \biglor \setformer{ %
             \chkindaux(n_0, I') = \chkindaux(n_1, I') = \isind }{ %
-              n_0, n_1 \in \nodes{D}, E_0, E_0' \in \subexps{P_0}^{*},
-              \tilesof{D}(n, E_0, E_0') = (n_0, n_1) }$ %
+            n_0, n_1 \in \nodes{D}, E_0, E_0' \in \subexps{P_0}^{*},
+            \tilesof{P_0}{D}(n, E_0, E_0') = (n_0, n_1) }$ %
             \label{line:det-is-ind0} \; %
           $\tileind_1 \assign %
           \biglor \setformer{ %
             \chkindaux(n_0, I') = \chkindaux(n_1, I') = \isind }{ %
               n_0, n_1 \in \nodes{D}, E_1, E_1' \in \subexps{P_1}^{*},
-              \tilesof{D}(n, E_1, E_1') = (n_0, n_1) }$ %
+              \tilesof{P_1}{D}(n, E_1, E_1') = (n_0, n_1) }$ %
             \label{line:det-is-ind1} \; %
           \lIf{$\tileind_0 \lor \tileind_1$}{ %
             \Return{$\isind$} \label{line:decomp-isind} } %
@@ -566,9 +566,9 @@ $\unwind{P_0}$.
 \BH{maybe simplify this but defining derivation trees inductively,
   instead of as annotated graphs}
 %
-\verifyders , given $D_0 \in \dertrees{P_0}$, $D_1 \in
-\dertrees{P_1}$, returns either \textbf{(1)} derivation relational
-invariants of $D_0$ and $D_1$ or %
+\verifyders , given $D_0 \in \dertrees{ P_0 }{ P_0 }$, $D_1 \in
+\dertrees{P_1}{P_1}$, returns either \textbf{(1)} derivation
+relational invariants of $D_0$ and $D_1$ or %
 \textbf{(2)} the value $\nonequiv$ to denote that $D_0 \not\equiv
 D_1$.
 %
