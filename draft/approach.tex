@@ -533,7 +533,8 @@ $\unwind{P_0}$, given $D \in \dersinvs{P_0}{P_1}$, $n \in \nodes{D}$,
 and $I \in \dersinvs$, determines if $n$ is inductive in $D$ under $I$
 by performing the following steps.
 % case: empty sequence of derivations:
-For $E = \dersexps_0(n)$, first determines if $E = \epsilon$.
+For $E = \dersexps{P_0}(D)(n)$, $\unwind{P_0}$ first determines if $E
+= \epsilon$.
 %
 If so, then $\unwind{P_0}$ returns the empty sequence of derivations.
 
@@ -661,33 +662,54 @@ The query relational predicate of $\mathcal{S}$ is, by the above
 construction, $( [ D_0 ], [ D_1 ])$.
 
 \subsubsection{Merging Derivation Relational Invariants}
-% mergeinvs: combine using disjunction:
-\BH{notation: project components of invariants}
+% mergeinvs: give components of invariants 0:
+\BH{defn is inconsistent, but will be heavily simplified}
 %
-\mergeinvs, given derivation relational invariants $I_0, I_1 \in
-\dersinvs{P_0}{P_1}$, generates $I' \in \dersinvs{P_0}{P_1}$ that
-represent invariants of all derivations of $I_0$ and $I_1$,
-where $I'$ is constructed as follows.
-% nodes:
-Let $h : N_0 \partto N_1$ be the smallest function such that %
-\textbf{(1)} $h(\sinkof{I_0}) = \sinkof{I_1}$; %
-\textbf{(2)} for each $n_0 \in N_0$ and $n_1 \in N_1$, if \textbf{(a)}
-for each $n_0' \in N_0$ and $r \in \evalrules$ such that $S_0(n_0, r,
+For $N^0$, $I^0 : N^0 \to \symrels{P_0}{P_1}$, %
+$S_0^0 : N^0 \times \instrules{P_0} \to N^1$, %
+$S_1^0 : N^0 \times \instrules{P_1} \to N^1$, %
+$T_0^0 : N^0 \times \subexps{P_0} \times \subexps{P_0} \partto N^0
+\times N^0$, %
+$T_1^0 : N^0 \times \subexps{P_1} \times \subexps{P_1} \partto N^0
+\times N^0$, such that $I^0 = (N^0, I^0, S_0^0, S_1^0, T_0^0, T_1^0)
+\in \dersinvs{P_0}{P_1}$ and %
+% give components of invariants 1:
+$N^1$, $I^1 : N^1 \to \symrels{P_0}{P_1}$, %
+$S_0^1 : N^1 \times \instrules{P_0} \to N^1$, %
+$S_1^1 : N^1 \times \instrules{P_1} \to N^1$, %
+$T_0^1 : N^1 \times \subexps{P_0} \times \subexps{P_0} \partto N^1
+\times N^1$, %
+$T_1^1 : N^1 \times \subexps{P_1} \times \subexps{P_1} \partto N^1
+\times N^1$, such that %
+$I^1 = (N^1, I^1, S_0^1, S_1^1, T_0^1, T_1^1) \in
+\dersinvs{P_0}{P_1}$,
+%
+\mergeinvs, given $I^0$ and $I^1$, generates $I' \in
+\dersinvs{P_0}{P_1}$ that represent invariants of all derivations of
+$I^0$ and $I^1$, where $I'$ is constructed as follows.
+
+% define homomorphism h over similar nodes:
+Let $h : N^0 \partto N^1$ be the smallest function such that %
+\textbf{(1)} $h(\sinkof{I^0}) = \sinkof{I^1}$; %
+\BH{update this to use steps as functions over nodes, not relations}
+%
+\textbf{(2)} for each $n_0 \in N^0$ and $n_1 \in N^1$, if \textbf{(a)}
+for each $n_0' \in N^0$ and $r \in \evalrules$ such that $S_0(n_0, r,
 n_0')$, it holds that $S_1(n_1, r, h(n_0'))$ and %
-\textbf{(b)} for each $n_0' \in N_1$ and $r \in \evalrules$ such that
+\textbf{(b)} for each $n_0' \in N^1$ and $r \in \evalrules$ such that
 $S_1(n_1, r, n_0')$, it holds that $S_1(n_1, r, h(n_1'))$, then
 $h(n_0) = n_1$; 
-% preserves decompositions in P0:
+% respects tilings in P0:
 \textbf{(3)} for all $n \in \domain(h)$, $E_0, E_0' \in
 \subexps{P_0}^{*}$ such that $(n, E_0, E_1) \in \domain(T_0)$,
 $h(T_0^0(n, E_0, E_0')) = T_0^1(h(n), E_0, E_0')$;
-% preserves decompositions in P1:
+% respects tilings in P1:
 \textbf{(4)} for all $n \in \domain(h)$, $E_1, E_1' \in
 \subexps{P_1}^{*}$ such that $(n, E_1, E_1') \in \domain(T_1)$,
 $h(T_1^0(n, E_1, E_1')) = T_1^1(h(n), E_1, E_1')$.
 
 % nodes:
-\textbf{(1)} Let $N' = N_0 \union N_1'$, where $N_1' = N_1 \setminus
+\textbf{(1)} Let $N' = N^0 \union N^1$, where $N^1 = N^1 \setminus
 \range(h)$,
 % P0 expressions:
 \textbf{(2)} let $E_0' = E_0^0 \union E_0^1$, and
@@ -695,19 +717,19 @@ $h(T_1^0(n, E_1, E_1')) = T_1^1(h(n), E_1, E_1')$.
 \textbf{(3)} let $E_1' = E_1^0 \union E_1^1$.
 % invariants:
 \textbf{(4)} Let $I' : N' \to \symrels{P_0}{P_1}$ be such that %
-\textbf{(a)} $\restrict{I'}{N_0 \setminus N_1} = \restrict{I^0}{N_0
-  \setminus N_1}$, %
-$\restrict{I'}{N_1 \setminus N_0} = \restrict{I^1}{N_1
-  \setminus N_0}$, and %
-for each $n \in N_0 \intersection N_1$, $I'(n) = I^0(n) \lor
+\textbf{(a)} $\restrict{I'}{N^0 \setminus N^1} = \restrict{I^0}{N^0
+  \setminus N^1}$, %
+$\restrict{I'}{N^1 \setminus N^0} = \restrict{I^1}{N^1
+  \setminus N^0}$, and %
+for each $n \in N^0 \intersection N^1$, $I'(n) = I^0(n) \lor
 I^1(n)$.
 % P0 steps: 
-\textbf{(5)} Let $S_0' = S_0^0 \union \restrict{S_0^1}{N_1'} \union
-S_0''$, where for each $n_1 \in N_1$ and $n_0 \in \domain(h)$ such
+\textbf{(5)} Let $S_0' = S_0^0 \union \restrict{S_0^1}{N^1} \union
+S_0''$, where for each $n_1 \in N^1$ and $n_0 \in \domain(h)$ such
 that $S_0(n_1, h(n_0'))$, it holds that $S_0''(n_1, n_0)$.
 % P1 steps:
-\textbf{(6)} Let $S_1' = S_1^0 \union \restrict{S_1^1}{N_1'} \union
-S_1''$, where for each $n_1 \in N_1$ and $n_0 \in \domain(h)$ such
+\textbf{(6)} Let $S_1' = S_1^0 \union \restrict{S_1^1}{N^1} \union
+S_1''$, where for each $n_1 \in N^1$ and $n_0 \in \domain(h)$ such
 that $S_1(n_1, h(n))$, it holds that $S_1''(n, n_1)$.
 % tilings
 \textbf{(7)} Let $T' = T_0 \union T_1$.
