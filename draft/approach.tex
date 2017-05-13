@@ -192,10 +192,15 @@ respectively.
 %
 The sink node of $I$ is denoted $\sinkof{I}$.
 
-\BH{define tilings of sequences}
 % derive map for derivation relational invariants:
 Some derivation structures define invariants of all evaluations of
 sequences of expressions.
+%
+For each space $X$, $s, s_0, s_1 \in X^{*}$ if there are some $s_0',
+s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat s_2'$,
+$s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then $s_0$
+and $s_1$ are a \emph{tiling} of $s$.
+%
 \begin{defn}
   \label{defn:der-rel-invs}
   % introduce components of structure:
@@ -221,9 +226,8 @@ sequences of expressions.
   % respects splits:
   \textbf{(c)} for each $n' \in N$ and all $F_0, F_1 \in
   \subexps{P_0}$ such that $(F_0, F_1)$ is a tiling of $E_0(n')$,
-  there is some, there are some $n_0, n_1 \in N$ such that $T_0(n',
-  F_0, F_1) = (n_0, n_1)$, with $E_0(n_0) = F_0$ and $E_0(n_1) =
-  F_1$.
+  there are some $n_0, n_1 \in N$ such that $T_0(n', F_0, F_1) = (n_0,
+  n_1)$, with $E_0(n_0) = F_0$ and $E_0(n_1) = F_1$.
 
   % punt on expression map for P1:
   Let there be some $E_1 : N \to \subexps{P_1}^{*}$ that is defined
