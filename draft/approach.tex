@@ -251,7 +251,7 @@ $\dersexps{P_0}{I}$ and $\dersexps{P_1}{I}$, respectively.
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
-In particular, for $I \in \derstructs{P_b0}{P_1}$, let $I' \in
+In particular, for $I \in \derstructs{P_0}{P_1}$, let $I' \in
 \relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps{P_0}^{*}$
 and $E_1 \in \subexps{P_1}^{*}$,
 \begin{align*}
@@ -567,71 +567,98 @@ $\unwind{P_0}$.
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
 %
-\BH{maybe simplify this but defining derivation trees inductively,
-  instead of as annotated graphs}
+\verifyders, given $d_0 \in \dertrees{ P_0 }{ P_0 }$ and %
+$d_1 \in \dertrees{P_1}{P_1}$, returns either \textbf{(1)} derivation
+relational invariants of $d_0$ and $d_1$ or %
+\textbf{(2)} the value $\nonequiv$ to denote that $d_0 \not\equiv
+d_1$.
 %
-\verifyders , given $D_0 \in \dertrees{ P_0 }{ P_0 }$, $D_1 \in
-\dertrees{P_1}{P_1}$, returns either \textbf{(1)} derivation
-relational invariants of $D_0$ and $D_1$ or %
-\textbf{(2)} the value $\nonequiv$ to denote that $D_0 \not\equiv
-D_1$.
-%
-\verifyders reduces the problem of determining $D_0 \equiv D_1$ to
+\verifyders reduces the problem of determining $d_0 \equiv d_1$ to
 solving a recursion-free system of Constrained Horn Clauses
 (\autoref{sec:chcs}).
 
-\BH{define cuts of derivation tree}
-%
+% define relational predicates:
+Each relational predicate of $\mathcal{S}$ is a pair of a sequence of
+adjacent sub-derivations of $d_0$, paired with a sequence of adjacent
+subderivations of $d_1$.
+% define cuts
 \verifyders constructs a system $\mathcal{S}$, defined as follows.
+%
+Let the \emph{cuts} of $d_0$, denoted $\cuts{d_0} \subseteq
+\subders{d_0}^{*}$, be the smallest set such that %
+\textbf{(1)} $[ d_0 ] \in \cuts{d_0}$; %
+\textbf{(2)} for all $d_0' \in \subders{d_0}$ and $D_0'' \in
+\subders{d_0}$ such that $d_0' \cons D_0'' \in \cuts{d_0}$,
+$\immsubders{d_0'} \concat D_0'' \in \cuts{d_0}$.
+%
+The cuts of $d_1$, denoted $\cuts{d_1}$, are defined symmetrically.
 % define relational predicates per tiling:
-The relational predicates of $\mathcal{S}$ are $\cuts{D_0} \times
-\cuts{D_1}$.
+The relational predicates of $\mathcal{S}$ are $\cuts{d_0} \times
+\cuts{d_1}$.
+%
+For each $d \in \subders{d_0}$, let there be a distinct copy of
+symbolic variables for the expression derived by $d$, denoted
+$\symvars{d}$.
+%
+For each $D \in \subders{d_0}$, let the union of symbolic variables
+for all derivations in $D$ be denoted $\symvars{D}$.
+%
+For each $C_0 \in \cuts{d_0}$ and $C_1 \in \cuts{d_1}$, relational
+predicate $(C_0, C_1)$ has symbolic variables $\symvars{C_0},
+\symvars{C_1}$.
+%
+Each occurrence of $(C_0, C_1)$ is implicitly applied to its symbolic
+variables.
 
-% define clauses per tiling:
+% give clauses for steps of P0:
 The clauses of $\mathcal{S}$ are defined as follows.
 %
-$\mathcal{S}$ contains clauses $\stepclauses_0$ that model all steps
-of evaluation taken by $P_0$.
+Each evaluation rule applied to construct $d_0$ is modeled by a set of
+clauses in $\mathcal{S}$.
+% for each derivation,
+In particular, for each $r \in \instrules{P_0}$ and $D_0'' \in
+\subders{ d_0 }$ such that $d_0' = (D_0'', r) \in \subders{ d_0 }$, %
+each $C_0 \in \cuts{d_0}$ such that $d_0' \cons C_0 \in \cuts{ d_0 }$,
+and %
+$C_1 \in \cuts{ d_1 }$, there is a clause %
+\[ (D_0'' \concat C_0, C_1), %
+\symstep{ P_0 }{ r }[ \symvars{ D_0'' }, d_0' ] \entails %
+(d_0' \cons C_0, C_1) \]
+
+% give clauses for steps of P1:
+Each evaluation rule applied to construct $d_1$ is modeled by clauses
+of $\mathcal{S}$.
 %
-In particular, for each $n' \in \nodes{D_0}$ with children $N \in
-\nodes{D_0}^{*}$, %
-$C_0 \in \cuts{D_0}$ such that $n' \cons C_0 \in \cuts{D_0}$,
-$C_1 \in \cuts{D_1}$, there is a clause %
-\[ (N \concat C_0, C_1)[ \symvars{N}, \symvars{C_0}, \symvars{C_1} ], %
-\derstep{D_0}{ n' } \entails %
-(n' \cons C_0, C_1) \]
+In particular, for each $r \in \instrules{P_1}$ and $D_1'' \in
+\subders{d_1}$ such that $d_1' = (D_1'', r) \in \subders{ d_1 }$, %
+each $C_0 \in \cuts{d_0}$, and %
+each $C_1 \in \cuts{ d_1 }$ such that $d_1' \cons C_1 \in \cuts{d_1}$,
+there is a clause
+\[ (C_0, D_1'' \concat C_1), %
+\symstep{ P_1 }{ r }[ \symvars{ D_1'' }, d_1' ] \entails %
+(C_0, d_1' \cons C_1) \]
+
+% split into P0 and P1 tilings
+$\mathcal{S}$ contains clauses that constrain that the invariants for
+tilings of a sequence of sub-derivations of $d_0$ must entail the
+relational invariant for the sequence that they tile.
 %
-\BH{define shorthand, symbolic variables used}
-%
-$\mathcal{S}$ contains clauses $\stepclauses_1$ that model all steps
-of evaluation taken by $P_1$.
-%
-In particular, for each $n' \in \nodes{D_1}$ with children $N \in
-\nodes{D_1}^{*}$, %
-$C_0 \in \cuts{D_0}$, and %
-$n' \in \nodes{C_1}$, %
-$C_1 \in \cuts{D_1}$ such that $n' \cons C_1 \in \cuts{D_1}$, %
-there is a clause %
-\[ (C_0, N \concat C_1)[ \symvars{C_0}, \symvars{N}, \symvars{C_1} ], %
-\derstep{D_1}{ n' } \entails %
-(n' \cons C_0, C_1) \]
-%
-For each tiling in $T'$, there is a clause in the set $\decompclauses$
-that constrains that the combination of invariants of a tiling entail
-the invariant of the pair of cuts that they tile.
-%
-I.e., for each $\mathcal{M}_0 \subseteq \cuts{D_0}$, %
-$\mathcal{M}_1 \subseteq \cuts{D_1}$, %
-$C_0 \in \cuts{D_0}$, and %
-$C_1 \in \cuts{D_1}$, there is a clause
-%
-\[ \setformer{ M_0[ \symvars{ M_0 } ]}{ M_0 \in \mathcal{M}_0 }, %
-\setformer{ M_1[ \symvars{ M_1 } ] }{ M_1 \in \mathcal{M}_1 } \entails %
-(C_0[ \symvars{C_0} ], C_1[ \symvars{C_1} ])
+In particular, for all $C_0, C_0', C_0'' \in \cuts{d_0}$ such that
+$C_0'$ and $C_0''$ are a tiling of $C_0$, and %
+each $C_1 \in \cuts{d_1}$, there is a clause
+\[ (C_0', C_1), (C_0'', C_1) \entails (C_0, C_1)
 \]
 %
-The query relational predicate of $\mathcal{S}$ is $( [ \head{D_0} ],
-[ \head{D_1} ])$.
+Symmetrically, for each $C_0 \in \cuts{d_0}$ and %
+for all $C_0, C_1', C_1'' \in \cuts{d_1}$ such that $C_1'$ and $C_1''$
+are a tiling of $C_1$, %
+there is a clause 
+\[ (C_0, C_1'), (C_0, C_1'') \entails (C_0, C_1)
+\]
+
+% point out which relational predicate is the query:
+The query relational predicate of $\mathcal{S}$ is, by the above
+construction, $( [ D_0 ], [ D_1 ])$.
 
 \subsubsection{Merging Derivation Relational Invariants}
 % mergeinvs: combine using disjunction:

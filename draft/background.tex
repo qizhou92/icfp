@@ -172,13 +172,18 @@ A derivation is a tree that defines rules applied in order prove that
 a particular expression has a particular value.
 %
 \begin{defn}
-  For $e \in \subexps{P}$, the \emph{derivation} trees of $e$ in $P$,
-  denoted $\dertrees{P}{r}$, is the smallest space such that for each
+  For $e \in \subexps{P}$, the \emph{derivation trees} of $e$ in $P$,
+  denoted $\dertrees{P}{e}$, is the smallest space such that for each
   $r \in \instrules{P}$ with predecessors $\rulepreds{r} = e_0,
   \ldots, e_n \in \subexps{P}$, and derivation trees $D_0 \in
   \dertrees{P}{e_0}, \ldots, D_n \in \dertrees{P}{e_n}$, it holds that
   $(D_0, \ldots, D_n, r) \in \dertrees{P}{\rulesucc{r}}$.
 \end{defn}
+%
+For each $e \in \subexps{P}$, all $\mathcal{D} \in \dertrees{P}{e}$,
+and each $r \in \instrules{P}$ such that $(\mathcal{D}, r) \in
+\dertrees{P}{e}$, $\mathcal{D}$ are the \emph{immediate
+  sub-derivations} of $(\mathcal{D}, r)$.
 
 % define evaluation under derivations:
 For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
@@ -460,8 +465,6 @@ then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
 %
 If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
 then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
-
-\QZ{define derivations of a CHC system}
 
 %%% Local Variables: 
 %%% mode: latex
