@@ -612,10 +612,10 @@ $\mergeinvs$, given $I_0, I_1 \in \dersinvs{P_0}{P_1}$, returns $I'
 \in \dersinvs{P_0}{P_1}$ such that
 % case: domain is only P0:
 \textbf{(1)} for $C_0 = \domain(I_0) \setminus \domain(I_1)$,
-$\restrict{I'}{C_0} = \restrict{I'}{C_0}$; 
+$\restrict{I'}{C_0} = \restrict{I_0}{C_0}$; 
 % case: domain is only P1:
 \textbf{(2)} for $C_1 = \domain(I_1) \setminus \domain(I_0)$,
-$\restrict{I'}{C_1} = \restrict{I'}{C_1}$;
+$\restrict{I'}{C_1} = \restrict{I_1}{C_1}$;
 % case: domain is intersection:
 \textbf{(3)} for all $\Gamma \in \domain(I_0) \intersection
 \domain(I_1)$, $I'(\Gamma) = I_0(\Gamma) \lor I_1(\Gamma)$.
