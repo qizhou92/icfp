@@ -73,6 +73,8 @@ The space of STLC programs is denoted $\stlc$.
 %
 For $P \in \stlc$, the set of all subexpressions of $P$ is denoted
 $\subexps(P)$.
+%
+Let $P$ be fixed for the rest of this section.
 
 % define semantics:
 \paragraph{Semantics}
@@ -135,6 +137,8 @@ The semantics of $\stlc$ is defined by a natural semantics that
 relates expressions to values under contexts, given in
 \autoref{fig:nat-sem}.
 %
+The space of program contexts is denoted $\ctxs$.
+%
 The space of rules used to define the $\stlc$ semantics is denoted
 $\evalrules$.
 %
@@ -142,38 +146,58 @@ For $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
 v$.
 
-% 
+% define instantiated rules:
+Each evaluation rules defines evaluations of a given expression in a
+program in terms of evaluations of other expressions that occur in the
+program.
+%
+For each $r \in \evalrules$ and $P \in \stlc$, an instantiation of $r$
+in $P$ is $r$ paired with a successor expression for which it defines
+an evaluation, and a sequence of predecessor expressions whose
+evaluations determine the evaluation of the successor expression.
+%
+The number predecessor expressions that may occur in an instantiation
+of $r$ (i.e., $r$'s predecessor arity) is determined by $r$;
+%
+the arity is immediate from the definition of $r$, and we do not give
+the arities explicitly.
+%
+The space of all instantiations of $\evalrules$ in $P$ is denoted
+$\instrules{P}$.
+
+% define derivations:
+\BH{update}
+%
 A derivation is a tree that defines rules applied in order prove that
 a particular expression has a particular value.
 %
 \begin{defn}
-  Let $(N, E, f, r)$ be such that
-  \begin{enumerate}
-  \item 
-    % tree structure:
-    $(N, E)$ is a tree.
-  \item $f: N \to \subexps(P)$ is such that \textbf{(1)} for each
-    maximal set of nodes $n_0, \ldots, n_i, n' \in \subexps(P)$ with
-    $(n_j, n') \in E$ for each $0 \leq j \leq i$, $f(n)$ decomposes to
-    $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
-    %
-    \textbf{(2)} For each $n$, there are $n_0, \ldots, n_i \in N$ such
-    that $f(n)$ decomposes to $[ f(n_0), \ldots, f(n_i) ]$ on $r(n)$.
-  \end{enumerate}
-  Then $(N, E, f, r)$ is a \emph{derivation tree} of $P$.
+  For $e \in \subexps{P}$, the \emph{derivation trees} of $e$ in $P$,
+  denoted $\dertrees{P}{e}$, is the smallest space such that for each
+  $r \in \instrules{P}$ with predecessors $\rulepreds{r} = e_0,
+  \ldots, e_n \in \subexps{P}$, and derivation trees $D_0 \in
+  \dertrees{P}{e_0}, \ldots, D_n \in \dertrees{P}{e_n}$, it holds that
+  $(D_0, \ldots, D_n, r) \in \dertrees{P}{\rulesucc{r}}$.
 \end{defn}
 %
-The space of derivation trees for $P$ is denoted $\dertrees{P}$.
+For each $e \in \subexps{P}$, all $\mathcal{D} \in \dertrees{P}{e}$,
+and each $r \in \instrules{P}$ such that $(\mathcal{D}, r) \in
+\dertrees{P}{e}$, $\mathcal{D}$ are the \emph{immediate
+  sub-derivations} of $(\mathcal{D}, r)$.
+
+% define evaluation under derivations:
+For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
+such that $\Gamma \judges e \evalsto v$, there is some $D \in
+\dertrees{P}{e}$ that is evidence of evaluation.
 %
-\BH{define head of a derivation tree}
-%
-\BH{define immediate subtrees of a derivation tree}
-%
-\BH{rework current defn of decomposing}
-%
-\BH{define derivation relation over a derivation tree}
-%
-\BH{fix a single program for the scope of this entire section}
+This fact is denoted $\Gamma \judges_D e \evalsto v$.
+
+% define equivalence of derivations:
+For all $P_0, P_1 \in \stlc$, $D_0 \in \dertrees{P_0}{P_0}$, $D_1 \in
+\dertrees{P_0}{P_0}$, $\Gamma \in \ctxs$, and $v_0, v_1 \in \values$
+such that $\Gamma \judges_{D_0} P_0 \evalsto v_0$ and $\Gamma
+\judges{D_1} P-1 \evalsto v_1$ it holds that $v_0 = v_1$, then $D_0$
+is \emph{equivalent} to $D_1$, denoted $D_0 \equiv D_1$.
 
 \paragraph{Typing}
 %
@@ -260,15 +284,12 @@ models the result of fully applying $e$.
 For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
   \in E} \symvars{e}$.
 
-% decomposition:
-For each $P \in \stlc$, $e \in \subexps(P)$, and rule $r \in
-\evalrules$,
+% rule constraint:
+For each $r \in \instrules{ P }$, there is a formula $\psi \in
+\formulas{ \symvars{ \rulepreds{r} }, \symvars{ \rulesucc{r} } }$ that
+satisfy the following condition.
 %
-there is a sequence of subexpressions $e_0, \ldots, e_n \in
-\subexps(P)$ and a formula $\psi \in \formulas{ \symvars{e_0}, \ldots,
-  \symvars{e_n}, \symvars{e} }$ that satisfy the following condition.
-%
-Let $\Gamma_0, \ldots, \Gamma_n$ be contexts, $A_0, \ldots, A_n, A \in
+Let $\Gamma_0, \ldots, \Gamma_n \in \ctxs$, $A_0, \ldots, A_n, A \in
 \values^{*}$, and $\nu_0, \ldots, \nu_n, \nu \in \values$ be such that
 for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
 \nu_i$, and $\Gamma \judges e\ A \evalsto \nu$.
@@ -276,8 +297,7 @@ for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
 Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
 \nu \sats \psi$.
 %
-In such a case, $e$ \emph{decomposes} to $e_0, \ldots, e_n$ in $P$,
-and $\psi$ is denoted $\symstep{ e_0, \ldots, e_n }{e}$.
+In such a case, $\psi$ is denoted $\symstep{ P }{ r }$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
@@ -445,8 +465,6 @@ then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
 %
 If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
 then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
-
-\QZ{define derivations of a CHC system}
 
 %%% Local Variables: 
 %%% mode: latex

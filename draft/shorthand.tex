@@ -19,7 +19,7 @@
 
 \newcommand{\chcs}[1]{\mathsf{CHCs}[ #1 ]}
 
-\newcommand{\chkindaux}{\textsc{ChkIndAux}\xspace}
+\newcommand{\chkindaux}{\textsc{CAux}\xspace}
 
 \newcommand{\chkinductive}{\textsc{ChkInd}\xspace}
 
@@ -33,6 +33,8 @@
 
 \newcommand{\ctrof}[1]{\mathsf{Ctr}[#1]}
 
+\newcommand{\ctxs}{\mathsf{Ctxs}}
+
 \newcommand{\cuts}[1]{\mathsf{Cuts}[ #1 ]}
 
 \newcommand{\decomp}{\mathsf{Dec}}
@@ -41,11 +43,13 @@
 
 \newcommand{\degreeof}{\mathsf{deg}}
 
+\newcommand{\derrule}[1]{\mathsf{DerRule}[ #1 ]}
+
 \newcommand{\ders}[1]{\mathsf{Ders}[ #1 ]}
 
 \newcommand{\derschc}{\textsc{DersCHC}\xspace}
 
-\newcommand{\dersexps}[1]{\mathsf{Exps}[ #1 ]}
+\newcommand{\dersexps}[2]{\mathsf{Exps}[ #1 ]( #2 )}
 
 \newcommand{\dersinvs}[2]{\mathsf{DersInvs}[ #1, #2 ]}
 
@@ -53,11 +57,11 @@
 
 \newcommand{\dersrels}[2]{\mathsf{DersRels}[ #1, #2 ]}
 
-\newcommand{\derstep}[2]{\mathsf{DerStep}[ #1, #2 ]}
+\newcommand{\derstructs}[2]{\mathsf{DerStructs}[ #1, #2 ]}
 
 \newcommand{\dersubtrees}[1]{\mathsf{DerSubTrees}[ #1 ]}
 
-\newcommand{\dertrees}[1]{\mathsf{DerTrees}[ #1 ]}
+\newcommand{\dertrees}[2]{\mathsf{DerTrees}[ #1, #2 ]}
 
 \newcommand{\evalrules}{\mathsf{EvalRules}}
 
@@ -81,9 +85,13 @@
 
 \newcommand{\headof}[1]{\mathsf{Head}_{#1}}
 
-\newcommand{\immsubtrees}[1]{\mathsf{ImmSubtrees}[ #1 ]}
+\newcommand{\immsubders}[1]{\mathsf{ImmSubs}[ #1 ]}
+
+\newcommand{\instrules}[1]{\mathsf{InstRules}[ #1 ]}
 
 \newcommand{\interps}[1]{\mathsf{Interps[ #1 ]}}
+
+\newcommand{\invsof}[1]{\mathsf{Invs}[ #1 ]}
 
 \newcommand{\isind}{\mathsf{IsInd}}
 
@@ -115,9 +123,19 @@
 
 \newcommand{\relsof}[1]{\mathsf{Rels}_{#1}}
 
+\newcommand{\rulepreds}[1]{\mathsf{preds}[ #1 ]}
+
+\newcommand{\rulesucc}[1]{\mathsf{succ}[ #1 ]}
+
+\newcommand{\sinkof}[1]{\mathsf{sink}[ #1 ]}
+
 \newcommand{\solvechc}{\textsc{SolveCHC}\xspace}
 
+\newcommand{\srcof}[1]{\mathsf{src}[ #1 ]}
+
 \newcommand{\stepclauses}{\mathsf{Step}}
+
+\newcommand{\stepedges}[2]{\mathsf{Step}[ #1, #2 ]}
 
 \newcommand{\stepsto}[1]{\rightarrow_{ #1 }}
 
@@ -125,7 +143,11 @@
 
 \newcommand{\subcuts}[2]{\mathsf{SubCuts}[ #1, #2 ]}
 
+\newcommand{\subders}[1]{\mathsf{SubDers}[ #1 ]}
+
 \newcommand{\subexps}[1]{\mathsf{SubExps}[ #1 ]}
+
+\newcommand{\subexpseqs}{\mathsf{ExpSeqs}}
 
 \newcommand{\symrels}[2]{\mathsf{SymRels}[ #1, #2 ]}
 
@@ -135,11 +157,17 @@
 
 \newcommand{\symvarsidx}[2]{\mathsf{SymVarsIdx}[ #1, #2 ]}
 
+\newcommand{\tileind}{\mathsf{ind}}
+
+\newcommand{\tiles}{\mathsf{Tiles}}
+
+\newcommand{\tilesof}[2]{\mathsf{Tiles}[ #1, #2 ]}
+
 \newcommand{\tilings}[2]{\mathsf{Tilings}[ #1, #2 ]}
 
 \newcommand{\types}{\mathsf{Types}}
 
-\newcommand{\unwind}{\textsc{Unwind}\xspace}
+\newcommand{\unwind}[1]{\textsc{Unwind}[ #1 ]\xspace}
 
 \newcommand{\values}{\mathsf{Values}}
 
