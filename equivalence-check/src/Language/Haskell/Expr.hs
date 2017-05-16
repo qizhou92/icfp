@@ -6,26 +6,25 @@ import Data.List
 data Sort = BoolSort
             | IntegerSort
             | RealSort
-            | Sort String
 	deriving (Eq)
 
 data Var = Var String Sort
      deriving (Eq)
 
-var_pretty_print :: Var -> IO ()
+var_pretty_print :: Var -> String
 
-var_pretty_print (Var name sort) = print name
+var_pretty_print (Var name sort) = show name
 
 data Constant = ConstantInt Integer
                | ConstantBool Bool
                | ConstantReal Rational
 
-constant_pretty_print :: Constant -> IO() 
+constant_pretty_print :: Constant -> String 
 
 constant_pretty_print x = case x of 
-                 ConstantInt value -> print value
-                 ConstantBool value -> print value
-                 ConstantReal value -> print value
+                 ConstantInt value -> show value
+                 ConstantBool value -> show value
+                 ConstantReal value -> show value
 
 data Function = Function String [Sort]
 	deriving (Eq)
@@ -64,104 +63,47 @@ data Expr  = ExprVar Var
             |MkAnd [Expr]
             |MkOr  [Expr]
 
-list_parameter_pretty_print :: [Parameter] -> IO ()
+list_parameter_pretty_print :: [Parameter] -> String
 
 
 
-list_parameter_pretty_print = mapM_ parameter_pretty_print
-parameter_pretty_print :: Parameter -> IO ()
+list_parameter_pretty_print list = case list of
+	x:xs -> (parameter_pretty_print x) ++ "  " ++ (list_parameter_pretty_print xs)
+	otherwise -> ""
+parameter_pretty_print :: Parameter -> String
 
 parameter_pretty_print x = case x of 
-                     ParameterVar y -> var_pretty_print y
-                     ParameterConstant y -> constant_pretty_print y
+                     ParameterVar y -> (var_pretty_print y) ++ "  "
+                     ParameterConstant y ->(constant_pretty_print y) ++ "  "
 
-list_expr_pretty_print :: [Expr] -> IO ()
-list_expr_pretty_print = mapM_ expr_pretty_print
+list_expr_pretty_print :: [Expr] -> String
+list_expr_pretty_print list = case list of
+	x:xs -> (expr_pretty_print x) ++ "  " ++ (list_expr_pretty_print xs)
+	otherwise -> ""  
 
-expr_pretty_print :: Expr -> IO ()
+expr_pretty_print :: Expr -> String
 
 expr_pretty_print x = case x of
             ExprVar y -> var_pretty_print y
             ExprConstant y -> constant_pretty_print y
-            ApplyFunction f args -> do
-            	                            print "("
-            	                            print (function_name f)
-            	                            list_parameter_pretty_print args
-            	                            print ")"
-            MkAdd exprs -> do
-            	              print "(+ "
-            	              list_expr_pretty_print exprs
-            	              print " )"
-            MkMul exprs -> do 
-            	              print "(* "
-            	              list_expr_pretty_print exprs
-            	              print " )"
-            MkSub exprs -> do
-            	              print "(- "
-            	              list_expr_pretty_print exprs
-            	              print " )"
-            MkDiv expr1 expr2 -> do 
-            	              print "(div "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkMod expr1 expr2 -> do
-            	              print "(mod "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkRem expr1 expr2 -> do
-            	              print "(rem "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkLt  expr1 expr2 -> do
-            	              print "(< "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkLe expr1 expr2 -> do
-            		          print "(<= "
-            		          expr_pretty_print expr1
-            		          expr_pretty_print expr2
-            		          print " )"
-            MkGt expr1 expr2 -> do
-            	              print "(> "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkGe expr1 expr2 -> do
-            	              print "(>= "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkEq expr1 expr2 -> do
-            	              print "(= "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkNot expr1      -> do
-            	              print "(not "
-            	              expr_pretty_print expr1
-            	              print " )"
-            MkIff expr1 expr2  -> do
-            	              print "(iff "
-            	              expr_pretty_print expr1
-            	              expr_pretty_print expr2
-            	              print " )"
-            MkImplies expr1 expr2 -> do
-                              print "(=> "
-                              expr_pretty_print expr1
-                              expr_pretty_print expr2
-                              print " )" 
-            MkAnd exprs -> do
-            	           print "(and "
-            	           list_expr_pretty_print exprs
-            	           print " )"
-            
-            MkOr  exprs -> do
-            	           print "(or "
-            	           list_expr_pretty_print exprs
-            	           print " )"
+            ApplyFunction f args -> case args of 
+                                 x:xs -> (function_name f)
+                                 otherwise -> "( "++(function_name f)++(list_parameter_pretty_print args)++" )"
+            MkAdd exprs -> "(+ "++(list_expr_pretty_print exprs)++" )"
+            MkMul exprs -> "(* "++(list_expr_pretty_print exprs)++" )"
+            MkSub exprs -> "(- "++(list_expr_pretty_print exprs)++" )"
+            MkDiv expr1 expr2 -> "(div "++(expr_pretty_print expr1) ++ "  " ++(expr_pretty_print expr2)++ " )"
+            MkMod expr1 expr2 -> "(mod "++(expr_pretty_print expr1) ++ "  "++(expr_pretty_print expr2) ++ " )"
+            MkRem expr1 expr2 -> "(rem "++(expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkLt  expr1 expr2 ->"(< " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkLe expr1 expr2 -> "(<= " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkGt expr1 expr2 ->"(> " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkGe expr1 expr2 ->"(>= " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkEq expr1 expr2 -> "(= " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkNot expr1      -> "(not " ++ (expr_pretty_print expr1) ++ " )"
+            MkIff expr1 expr2  -> "(iff " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )"
+            MkImplies expr1 expr2 -> "(=> " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )" 
+            MkAnd exprs -> "(and " ++ (list_expr_pretty_print exprs) ++ " )"
+            MkOr  exprs -> "(or " ++ (list_expr_pretty_print exprs) ++ " )"
 
 
