@@ -45,41 +45,45 @@ $\symrels{P_0}{P_1}$.
 
 % relational invariants
 % define relational invariants
-Relational invariants of $P_0$ and $P_1$ are a map from sets of
-subexpressions of $P_0$ and $P_1$, with each set $S$ mapped to a
-formula that relates the evaluations of all expressions in $S$.
-%
-Relational invariants soundly describe all steps of evaluation that
-can be taken by $P_0$ and $P_1$.
+Relational invariants of $P_0$ and $P_1$ are a map from pairs of
+sequences of subexpressions of $P_0$ and $P_1$, with each pair $E$
+mapped to a formula that relates the evaluations of all expressions in
+$E$.
 %
 \begin{defn}
   \label{defn:rel-invs}
   Let $R_0, R_1 \in \symrels{P_0}{P_1}$ be such that %
   % condition: relation of empty sequences is entailed by true:
-  \textbf{(1) \& (2)} $\true \entails R_0(\epsilon, \epsilon)$ and
-  $\true \entails R_1(\epsilon, \epsilon)$;
+  \textbf{(1) \& (2)} 
+$R_0(P_0, P_1), \alpha^0_0
+  = \alpha^1_0 \entails \nu^0 = \nu^1$
+
+$\true \entails R_0([ \epsilon ], [ \epsilon ])$
+  and $\true \entails R_1( [ \epsilon ], \epsilon)$;
   % steps in P0 are valid:
-  \textbf{(2)} for all $E_0 \in \subexps{P_0}^{*}$, %
-  $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_0}$, %
-  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ such that
-  $\rulepreds{ r } \concat E_0 = E_0' \concat E_0''$ and
-  \[ R_0(E_0' \concat E_0'', E_1), %
-  R_1(E_0' \concat E_0'', E_1), %
-  \symstep{ r } \entails R_0(\rulesucc{r} \cons E_0, E_1) \]
-  % symmetric condition for P1:
   \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
   $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_1}$, %
-  there are some $E_1', E_1'' \in \subexps{P_1}^{*}$ such that
-  $\rulepreds{ r } \concat E_1 = E_1' \concat E_1''$ and
-  \[ R_0(E_0, E_1' \concat E_0''), %
-  R_1(E_0, E_1' \concat E_0''), %
-  \symstep{ r } \entails R_1(E_0, \rulesucc{r} \cons E_1) \]
+  each $r \in \instrules{P_0}$ such that $E = (\rulesucc{r} \cons E_0,
+  E_1) \in \domain(R_0)$, %
+  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ that tile
+  $\rulepreds{ r } \concat E_0$ and
+  \[ R_0(E_0', E_1), R_1(E_0'', E_1), \symstep{ r } \entails %
+  R_0(E) \]
+  % symmetric condition for P1:
+  \textbf{(4)} for all $E_0 \in \subexps{P_0}^{*}$, %
+  $E_1 \in \subexps{P_1}^{*}$, and %
+  each $r \in \instrules{P_1}$ such that $E = (E_0, \rulesucc{r} \cons
+  E_1) \in \domain(R_1)$, %
+  there are some $E_1', E_1'' \in \subexps{P_1}^{*}$ that tile
+  $\rulepreds{ r } \concat E_1$ and
+  \[ R_0(E_0, E_1'), R_1(E_0, E_0''), \symstep{ r } \entails %
+  R_1(E) \]
   %
   Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
   $P_1$.
 \end{defn}
+%
+\BH{fix logical vocabulary of constraints}
 %
 The space of relational invariants of $P_0$ and $P_1$ is denoted
 $\relinvs{P_0}{P_1}$.
@@ -130,8 +134,6 @@ Let the space of derivation relations of $P_0$ and $P_1$ be denoted
 $\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
 \derctxs{P_1}^{*} \partto \symrels{P_0}{P_1}$.
 %
-\BH{fix}
-%
 \begin{defn}
   \label{defn:der-invs}
   Let $I \in \dersrels{ P_0 }{ P_1 } $ be such that
@@ -168,7 +170,7 @@ $\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
   \textbf{(5)} for all $\Gamma_0 \in \derctxs{P_0}^{*}$ and %
   all $\Gamma_1, \Gamma_1', \Gamma_1'' \in \subders{P_1}^{*}$ such
   that $\Gamma_1'$ and $\Gamma_1''$ are a tiling of $\Gamma_1$ and
-  $(\Gamma_0, \Gamma_1) \in \domain(I)$,
+  $\Gamma = (\Gamma_0, \Gamma_1) \in \domain(I)$,
   \[ I(\Gamma_0, \Gamma_1'), I(\Gamma_0, \Gamma_1'') \entails %
   I(\Gamma) \]
 \end{defn}
