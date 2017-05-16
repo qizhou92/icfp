@@ -184,6 +184,8 @@ For each $e \in \subexps{P}$, all $\mathcal{D} \in \dertrees{P}{e}$,
 and each $r \in \instrules{P}$ such that $(\mathcal{D}, r) \in
 \dertrees{P}{e}$, $\mathcal{D}$ are the \emph{immediate
   sub-derivations} of $(\mathcal{D}, r)$.
+%
+\BH{keep?}
 
 % define evaluation under derivations:
 For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
@@ -198,6 +200,14 @@ For all $P_0, P_1 \in \stlc$, $D_0 \in \dertrees{P_0}{P_0}$, $D_1 \in
 such that $\Gamma \judges_{D_0} P_0 \evalsto v_0$ and $\Gamma
 \judges{D_1} P-1 \evalsto v_1$ it holds that $v_0 = v_1$, then $D_0$
 is \emph{equivalent} to $D_1$, denoted $D_0 \equiv D_1$.
+
+% define derivation contexts:
+For each $D \in \dertrees{P_0}{P_0}$ and $D' \in \subders{D}$, the
+position of $D'$ within $D$ is defined by the sequence of rules paired
+with indices of premises in the rules under which $D'$ occurs in $D$.
+%
+The space of derivation contexts of $P$ is denoted $\derctxs{P} =
+(\instrules{P} \times \nats)^{*}$.
 
 \paragraph{Typing}
 %
@@ -465,6 +475,9 @@ then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
 %
 If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
 then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
+
+% 
+\BH{introduce solver}
 
 %%% Local Variables: 
 %%% mode: latex

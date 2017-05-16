@@ -514,8 +514,8 @@ $\unwind{P_0}$.
 \label{sec:verify-ders}
 %
 \verifyders, given $d_0 \in \dertrees{ P_0 }{ P_0 }$ and %
-$d_1 \in \dertrees{P_1}{P_1}$, returns either \textbf{(1)} derivation
-relational invariants of $d_0$ and $d_1$ or %
+$d_1 \in \dertrees{ P_1 }{ P_1 }$, returns either \textbf{(1)}
+derivation relational invariants of $d_0$ and $d_1$ or %
 \textbf{(2)} the value $\nonequiv$ to denote that $d_0 \not\equiv
 d_1$.
 %
@@ -526,7 +526,7 @@ solving a recursion-free system of Constrained Horn Clauses
 % define relational predicates:
 Each relational predicate of $\mathcal{S}$ is a pair of a sequence of
 adjacent sub-derivations of $d_0$, paired with a sequence of adjacent
-subderivations of $d_1$.
+sub-derivations of $d_1$.
 % define cuts
 \verifyders constructs a system $\mathcal{S}$, defined as follows.
 %
@@ -546,8 +546,8 @@ For each $d \in \subders{d_0}$, let there be a distinct copy of
 symbolic variables for the expression derived by $d$, denoted
 $\symvars{d}$.
 %
-For each $D \in \subders{d_0}$, let the union of symbolic variables
-for all derivations in $D$ be denoted $\symvars{D}$.
+For each $D \subseteq \subders{d_0}$, let the union of symbolic
+variables for all derivations in $D$ be denoted $\symvars{D}$.
 %
 For each $C_0 \in \cuts{d_0}$ and $C_1 \in \cuts{d_1}$, relational
 predicate $(C_0, C_1)$ has symbolic variables $\symvars{C_0},
@@ -605,6 +605,10 @@ there is a clause
 % point out which relational predicate is the query:
 The query relational predicate of $\mathcal{S}$ is, by the above
 construction, $( [ D_0 ], [ D_1 ])$.
+
+% talk about how interpretation for S is translated to derivation
+% relational invariants:
+\verifyders runs the CHC solver 
 
 \subsubsection{Merging Derivation Relational Invariants}
 % mergeinvs: give components of invariants 0:
