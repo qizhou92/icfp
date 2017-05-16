@@ -24,3 +24,4 @@ executable equivalence-check
                        Language.Haskell.Misc
                        Language.Haskell.Types
                        Language.Haskell.Verify
+                       Language.Haskell.CHC
