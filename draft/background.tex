@@ -162,12 +162,13 @@ of $r$ (i.e., $r$'s predecessor arity) is determined by $r$;
 the arity is immediate from the definition of $r$, and we do not give
 the arities explicitly.
 %
-The space of all instantiations of $\evalrules$ in $P$ is denoted
-$\instrules{P}$.
+The space of instantiations of $\evalrules$ on subexpressions of $P$
+is denoted $\instrules{P}$.
+%
+For each $r \in \instrules{P}$, the sequence of predecessor
+expressions of $r$ is denoted $\rulepreds{r} \in \subexps{P}$.
 
 % define derivations:
-\BH{update}
-%
 A derivation is a tree that defines rules applied in order prove that
 a particular expression has a particular value.
 %
@@ -180,12 +181,8 @@ a particular expression has a particular value.
   $(D_0, \ldots, D_n, r) \in \dertrees{P}{\rulesucc{r}}$.
 \end{defn}
 %
-For each $e \in \subexps{P}$, all $\mathcal{D} \in \dertrees{P}{e}$,
-and each $r \in \instrules{P}$ such that $(\mathcal{D}, r) \in
-\dertrees{P}{e}$, $\mathcal{D}$ are the \emph{immediate
-  sub-derivations} of $(\mathcal{D}, r)$.
-%
-\BH{keep?}
+For each $P \in \stlc$, the derivations of $P$ are denoted as simply
+$\progders{P} = \dertrees{P}{P}$.
 
 % define evaluation under derivations:
 For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
@@ -202,12 +199,27 @@ such that $\Gamma \judges_{D_0} P_0 \evalsto v_0$ and $\Gamma
 is \emph{equivalent} to $D_1$, denoted $D_0 \equiv D_1$.
 
 % define derivation contexts:
-For each $D \in \dertrees{P_0}{P_0}$ and $D' \in \subders{D}$, the
-position of $D'$ within $D$ is defined by the sequence of rules paired
-with indices of premises in the rules under which $D'$ occurs in $D$.
+For each $d \in \dertrees{P_0}{P_0}$ and $d' \in \subders{d}$, the
+position of $d'$ within $d$ is defined by the sequence of rules paired
+with indices of premises in the rules under which $d'$ occurs in $d$.
 %
-The space of derivation contexts of $P$ is denoted $\derctxs{P} =
-(\instrules{P} \times \nats)^{*}$.
+The space of derivation contexts of all sub-derivations of $d$ is
+denoted $\derctxs{d} = (\instrules{P} \times \nats)^{*}$.
+%
+The derivation contexts of all derivations of $P$ is denoted
+$\derctxs{P} = \bigunion_{ d \in \dertrees{P} } \derctxs{ d }$.
+%
+For each $\gamma \in \derctxs{d}$, the last instantiated rule applied
+in $d$ to build the sub-derivation at context $\gamma$ is denoted
+$\prevrule{ \gamma } \in \instrules{P}$.
+%
+For $r \in \instrules{ P }$, the contexts formed by extending $\gamma$
+with each pair of $r$ with an index of a predecessor of $r$ are
+denoted $\rulexts(\gamma, r) \in \derctxs{d}^{*}$.
+%
+The extensions of $\gamma$ in $d$, ordered by index of predecessor
+from which their first item is constructed, is denoted $\derexts{ d
+}(\gamma) \in \derctxs{ d }^{*}$.
 
 \paragraph{Typing}
 %
@@ -307,7 +319,7 @@ for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
 Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
 \nu \sats \psi$.
 %
-In such a case, $\psi$ is denoted $\symstep{ P }{ r }$.
+In such a case, $\psi$ is denoted $\symstep{ r }$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
@@ -392,15 +404,15 @@ a head application.
 \begin{defn}
   \label{defn:chcs-structure}
   For $\mathcal{A} \subseteq \apps{\mathcal{R}}$ and %
-  $\varphi \in \formulas$, $\mathcal{B} = (\mathcal{A}, \varphi)$ is a
-  \emph{clause body}.
+  $\varphi \in \formulas{X}$, $\mathcal{B} = (\mathcal{A}, \varphi)$
+  is a \emph{clause body}.
   % 
   For $H \in \apps{\mathcal{R}}$, $(\mathcal{B}, H)$ is a
   \emph{Constrained Horn Clause}.
 \end{defn}
 % define space of bodies:
 The space of clause bodies is denoted $\bodies{ \mathcal{R} } =
-\pset(\apps{\mathcal{R}}) \times \formulas$.
+\pset(\apps{\mathcal{R}}) \times \formulas{X}$.
 %
 For each $\mathcal{B} \in \bodies{ \mathcal{R} }$, the constraint of
 $\mathcal{B}$ is denoted $\ctrof{ \mathcal{B} }$.
@@ -461,22 +473,20 @@ $\interps{ \mathcal{R} }$.
   Then $\sigma$ is a \emph{solution} of $(\mathcal{B}, H)$.
 \end{defn}
 % define partial solution 
-For $\mathcal{S} \in \chcs{ \mathcal{R} }$, if
-% solution respects dependence order:
-\textbf{(a)} for each $R \in \domain(\sigma)$ (where $\domain(\sigma)$
-denotes the domain of $\sigma$) and $R' \in \mathcal{R}$ a dependence
-of $R$ in $\mathcal{S}$, it holds that $R' \in \domain(\sigma)$;
+For $\mathcal{S} \in \chcs{ \mathcal{R} }$, if %
+\textbf{(1)} for each $\mathcal{C} \in \mathcal{S}$, $\sigma$ is a
+solution of $\mathcal{C}$ and %
+\textbf{(2)} $\sigma(\queryof{ \mathcal{S} }) \entails \false$, then
+$\sigma$ is a \emph{solution} of $\mathcal{S}$.
 %
-\textbf{(b)} for each $\mathcal{C} \in \mathcal{S}$ such that
-$\relof{ \headof{ \mathcal{C} } } \in \domain(\sigma)$, $\sigma$ is a
-solution of $\mathcal{C}$;
-%
-then $\sigma$ is a \emph{partial solution} of $\mathcal{S}$.
-%
-If, in addition, $\sigma(\queryof{ \mathcal{S} }) \entails \false$,
-then $\sigma$ is a \emph{solution} of $\mathcal{S}$.
+The space of solutions of $\mathcal{S}$ is denoted $\solutions{
+  \mathcal{S} }$.
 
 % introduce solver:
+A procedure that, given a recursion-free system $\mathcal{S}$ returns
+either a solution of $\mathcal{S}$ or a value that denotes that
+$\mathcal{S}$ has no solution is a CHC \emph{solver}.
+%
 \sys is defined as using a CHC solver, named $\solvechc$.
 
 %%% Local Variables: 
