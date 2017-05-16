@@ -1,20 +1,20 @@
 module Language.Haskell.CHC where
 
-import Z3.Monad
 import Language.Haskell.Expr
 import Data.List
 
 data Rule = Rule Expr Expr
 
-rule_pretty_print :: Rule -> IO ()
+rule_pretty_print :: Rule -> String
 
-rule_pretty_print (Rule h b) = do
-	             print "(rule (=> "
-	             expr_pretty_print h
-	             expr_pretty_print b
-	             print "))"
+rule_pretty_print (Rule h b) = "(rule (=> " ++ (expr_pretty_print h) ++ "  "++ (expr_pretty_print b) ++ " ))"
 
-data CHC = CHC [Rule] [Function] [Var] Rule
+rule_list_pretty_print :: [Rule] -> String
+rule_list_pretty_print list = case list of 
+    x:xs -> (rule_pretty_print x) ++ "\n" ++ (rule_list_pretty_print xs)
+    otherwise -> "\n"
+
+data CHC = CHC [Rule] [Function] [Var] Expr
 
 add_rule :: Rule->CHC -> CHC
 
@@ -34,15 +34,43 @@ add_varaible newVar (CHC rules predicates variables query)
   | elem newVar variables = (CHC rules predicates variables query)
   | otherwise = (CHC rules predicates (newVar:variables) query)
 
-decl_var_pretty_print :: [Var] -> IO ()
-decl_var_pretty_print = undefined
+decl_var_list_pretty_print :: [Var] -> String
 
-decl_predicate_pretty_print :: [Function] -> IO ()
-decl_predicate_pretty_print = undefined
+decl_var_pretty_print :: Var -> String
+decl_var_pretty_print (Var name sort) = case sort of 
+    BoolSort -> "(declare-var " ++ (show name) ++ " Bool)"
+    IntegerSort -> "(declare-var " ++ (show name) ++ " Int)"
+    RealSort -> "(declare-var " ++ (show name) ++ " Real)"
 
-query_pretty_print :: Rule -> IO ()
-query_pretty_print = undefined
+decl_var_list_pretty_print list = case list of
+    x:xs -> (decl_var_pretty_print x) ++ "\n" ++ (decl_var_list_pretty_print xs)
+    otherwise -> "" 
 
-chc_pretty_print :: CHC -> IO()
-chc_pretty_print = undefined
+sort_list_pretty_print :: [Sort] -> String
+sort_pretty_print :: Sort -> String
+
+sort_pretty_print sort = case sort of
+    BoolSort -> "Bool"
+    IntegerSort -> "Int"
+    RealSort -> "Real"
+
+sort_list_pretty_print list = case list of
+    x:xs -> (sort_pretty_print x) ++ "  " ++ (sort_list_pretty_print xs)
+    otherwise -> ""
+
+decl_predicate_pretty_print :: Function -> String
+decl_predicate_pretty_print (Function functionName sortList) = "(declare-rel "++ functionName ++ "  (" ++ (sort_list_pretty_print sortList) ++ " ) )"
+
+decl_predicate_list_pretty_print :: [Function] -> String
+decl_predicate_list_pretty_print list = case list of
+    x:xs -> (decl_predicate_pretty_print x) ++ "\n" ++ (decl_predicate_list_pretty_print xs)
+    otherwise -> "(declare-rel Goal ()) \n"
+
+query_pretty_print :: Expr -> String
+query_pretty_print query= "(rule (=> " ++ (expr_pretty_print query) ++ " Goal))\n (query Goal : print-certificate true)"
+
+chc_pretty_print :: CHC -> String
+chc_pretty_print (CHC rules predicates variables query) = do
+    (decl_predicate_list_pretty_print predicates) ++ (decl_var_list_pretty_print variables) 
+    ++ (rule_list_pretty_print rules) ++ (query_pretty_print query)
 
