@@ -162,7 +162,7 @@ expr_pretty_print x = case x of
             MkAnd exprs -> "(and " ++ (list_expr_pretty_print exprs) ++ " )"
             MkOr  exprs -> "(or " ++ (list_expr_pretty_print exprs) ++ " )"
 
-data ParseState = ParseState (Map String Expr) (Map String Sort)
+data ParseState = ParseState (Map.Map String Expr) (Map.Map String Sort)
 
 parseSymbol :: Parser String
 parseSymbol = do
@@ -174,9 +174,14 @@ parseExpr :: ParseState  -> Parser (ParseState,Expr)
 
 parseExpr = undefined
 
-parseSingleLetPair :: ParseState -> Parser ParseState
+parseSingleLetPair :: ParseState ->Parser ParseState
 
-parseSingleLetPair = undefined
+parseSingleLetPair (ParseState symbolMap sortMap) = do
+ name <-parseSymbol
+ expr <-parsePureExpr (ParseState symbolMap sortMap)
+ let newMap = Map.insert name expr symbolMap
+ return (ParseState newMap sortMap)
+
 
 parsePureExpr :: ParseState -> Parser Expr
 
