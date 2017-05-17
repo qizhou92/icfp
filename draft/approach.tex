@@ -14,7 +14,7 @@ by \sys to synthesize such structures.
 %
 \sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
 that $P_0 \equiv P_1$ that is represented as set sequences of
-subexpressions of $P_0$ and $P_1$, each mapped to a relational
+sub-expressions of $P_0$ and $P_1$, each mapped to a relational
 invariant that relates all evaluations of the subexpressions.
 %
 For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
@@ -35,19 +35,22 @@ $\symvars{E_0} = \formulas{ %
     E_0 } }$.
 %
 Let the space of symbolic formulas over the combined vocabulary over
-all subexpression of $P_0$ and $P_1$ be denoted $\symrels{P_0}{P_1} =
-\formulas{ %
-  \bigunion \setformer{ \symvars{ e_0 \cons E_0 } }{ %
-    e_0 \in \subexps{P_0}, E_0 \in \subexps{P_0}^{*} } \union %
-  \bigunion \setformer{ \symvars{e_1 \cons E_1 } }{ %
-    e_1 \in \subexps{P_1}, E_1 \in \subexps{P_1}^{*} } }$.
+all subexpression of $P_0$ and $P_1$ be denoted 
+\begin{align*}
+  \symrels{P_0}{P_1} =
+  \formulas{ %
+    & \bigunion \setformer{ \symvars{ e_0 \cons E_0 } }{ %
+      e_0 \in \subexps{P_0}, E_0 \in \subexps{P_0}^{*} } \union \\ %
+    & \bigunion \setformer{ \symvars{e_1 \cons E_1 } }{ %
+      e_1 \in \subexps{P_1}, E_1 \in \subexps{P_1}^{*} } }  
+\end{align*}
 %
 \begin{defn}
   \label{defn:sym-rels}
   Let $R: \subexpseqs \to \symrels{ P_0 }{ P_1 }$ be such that %
   for all $E_0 \in \subexps{P_0}^{*}$ and $E_1 \in \subexps{P_1}^{*}$,
-  $R(E_0, E_1) \in \formulas{ \symvars{E_0} \union \symvars{ E_1 }
-  }$.
+  it holds that %
+  $R(E_0, E_1) \in \formulas{ \symvars{E_0} \union \symvars{ E_1 } }$.
   %
   Then $R$ are \emph{subexpression-sequence relations}.
 \end{defn}
@@ -63,44 +66,58 @@ mapped to a formula that relates the evaluations of all expressions in
 $E$.
 %
 % define tilings:
-For each space $X$, $s, s_0, s_1 \in X^{*}$ if there are some $s_0',
-s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat s_2'$,
-$s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then $s_0$
-and $s_1$ are a \emph{tiling} of $s$.
+For each space $X$ and $s, s_0, s_1 \in X^{*}$, if there are some
+$s_0', s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat
+s_2'$, $s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then
+$s_0$ and $s_1$ are a \emph{tiling} of $s$.
+%
+For $s, s' \in X^{*}$, let the sequence of sequences that extend $s$
+and are extended by $s'$ be denoted $\seqrange{s'}{s}$.
+%
 \begin{defn}
   \label{defn:rel-invs}
-  Let $R_0, R_1 \in \subexpseqrels{P_0}{P_1}$ be such that %
+  Let $I_0, I_1 \in \subexpseqrels{P_0}{P_1}$ be such that %
   % condition: relation of empty sequences is entailed by true:
-  \textbf{(1) \& (2)} 
-  $\true \entails R_0( \epsilon, \epsilon )$ and $\true \entails
-  R_1(\epsilon, \epsilon)$;
+  \textbf{(1)} $\true \entails I_0( \epsilon, \epsilon )$; %
+  \textbf{(2)} $\true \entails I_1(\epsilon, \epsilon)$;
   % condition: invariants entail equivalence:
-  \textbf{(3)} $R_0([ P_0 ], [ P_1 ] ), R_1( [ P_0 ], [ P_1 ]),
+  \textbf{(3)} $I_0([ P_0 ], [ P_1 ] ), I_1( [ P_0 ], [ P_1 ]),
   \alpha^0_0 = \alpha^1_0 \entails \nu^0 = \nu^1$;
   % steps in P0 are valid:
   \textbf{(4)} for all $E_0 \in \subexps{P_0}^{*}$, %
   $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_0}$, %
-  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ that tile
-  $\rulepreds{ r } \concat E_0$ and
-  \[ R_0(E_0', E_1), R_0(E_0'', E_1), %
-  R_1(E_0'', E_1), R_1(E_0'', E_1), \symstep{ r } \entails %
-  R_0(E) \]
+  each $r \in \instrules{P_0}$ with $E_0' = \rulesucc{r} \cons E_0$,
+  $E = (E_0', E_1)$, and $E_0'' = \rulepreds{ r } \concat E_0$, either
+  \[ I_0(\rulepreds{ r } \concat E_0, E_1), %
+  I_1(\rulepreds{ r } \concat E_0, E_1), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \seqrange{ E_0'' }{ E_0 } }, \symvars{ E_0' } }
+  \entails I_0( E )
+  \]
+  or there are some $E_0'', E_0''' \in \subexps{P_0}^{*}$ that tile
+  $E_0'$ and
+  \[ \replace{ I_0(E_0'', E_1) }{ %
+    \symvars{ E_0'' } }{ \symvars{ \seqrange{E_0'''}{ E_0' } } }, %
+  I_0(E_0''', E_1) \entails I_0(E) \]
   % symmetric condition for P1:
   \textbf{(5)} for all $E_0 \in \subexps{P_0}^{*}$, %
-  $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_1}$, %
-  there are some $E_1', E_1'' \in \subexps{P_1}^{*}$ that tile
-  $\rulepreds{ r } \concat E_1$ and
-  \[ R_0(E_0, E_1'), R_0(E_0, E_1''),
-  R_1(E_0, E_1'), R_1(E_0, E_1''), \symstep{ r } \entails %
-  R_1(E) \]
+  each $r \in \instrules{ P_1 }$, and all $E_1 \in \subexps{P_1}^{*}$
+  with $E_1' = \rulesucc{ r } \cons E_1$ and $E = (E_0', E_1)$, either
+  \[ I_0(E_0, \rulepreds{ r } \concat E_1), %
+  I_1(E_0, \rulepreds{ r } \concat E_1),
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \seqrange{ E_1'' }{ E_1 } }, \symvars{ E_1' } }
+  \entails I_1(E) \] 
+  or there are some $E_1'', E_1''' \in \subexps{ P_1 }^{*}$ that tile
+  $E_1'$ and
+  \[ \replace{ I_1(E_0, E_1'') }{ %
+    \symvars{ E_1'' } }{ \symvars{ \seqrange{ E_1''' }{ E_1 ' } } }, %
+  I_1(E_0, E_1''') \entails I_1(E)
+  \]
   %
-  Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
+  Then $I_0$ and $I_1$ are \emph{relational invariants} of $P_0$ and
   $P_1$.
 \end{defn}
-%
-\BH{fix logical vocabulary of constraints}
 %
 The space of relational invariants of $P_0$ and $P_1$ is denoted
 $\relinvs{P_0}{P_1}$.
@@ -112,8 +129,7 @@ $\relinvs{P_0}{P_1}$.
 \end{ex}
 
 % evidence is a valid proof of partial equivalence:
-If there $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv
-P_1$.
+If $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv P_1$.
 %
 \begin{lemma}
   \label{lemma:equiv-evidence}
@@ -133,45 +149,49 @@ $\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
 \begin{defn}
   \label{defn:der-invs}
   Let $I \in \dersrels{ P_0 }{ P_1 } $ be such that
+  % maps empty sequence of contexts to true:
+  \textbf{(1)} $\true \entails I(\epsilon, \epsilon)$;
   % maps empty contexts to invariant that supports equivalence:
-  \textbf{(1)} $I([ \epsilon ], [ \epsilon ]), \alpha_0 = \alpha_1
+  \textbf{(2)} $I([ \epsilon ], [ \epsilon ]), \alpha_0 = \alpha_1
   \entails \nu_0 = \nu_1$;
   % respects semantics of evaluation rules of P0:
-  \textbf{(2)} for all $\gamma_0 \in \derctxs{ P_0 }$, %
+  \textbf{(3)} for all $\gamma_0 \in \derctxs{ P_0 }$, %
   each $r \in \instrules{ P_0 }$ with $\Gamma_0 = \rulexts( \gamma_0,
   r) $, %
   all $\Gamma_0' \in \derctxs{ P_0 }^{*}$, and %
   all $\Gamma_1 \in \derctxs{P_1}^{*}$ such that $\Gamma = (\Gamma_0
   \concat \Gamma_0', \Gamma_1) \in \domain(I)$,
-  \[ I(\Gamma), \symstep{ r } \entails %
-  I( \gamma_0 \cons \Gamma_0, \Gamma_1) \]
+  \[ I(\Gamma), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \derexts{ P_0 }(\gamma_0, r) }, \symvars{ \gamma_0 } }  %
+  \entails I( \gamma_0 \cons \Gamma_0, \Gamma_1) \]
   %
   % respects semantics of evaluation rules of P1:
-  \textbf{(3)} for all $\Gamma_0 \in \derctxs{ P_0 }$, %
+  \textbf{(4)} for all $\Gamma_0 \in \derctxs{ P_0 }$, %
   each $\gamma_1 \in \derctxs{ P_1 }$, %
   each $r \in \instrules{ P_1 }$ with $\Gamma_1 = \rulexts( \gamma_1,
   r)$, and %
   all $\Gamma_1' \in \derctxs{ P_0 }^{*}$ such that $\Gamma =
   (\Gamma_0, \Gamma_1 \concat \Gamma_1') \in \domain(I)$,
-  \[ I(\Gamma), \symstep{ r } \entails %
-  I( \Gamma_0, \gamma_1 \cons \Gamma_1) \]
+  \[ I(\Gamma), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \derexts{ P_1 }(\gamma_1, r) }, \symvars{ \gamma_1 } } %
+  \entails I( \Gamma_0, \gamma_1 \cons \Gamma_1) \]
   % respects tiling in P0:
-  \textbf{(4)} for all $\Gamma_0, \Gamma_0', \Gamma_0'' \in
+  \textbf{(5)} for all $\Gamma_0, \Gamma_0', \Gamma_0'' \in
   \subders{P_0}^{*}$ such that $\Gamma_0'$ and $\Gamma_0''$ are a
   tiling of $\Gamma_0$ and all $\Gamma_1 \in \derctxs{P_1}^{*}$ such
   that $\Gamma = (\Gamma_0, \Gamma_1) \in \domain(I)$,
   \[ I(\Gamma_0', \Gamma_1), I(\Gamma_0'', \Gamma_1) \entails %
   I(\Gamma) \]
   % respects tiling in P1:
-  \textbf{(5)} for all $\Gamma_0 \in \derctxs{P_0}^{*}$ and %
+  \textbf{(6)} for all $\Gamma_0 \in \derctxs{P_0}^{*}$ and %
   all $\Gamma_1, \Gamma_1', \Gamma_1'' \in \subders{P_1}^{*}$ such
   that $\Gamma_1'$ and $\Gamma_1''$ are a tiling of $\Gamma_1$ and
   $\Gamma = (\Gamma_0, \Gamma_1) \in \domain(I)$,
   \[ I(\Gamma_0, \Gamma_1'), I(\Gamma_0, \Gamma_1'') \entails %
   I(\Gamma) \]
 \end{defn}
-%
-\BH{fix vocab for symbolic steps}
 %
 The space of all derivation relational invariants of $P_0$ and $P_1$
 is denoted $\dersinvs{ P_0 }{ P_1 }$.
@@ -182,15 +202,17 @@ is denoted $\dersinvs{ P_0 }{ P_1 }$.
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
-In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
+In particular, for $I \in \dersinvs{P_0}{P_1}$, let $\exprel{I} \in
 \relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps{P_0}^{*}$
 and $E_1 \in \subexps{P_1}^{*}$,
 \begin{align*}
   % the invariant of the sequences of expressions is
-  \exprel{I'}(\Gamma_0, \Gamma_1) = %
+  \exprel{I}(E_0, E_1) = %
   % the conjunction of invariants over all nodes:
-  \bigland \setformer{ I(\headexps(\Gamma_0), \headexps(\Gamma_1)) }{ %
-    \Gamma_0 \in \derctxs{ P_0 }, \Gamma_1 \in \derctxs{ P_1 } } 
+  \bigland \setformer{ I(\Gamma_0, \Gamma_1) }{ %
+    & \Gamma_0 \in \derctxs{ P_0 }, \headexps(\Gamma_0) = E_0, \\ %
+    & \Gamma_1 \in \derctxs{ P_1 }, \headexps(\Gamma_1) = E_1, %
+    (\Gamma_0, \Gamma_1) \in \domain(I) } 
 \end{align*}
 %
 $I \in \dersinvs{P_0}{P_1}$ are inductive if they can be decomposed to
@@ -208,21 +230,21 @@ be such that
   \domain(I_0)}$;
 % case: domain of only both
 \textbf{(3)} for each $\Gamma \in \domain(I_0) \intersection
-\domain(I_1)$, $\restrict{I_0 \union I_1}(\Gamma) = I_0(\Gamma) \land
+\domain(I_1)$, $(I_0 \union I_1)(\Gamma) = I_0(\Gamma) \land
 I_1(\Gamma)$.
 %
 \begin{defn}
   \label{defn:inductive-der-rels}
-  For $I_0, I_1 \in \dersrels{P_0}{P_1}$, if $(\exprel{I_0},
-  \exprel{I_1})$ are relational invariants of $P_0$ and $P_1$, then
+  For $I_0, I_1 \in \dersrels{P_0}{P_1}$, %
+  if $(\exprel{I_0}, \exprel{I_1}) \in \relinvs{P_0}{P_1}$, then %
   $I_0 \union I_1$ are \emph{inductive} derivation relational
   invariants.
 \end{defn}
 %
-Derivation relational invariants are evidence of partial equivalence,
-by \autoref{lemma:equiv-evidence}.
+Inductive derivation relational invariants are evidence of partial
+equivalence, by \autoref{lemma:equiv-evidence}.
 %
-\sys, given programs $P_0$ and $P_1$ attempts to determine their
+\sys, given programs $P_0$ and $P_1$, attempts to determine their
 partial equivalence by synthesizing inductive derivation relational
 invariants.
 
@@ -635,7 +657,7 @@ and $\Gamma_1 \in \derctxs{ P_1 }$, $I(\Gamma_0, \Gamma_1) = \subs{
   \symvars{ \Gamma_1 } }$.
 
 \subsubsection{Merging Derivation Relational Invariants}
-\label{line:merge}
+\label{sec:merge}
 % mergeinvs: give components of invariants 0:
 $\mergeinvs$, given $I_0, I_1 \in \dersinvs{P_0}{P_1}$, returns $I'
 \in \dersinvs{P_0}{P_1}$ such that
