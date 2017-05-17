@@ -21,13 +21,19 @@ parseSort = (reserved "Bool" >> return BoolSort)
          <|> (reserved "Int" >> return IntegerSort)
          <|> (reserved "Real" >> return RealSort)
 
+parseArgument :: Parser String
+parseArgument = do
+  string "x!"
+  number <- many digit
+  return ("x!"++(number))
+
 parseName :: Parser String
 parseName = many (letter <|> digit <|> char '!') <* spaces
 
 
 parseVariable :: Parser Sort
 parseVariable = do 
-  name <- parseName
+  name <- parseArgument
   sort <- parseSort
   return sort
 parseListSort :: Parser [Sort]
@@ -157,6 +163,12 @@ expr_pretty_print x = case x of
             MkOr  exprs -> "(or " ++ (list_expr_pretty_print exprs) ++ " )"
 
 data ParseState = ParseState (Map String Expr) (Map String Sort)
+
+parseSymbol :: Parser String
+parseSymbol = do
+  string "a!"
+  number <- many digit
+  return ("a!"++(number))
 
 parseExpr :: ParseState  -> Parser (ParseState,Expr)
 
