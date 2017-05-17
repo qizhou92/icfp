@@ -62,6 +62,11 @@ sequences of subexpressions of $P_0$ and $P_1$, with each pair $E$
 mapped to a formula that relates the evaluations of all expressions in
 $E$.
 %
+% define tilings:
+For each space $X$, $s, s_0, s_1 \in X^{*}$ if there are some $s_0',
+s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat s_2'$,
+$s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then $s_0$
+and $s_1$ are a \emph{tiling} of $s$.
 \begin{defn}
   \label{defn:rel-invs}
   Let $R_0, R_1 \in \subexpseqrels{P_0}{P_1}$ be such that %
@@ -112,19 +117,14 @@ P_1$.
 %
 \begin{lemma}
   \label{lemma:equiv-evidence}
-  If there are some $R \in \relinvs{P_0}{P_1}$, then $P_0 \equiv P_1$.
+  If there are $R \in \relinvs{P_0}{P_1}$, then $P_0 \equiv P_1$.
 \end{lemma}
 
 % define class of invariants that are actually maintained
 \sys, given programs $P_0$ and $P_1$ attempts to determine if $P_0
-\equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
-pairs of sequences of derivations of subexpressions of $P_0$ and $P_1$
-to relational invariants.
-% define tilings:
-For each space $X$, $s, s_0, s_1 \in X^{*}$ if there are some $s_0',
-s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat s_2'$,
-$s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then $s_0$
-and $s_1$ are a \emph{tiling} of $s$.
+\equiv P_1$ by synthesizing relational invariants of $P_0$ and $P_1$
+from a map from pairs of sequences of derivations of subexpressions of
+$P_0$ and $P_1$ to symbolic relations.
 %
 Let the space of derivation relations of $P_0$ and $P_1$ be denoted
 $\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
@@ -171,6 +171,8 @@ $\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
   I(\Gamma) \]
 \end{defn}
 %
+\BH{fix vocab for symbolic steps}
+%
 The space of all derivation relational invariants of $P_0$ and $P_1$
 is denoted $\dersinvs{ P_0 }{ P_1 }$.
 %
@@ -185,7 +187,7 @@ In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
 and $E_1 \in \subexps{P_1}^{*}$,
 \begin{align*}
   % the invariant of the sequences of expressions is
-  \exprel{I'}(E_0, E_1) = %
+  \exprel{I'}(\Gamma_0, \Gamma_1) = %
   % the conjunction of invariants over all nodes:
   \bigland \setformer{ I(\headexps(\Gamma_0), \headexps(\Gamma_1)) }{ %
     \Gamma_0 \in \derctxs{ P_0 }, \Gamma_1 \in \derctxs{ P_1 } } 
@@ -241,9 +243,11 @@ invariants.
   \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
   % verify: main procedure
   \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:core-begin}} %
-  { \myproc{$\verifyaux(I)$ \label{line:core-aux-begin} }{ %
+  { \myproc{$\verifyaux(I \in \dersinvs{ P_0 }{ P_1 })$ %
+      \label{line:core-aux-begin} }{ %
       % check if the solution is inductive:
-      \Switch{$\chkinductive(I)$ \label{line:core-chkind} }{ %
+      \Switch{$\chkinductive(I)$ %
+        \label{line:core-chkind} }{ %
         \lCase{$\isind$}{ %
           % case: it is. Return that P0, P1 are equivalent.
           \Return{$\true$} \label{line:core-ret-equiv} %
@@ -254,7 +258,7 @@ invariants.
           \Switch{$\verifyders(D_0, D_1)$ \label{line:core-vders} }{ %
             \lCase{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
               \Return{$\false$} \label{line:core-ret-non-equiv} } %
-            \lCase{$I' \in \dersrels{P_0}{P_1}$: %
+            \lCase{$I' \in \dersinvs{P_0}{P_1}$: %
               \label{line:core-subcase-invs} }{ %
               \Return{ $\verifyaux(\mergeinvs(I, I'))$ } %
               \label{line:core-recurse}
@@ -266,8 +270,10 @@ invariants.
     \Return{$\verifyaux(\emptyset)$} \label{line:core-base} } %
   %
   \caption{% interface of verify:
-    \verify: an equivalence verifier.
-  }
+    \verify: an equivalence verifier, which uses procedures
+    \chkinductive (\autoref{sec:chk-ind}), \verifyders
+    (\autoref{sec:verify-ders}), and %
+    \mergeinvs (\autoref{sec:merge}).  }
   \label{alg:verify}
 \end{algorithm}
 \end{figure}
@@ -629,6 +635,7 @@ and $\Gamma_1 \in \derctxs{ P_1 }$, $I(\Gamma_0, \Gamma_1) = \subs{
   \symvars{ \Gamma_1 } }$.
 
 \subsubsection{Merging Derivation Relational Invariants}
+\label{line:merge}
 % mergeinvs: give components of invariants 0:
 $\mergeinvs$, given $I_0, I_1 \in \dersinvs{P_0}{P_1}$, returns $I'
 \in \dersinvs{P_0}{P_1}$ such that
