@@ -2,11 +2,51 @@ module Language.Haskell.Expr where
 import Data.String
 import Data.Bool
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Text.Parsec
+import Text.Parsec.String
+import qualified Text.Parsec.Token as T
+import Text.Parsec.Language (emptyDef)
+
 
 data Sort = BoolSort
             | IntegerSort
             | RealSort
-	deriving (Eq)
+	deriving (Eq,Show)
+
+parseSort :: Parser Sort
+
+parseSort = (reserved "Bool" >> return BoolSort)
+         <|> (reserved "Int" >> return IntegerSort)
+         <|> (reserved "Real" >> return RealSort)
+
+parseName :: Parser String
+parseName = many (letter <|> digit <|> char '!') <* spaces
+
+
+parseVariable :: Parser Sort
+parseVariable = do 
+  name <- parseName
+  sort <- parseSort
+  return sort
+parseListSort :: Parser [Sort]
+
+parseListSort = (reserved "Bool" >> return [] )
+              <|> (do 
+                     (parens (many (parens parseVariable))))
+
+sort_list_pretty_print :: [Sort] -> String
+sort_pretty_print :: Sort -> String
+
+sort_pretty_print sort = case sort of
+    BoolSort -> "Bool"
+    IntegerSort -> "Int"
+    RealSort -> "Real"
+
+sort_list_pretty_print list = case list of
+    x:xs -> (sort_pretty_print x) ++ "  " ++ (sort_list_pretty_print xs)
+    otherwise -> ""
 
 data Var = Var String Sort
      deriving (Eq)
@@ -27,7 +67,16 @@ constant_pretty_print x = case x of
                  ConstantReal value -> show value
 
 data Function = Function String [Sort]
-	deriving (Eq)
+	deriving (Eq,Show)
+
+
+parseFunction :: Parser Function
+parseFunction = do 
+  string "define-fun"
+  spaces
+  name <- parseName
+  list <- parseListSort
+  return (Function name list)
 
 function_parameter_number :: Function -> Int
 
@@ -38,6 +87,7 @@ function_parameter_number (Function name list)
 function_name :: Function -> String
 
 function_name (Function name list) = name
+
 
 
 data Parameter = ParameterVar Var 
@@ -106,4 +156,22 @@ expr_pretty_print x = case x of
             MkAnd exprs -> "(and " ++ (list_expr_pretty_print exprs) ++ " )"
             MkOr  exprs -> "(or " ++ (list_expr_pretty_print exprs) ++ " )"
 
+data ParseState = ParseState (Map String Expr) (Map String Sort)
 
+parseExpr :: ParseState  -> Parser (ParseState,Expr)
+
+parseExpr = undefined
+
+parseSingleLetPair :: ParseState -> Parser ParseState
+
+parseSingleLetPair = undefined
+
+parsePureExpr :: ParseState -> Parser Expr
+
+parsePureExpr = undefined
+
+lexer = T.makeTokenParser emptyDef
+parens    = T.parens lexer
+symbol     = T.symbol lexer
+identifier = T.identifier lexer
+reserved    = T.reserved lexer
