@@ -22,26 +22,38 @@ arbitrary $\stlc$ programs.
 
 % define pairs of sequences of expressions:
 Let $\subexpseqs = \subexps{P_0}^{*} \times \subexps{P_1}^{*}$.
-% define symbolic relations:
-For each $i \in \elts{0, 1}$ and $n \in \nats$, let
-$\symvarsidx{i}{n}$ denote a distinct set of symbolic variables.
 %
-\BH{remove reliance on counter}
+For each $e_0 \in \subexps{P_0}$ and $E_0 \in \subexps{P_0}^{*}$, let
+$\symvars{e_0 \cons E_0}$ denote a distinct copy of $\symvars{e_0}$,
+and similarly for each $e_1 \in \subexps{P_1}$ and $E_1 \in
+\subexps{P_1}^{*}$.
+%
+For $E_0 \in \subexps{ P_0 }$, let the formulas over the combined
+vocabulary of all non-empty prefixes of $E_0$ be denoted
+$\symvars{E_0} = \formulas{ %
+  \bigunion \setformer{ \symvars{E_0'} }{ E_0' \not= \epsilon \preceq
+    E_0 } }$.
+%
+Let the space of symbolic formulas over the combined vocabulary over
+all subexpression of $P_0$ and $P_1$ be denoted $\symrels{P_0}{P_1} =
+\formulas{ %
+  \bigunion \setformer{ \symvars{ e_0 \cons E_0 } }{ %
+    e_0 \in \subexps{P_0}, E_0 \in \subexps{P_0}^{*} } \union %
+  \bigunion \setformer{ \symvars{e_1 \cons E_1 } }{ %
+    e_1 \in \subexps{P_1}, E_1 \in \subexps{P_1}^{*} } }$.
 %
 \begin{defn}
   \label{defn:sym-rels}
-  Let $R: \subexpseqs \partto \formulas{ \bigunion_{i \in \elts{0 ,
-        1}, n \in \nats } \symvarsidx{i}{n} }$ be such that %
+  Let $R: \subexpseqs \to \symrels{ P_0 }{ P_1 }$ be such that %
   for all $E_0 \in \subexps{P_0}^{*}$ and $E_1 \in \subexps{P_1}^{*}$,
-  $R(E_0, E_1) \in \formulas{ %
-    \bigunion_{ 0 \leq i < |P_0|} \symvarsidx{0}{i} \union %
-    \bigunion_{0 \leq j < |P_1|} \symvarsidx{1}{j} }$.
+  $R(E_0, E_1) \in \formulas{ \symvars{E_0} \union \symvars{ E_1 }
+  }$.
   %
-  Then $R$ are \emph{symbolic relations}.
+  Then $R$ are \emph{subexpression-sequence relations}.
 \end{defn}
 %
-The space of symbolic relations of $P_0$ and $P_1$ is denoted
-$\symrels{P_0}{P_1}$.
+The set of all sub-expression sequence relations is denoted
+$\subexpseqrels{P_0}{P_1}$.
 
 % relational invariants
 % define relational invariants
@@ -52,31 +64,31 @@ $E$.
 %
 \begin{defn}
   \label{defn:rel-invs}
-  Let $R_0, R_1 \in \symrels{P_0}{P_1}$ be such that %
+  Let $R_0, R_1 \in \subexpseqrels{P_0}{P_1}$ be such that %
   % condition: relation of empty sequences is entailed by true:
   \textbf{(1) \& (2)} 
-$R_0(P_0, P_1), \alpha^0_0
-  = \alpha^1_0 \entails \nu^0 = \nu^1$
-
-$\true \entails R_0([ \epsilon ], [ \epsilon ])$
-  and $\true \entails R_1( [ \epsilon ], \epsilon)$;
+  $\true \entails R_0( \epsilon, \epsilon )$ and $\true \entails
+  R_1(\epsilon, \epsilon)$;
+  % condition: invariants entail equivalence:
+  \textbf{(3)} $R_0([ P_0 ], [ P_1 ] ), R_1( [ P_0 ], [ P_1 ]),
+  \alpha^0_0 = \alpha^1_0 \entails \nu^0 = \nu^1$;
   % steps in P0 are valid:
-  \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
-  $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_0}$ such that $E = (\rulesucc{r} \cons E_0,
-  E_1) \in \domain(R_0)$, %
-  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ that tile
-  $\rulepreds{ r } \concat E_0$ and
-  \[ R_0(E_0', E_1), R_1(E_0'', E_1), \symstep{ r } \entails %
-  R_0(E) \]
-  % symmetric condition for P1:
   \textbf{(4)} for all $E_0 \in \subexps{P_0}^{*}$, %
   $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_1}$ such that $E = (E_0, \rulesucc{r} \cons
-  E_1) \in \domain(R_1)$, %
+  each $r \in \instrules{P_0}$, %
+  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ that tile
+  $\rulepreds{ r } \concat E_0$ and
+  \[ R_0(E_0', E_1), R_0(E_0'', E_1), %
+  R_1(E_0'', E_1), R_1(E_0'', E_1), \symstep{ r } \entails %
+  R_0(E) \]
+  % symmetric condition for P1:
+  \textbf{(5)} for all $E_0 \in \subexps{P_0}^{*}$, %
+  $E_1 \in \subexps{P_1}^{*}$, and %
+  each $r \in \instrules{P_1}$, %
   there are some $E_1', E_1'' \in \subexps{P_1}^{*}$ that tile
   $\rulepreds{ r } \concat E_1$ and
-  \[ R_0(E_0, E_1'), R_1(E_0, E_0''), \symstep{ r } \entails %
+  \[ R_0(E_0, E_1'), R_0(E_0, E_1''),
+  R_1(E_0, E_1'), R_1(E_0, E_1''), \symstep{ r } \entails %
   R_1(E) \]
   %
   Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
@@ -88,21 +100,6 @@ $\true \entails R_0([ \epsilon ], [ \epsilon ])$
 The space of relational invariants of $P_0$ and $P_1$ is denoted
 $\relinvs{P_0}{P_1}$.
 
-% strengthen relational invariants to evidence of equivalence:
-If relational invariants $R$ are such that the invariant for $\elts{
-  P_0, P_1 }$, combined with the assumption that $P_0$ and $P_1$ are
-given equal values, entails that $P_0$ and $P_1$ evaluate to equal
-values, then $R$ is evidence of the partial equivalence of $P_0$ and
-$P_1$.
-%
-\begin{defn}
-  \label{defn:eq-pf}
-  Let $R \in \relinvs{P_0}{P_1}$ be such that $R(P_0, P_1), \alpha^0_0
-  = \alpha^1_0 \entails \nu^0 = \nu^1$.
-  %
-  Then $R$ is \emph{evidence} of $P_0 \equiv P_1$.
-\end{defn}
-
 % example of relational invariants:
 \begin{ex}
   \label{ex:rel-invs}
@@ -110,13 +107,12 @@ $P_1$.
 \end{ex}
 
 % evidence is a valid proof of partial equivalence:
-If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
-\equiv P_1$.
+If there $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv
+P_1$.
 %
 \begin{lemma}
   \label{lemma:equiv-evidence}
-  If there are some $R \in \relinvs{P_0}{P_1}$ such that $R$ is
-  evidence of $P_0 \equiv P_1$, then $P_0 \equiv P_1$.
+  If there are some $R \in \relinvs{P_0}{P_1}$, then $P_0 \equiv P_1$.
 \end{lemma}
 
 % define class of invariants that are actually maintained
