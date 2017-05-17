@@ -13,89 +13,114 @@ by \sys to synthesize such structures.
 \label{sec:rel-invs}
 %
 \sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
-that $P_0$ is equivalent to $P_1$ that is represented as set of
-subexpressions of $P_0$ and $P_1$, each mapped to relational
-invariants that relate all evaluations of the subexpressions.
+that $P_0 \equiv P_1$ that is represented as set sequences of
+sub-expressions of $P_0$ and $P_1$, each mapped to a relational
+invariant that relates all evaluations of the subexpressions.
 %
 For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
 arbitrary $\stlc$ programs.
 
-% define symbolic relations:
-For each $i \in \elts{0, 1}$ and $n \in nats$, let $\symvarsidx{i}{n}$
-denote a distinct set of symbolic variables.
+% define pairs of sequences of expressions:
+Let $\subexpseqs = \subexps{P_0}^{*} \times \subexps{P_1}^{*}$.
 %
-Let $\subexpseqs = \subexps(P_0)^{*} \times \subexps(P_1)^{*}$.
+For each $e_0 \in \subexps{P_0}$ and $E_0 \in \subexps{P_0}^{*}$, let
+$\symvars{e_0 \cons E_0}$ denote a distinct copy of $\symvars{e_0}$,
+and similarly for each $e_1 \in \subexps{P_1}$ and $E_1 \in
+\subexps{P_1}^{*}$.
+%
+For $E_0 \in \subexps{ P_0 }$, let the formulas over the combined
+vocabulary of all non-empty prefixes of $E_0$ be denoted
+$\symvars{E_0} = \formulas{ %
+  \bigunion \setformer{ \symvars{E_0'} }{ E_0' \not= \epsilon \preceq
+    E_0 } }$.
+%
+Let the space of symbolic formulas over the combined vocabulary over
+all subexpression of $P_0$ and $P_1$ be denoted 
+\begin{align*}
+  \symrels{P_0}{P_1} =
+  \formulas{ %
+    & \bigunion \setformer{ \symvars{ e_0 \cons E_0 } }{ %
+      e_0 \in \subexps{P_0}, E_0 \in \subexps{P_0}^{*} } \union \\ %
+    & \bigunion \setformer{ \symvars{e_1 \cons E_1 } }{ %
+      e_1 \in \subexps{P_1}, E_1 \in \subexps{P_1}^{*} } }  
+\end{align*}
 %
 \begin{defn}
   \label{defn:sym-rels}
-  Let $R: \subexpseqs \partto \formulas{ \bigunion_{i \in \elts{0 ,
-        1}, n \in \nats } \symvarsidx{i}{n} }$ be such that %
+  Let $R: \subexpseqs \to \symrels{ P_0 }{ P_1 }$ be such that %
   for all $E_0 \in \subexps{P_0}^{*}$ and $E_1 \in \subexps{P_1}^{*}$,
-  $R(E_0, E_1) \in \formulas{ %
-    \bigunion_{ 0 \leq i < |P_0|} \symvarsidx{0}{i} \union %
-    \bigunion_{0 \leq j < |P_1|} \symvarsidx{1}{j} }$.
+  it holds that %
+  $R(E_0, E_1) \in \formulas{ \symvars{E_0} \union \symvars{ E_1 } }$.
   %
-  Then $R$ are \emph{symbolic relations}.
+  Then $R$ are \emph{subexpression-sequence relations}.
 \end{defn}
 %
-The space of symbolic relations of $P_0$ and $P_1$ is denoted
-$\symrels{P_0}{P_1}$.
+The set of all sub-expression sequence relations is denoted
+$\subexpseqrels{P_0}{P_1}$.
 
 % relational invariants
 % define relational invariants
-Relational invariants of $P_0$ and $P_1$ are a map from sets of
-subexpressions of $P_0$ and $P_1$, with each set $S$ mapped to a
-formula that relates the evaluations of all expressions in $S$.
+Relational invariants of $P_0$ and $P_1$ are a map from pairs of
+sequences of subexpressions of $P_0$ and $P_1$, with each pair $E$
+mapped to a formula that relates the evaluations of all expressions in
+$E$.
 %
-Relational invariants soundly describe all steps of evaluation that
-can be taken by $P_0$ and $P_1$.
+% define tilings:
+For each space $X$ and $s, s_0, s_1 \in X^{*}$, if there are some
+$s_0', s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat
+s_2'$, $s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then
+$s_0$ and $s_1$ are a \emph{tiling} of $s$.
+%
+For $s, s' \in X^{*}$, let the sequence of sequences that extend $s$
+and are extended by $s'$ be denoted $\seqrange{s'}{s}$.
 %
 \begin{defn}
   \label{defn:rel-invs}
-  Let $R_0, R_1 \in \symrels{P_0}{P_1}$ be such that %
+  Let $I_0, I_1 \in \subexpseqrels{P_0}{P_1}$ be such that %
   % condition: relation of empty sequences is entailed by true:
-  \textbf{(1) \& (2)} $\true \entails R_0(\epsilon, \epsilon)$ and
-  $\true \entails R_1(\epsilon, \epsilon)$;
+  \textbf{(1)} $\true \entails I_0( \epsilon, \epsilon )$; %
+  \textbf{(2)} $\true \entails I_1(\epsilon, \epsilon)$;
+  % condition: invariants entail equivalence:
+  \textbf{(3)} $I_0([ P_0 ], [ P_1 ] ), I_1( [ P_0 ], [ P_1 ]),
+  \alpha^0_0 = \alpha^1_0 \entails \nu^0 = \nu^1$;
   % steps in P0 are valid:
-  \textbf{(2)} for all $E_0 \in \subexps{P_0}^{*}$, %
+  \textbf{(4)} for all $E_0 \in \subexps{P_0}^{*}$, %
   $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_0}$, %
-  there are some $E_0', E_0'' \in \subexps{P_0}^{*}$ such that
-  $\rulepreds{r} \concat E_0 = E_0' \concat E_0''$ and
-  \[ R_0(E_0' \concat E_0'', E_1), %
-  R_1(E_0' \concat E_0'', E_1), %
-  \symstep{ P_0 }{ r } \entails R_0(\rulesucc{r} \cons E_0, E_1) \]
+  each $r \in \instrules{P_0}$ with $E_0' = \rulesucc{r} \cons E_0$,
+  $E = (E_0', E_1)$, and $E_0'' = \rulepreds{ r } \concat E_0$, either
+  \[ I_0(\rulepreds{ r } \concat E_0, E_1), %
+  I_1(\rulepreds{ r } \concat E_0, E_1), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \seqrange{ E_0'' }{ E_0 } }, \symvars{ E_0' } }
+  \entails I_0( E )
+  \]
+  or there are some $E_0'', E_0''' \in \subexps{P_0}^{*}$ that tile
+  $E_0'$ and
+  \[ \replace{ I_0(E_0'', E_1) }{ %
+    \symvars{ E_0'' } }{ \symvars{ \seqrange{E_0'''}{ E_0' } } }, %
+  I_0(E_0''', E_1) \entails I_0(E) \]
   % symmetric condition for P1:
-  \textbf{(3)} for all $E_0 \in \subexps{P_0}^{*}$, %
-  $E_1 \in \subexps{P_1}^{*}$, and %
-  each $r \in \instrules{P_1}$, %
-  there are some $E_1', E_1'' \in \subexps{P_1}^{*}$ such that
-  $\rulepreds{r} \concat E_1 = E_1' \concat E_1''$ and
-  \[ R_0(E_0, E_1' \concat E_0''), %
-  R_1(E_0, E_1' \concat E_0''), %
-  \symstep{P_1}{ r } \entails R_1(E_0, \rulesucc{r} \cons E_1) \]
+  \textbf{(5)} for all $E_0 \in \subexps{P_0}^{*}$, %
+  each $r \in \instrules{ P_1 }$, and all $E_1 \in \subexps{P_1}^{*}$
+  with $E_1' = \rulesucc{ r } \cons E_1$ and $E = (E_0', E_1)$, either
+  \[ I_0(E_0, \rulepreds{ r } \concat E_1), %
+  I_1(E_0, \rulepreds{ r } \concat E_1),
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \seqrange{ E_1'' }{ E_1 } }, \symvars{ E_1' } }
+  \entails I_1(E) \] 
+  or there are some $E_1'', E_1''' \in \subexps{ P_1 }^{*}$ that tile
+  $E_1'$ and
+  \[ \replace{ I_1(E_0, E_1'') }{ %
+    \symvars{ E_1'' } }{ \symvars{ \seqrange{ E_1''' }{ E_1 ' } } }, %
+  I_1(E_0, E_1''') \entails I_1(E)
+  \]
   %
-  Then $R_0$ and $R_1$ are \emph{relational invariants} of $P_0$ and
+  Then $I_0$ and $I_1$ are \emph{relational invariants} of $P_0$ and
   $P_1$.
 \end{defn}
 %
 The space of relational invariants of $P_0$ and $P_1$ is denoted
 $\relinvs{P_0}{P_1}$.
-
-% strengthen relational invariants to evidence of equivalence:
-If relational invariants $R$ are such that the invariant for $\elts{
-  P_0, P_1 }$, combined with the assumption that $P_0$ and $P_1$ are
-given equal values, entails that $P_0$ and $P_1$ evaluate to equal
-values, then $R$ is evidence of the partial equivalence of $P_0$ and
-$P_1$.
-%
-\begin{defn}
-  \label{defn:eq-pf}
-  Let $R \in \relinvs{P_0}{P_1}$ be such that $R(P_0, P_1), \alpha^0_0
-  = \alpha^1_0 \entails \nu^0 = \nu^1$.
-  %
-  Then $R$ is \emph{evidence} of $P_0 \equiv P_1$.
-\end{defn}
 
 % example of relational invariants:
 \begin{ex}
@@ -104,90 +129,100 @@ $P_1$.
 \end{ex}
 
 % evidence is a valid proof of partial equivalence:
-If there is evidence of the equivalence of $P_0$ and $P_1$, then $P_0
-\equiv P_1$.
+If $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv P_1$.
 %
 \begin{lemma}
   \label{lemma:equiv-evidence}
-  If there are some $R \in \relinvs{P_0}{P_1}$ such that $R$ is
-  evidence of $P_0 \equiv P_1$, then $P_0 \equiv P_1$.
+  If there are $R \in \relinvs{P_0}{P_1}$, then $P_0 \equiv P_1$.
 \end{lemma}
 
 % define class of invariants that are actually maintained
 \sys, given programs $P_0$ and $P_1$ attempts to determine if $P_0
-\equiv P_1$ by synthesizing evidence of $P_0 \equiv P_1$ from a map
-pairs of sequences of derivations of subexpressions of $P_0$ and $P_1$
-to relational invariants.
-% define tilings:
-For each space $X$, $s, s_0, s_1 \in X^{*}$ if there are some $s_0',
-s_1', s_2' \in X^{*}$ such that $s = s_0' \concat s_1' \concat s_2'$,
-$s_0 = s_0' \concat s_2'$, and $s_1 = s_2' \concat s_1'$, then $s_0$
-and $s_1$ are a \emph{tiling} of $s$.
+\equiv P_1$ by synthesizing relational invariants of $P_0$ and $P_1$
+from a map from pairs of sequences of derivations of subexpressions of
+$P_0$ and $P_1$ to symbolic relations.
 %
 Let the space of derivation relations of $P_0$ and $P_1$ be denoted
-$\dersrels{P_0}{P_1} = \derctxs{P_0}^{*} \times
+$\dersrels{ P_0 }{ P_1 } = \derctxs{P_0}^{*} \times
 \derctxs{P_1}^{*} \partto \symrels{P_0}{P_1}$.
 %
 \begin{defn}
-  \label{defn:der-structs}
-  Let $I \in \dersrels{P_0}{P_1} $ be such that
+  \label{defn:der-invs}
+  Let $I \in \dersrels{ P_0 }{ P_1 } $ be such that
+  % maps empty sequence of contexts to true:
+  \textbf{(1)} $\true \entails I(\epsilon, \epsilon)$;
   % maps empty contexts to invariant that supports equivalence:
-  \textbf{(1)} $I([ \epsilon ], [ \epsilon ]), \alpha_0 = \alpha_1
+  \textbf{(2)} $I([ \epsilon ], [ \epsilon ]), \alpha_0 = \alpha_1
   \entails \nu_0 = \nu_1$;
   % respects semantics of evaluation rules of P0:
-  \textbf{(2)} for all $\gamma_0 \in \derctxs{P_0}$, %
-  $D_0 \in \derctxs{P_0}^{*}$, %
-  $D_1 \in \derctxs{P_1}^{*}$, and %
-  each $r \in \evalrules$ such that for all $0 \leq i < \degreeof(r)$,
-  $(((r, i) \cons \gamma_0) \cons D_0, D_1) \in \domain(I)$, 
-  \[ \setformer{ I(((r, i) \cons \gamma_0) \cons D_0, D_1) }{ %
-    0 \leq i < \degreeof(r) }, \symstep{ ... }{ ... } \entails %
-  I( d_0 \cons D_0, D_1)
-  \]
+  \textbf{(3)} for all $\gamma_0 \in \derctxs{ P_0 }$, %
+  each $r \in \instrules{ P_0 }$ with $\Gamma_0 = \rulexts( \gamma_0,
+  r) $, %
+  all $\Gamma_0' \in \derctxs{ P_0 }^{*}$, and %
+  all $\Gamma_1 \in \derctxs{P_1}^{*}$ such that $\Gamma = (\Gamma_0
+  \concat \Gamma_0', \Gamma_1) \in \domain(I)$,
+  \[ I(\Gamma), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \derexts{ P_0 }(\gamma_0, r) }, \symvars{ \gamma_0 } }  %
+  \entails I( \gamma_0 \cons \Gamma_0, \Gamma_1) \]
   %
-  \BH{complete}
   % respects semantics of evaluation rules of P1:
-  \textbf{(3)} for all $D_0 \in \derctxs{P_0}^{*}$, %
-  each $\gamma_1 \in \derctxs{P_1}$, %
-  all $D_1 \in \derctxs{P_1}^{*}$, and %
-  each $r \in \evalrules$ such that for all $0 \leq i < \degreeof(r)$,
-  $(D_0, ((r, i) \cons \gamma_1) \cons D_1) \in \domain(I)$, 
-  \[ \setformer{ I( D_0, ( ( (r, i) \cons \gamma_1 ) \cons D_1) )}
-  \entails %
-  I( D_0, \gamma_1 \cons D_1 )
-  \]
+  \textbf{(4)} for all $\Gamma_0 \in \derctxs{ P_0 }$, %
+  each $\gamma_1 \in \derctxs{ P_1 }$, %
+  each $r \in \instrules{ P_1 }$ with $\Gamma_1 = \rulexts( \gamma_1,
+  r)$, and %
+  all $\Gamma_1' \in \derctxs{ P_0 }^{*}$ such that $\Gamma =
+  (\Gamma_0, \Gamma_1 \concat \Gamma_1') \in \domain(I)$,
+  \[ I(\Gamma), %
+  \subs{ \symstep{ r } }{ %
+    \symvars{ \derexts{ P_1 }(\gamma_1, r) }, \symvars{ \gamma_1 } } %
+  \entails I( \Gamma_0, \gamma_1 \cons \Gamma_1) \]
   % respects tiling in P0:
-  \textbf{(4)} for all $D_0, D_0', D_0'' \in \subders{P_0}^{*}$ such
-  that $D_0'$ and $D_0''$ are a tiling of $D_0$ and all $D_1 \in
-  \subders{P_1}^{*}$ such that $(D_0, D_1) \in \domain(I)$,
-  \[ I(D_0', D_1), I(D_0'', D_1) \entails I(D_0, D_1) \]
+  \textbf{(5)} for all $\Gamma_0, \Gamma_0', \Gamma_0'' \in
+  \subders{P_0}^{*}$ such that $\Gamma_0'$ and $\Gamma_0''$ are a
+  tiling of $\Gamma_0$ and all $\Gamma_1 \in \derctxs{P_1}^{*}$ such
+  that $\Gamma = (\Gamma_0, \Gamma_1) \in \domain(I)$,
+  \[ I(\Gamma_0', \Gamma_1), I(\Gamma_0'', \Gamma_1) \entails %
+  I(\Gamma) \]
   % respects tiling in P1:
-  \textbf{(5)} for all $D_0 \in \subders{P_0}^{*}$ and all $D_1, D_1',
-  D_1'' \in \subders{P_1}^{*}$ such that $D_1'$ and $D_1''$ are a
-  tiling of $D_1$ and $(D_0, D_1) \in \domain(I)$,
-  \[ I(D_0, D_1'), I(D_0, D_1'') \entails I(D_0, D_1) \]
+  \textbf{(6)} for all $\Gamma_0 \in \derctxs{P_0}^{*}$ and %
+  all $\Gamma_1, \Gamma_1', \Gamma_1'' \in \subders{P_1}^{*}$ such
+  that $\Gamma_1'$ and $\Gamma_1''$ are a tiling of $\Gamma_1$ and
+  $\Gamma = (\Gamma_0, \Gamma_1) \in \domain(I)$,
+  \[ I(\Gamma_0, \Gamma_1'), I(\Gamma_0, \Gamma_1'') \entails %
+  I(\Gamma) \]
 \end{defn}
 %
 The space of all derivation relational invariants of $P_0$ and $P_1$
-is denoted $\dersinvs{P_0}{P_1}$.
+is denoted $\dersinvs{ P_0 }{ P_1 }$.
 %
-\BH{update references to defn}
+For $I \in \dersinvs{ P_0 }{ P_1 }$, $d_0 \in \dertrees{P_0}$, and
+$d_1 \in \dertrees{P_1}$, for all $\gamma_0 \in \derctxs{d_0}$ and
+$\gamma_1 \in \derctxs{ d_1 }$, it holds that $(\gamma_0, \gamma_1)
+\in \domain(I)$, then $I$ are derivation relational invariants of
+$d_0$ and $d_1$.
+%
+The space of all such invariants is denoted $\dersinvs{ d_0 }{ d_1 }$.
+
 %
 \BH{reference running example}
+%
 
 % define inductive derivation relational invariants
 Derivation relational invariants are inductive if they define
 relational invariants.
 %
-In particular, for $I \in \dersinvs{P_0}{P_1}$, let $I' \in
+In particular, for $I \in \dersinvs{P_0}{P_1}$, let $\exprel{I} \in
 \relinvs{P_0}{P_1}$ be such that for all $E_0 \in \subexps{P_0}^{*}$
 and $E_1 \in \subexps{P_1}^{*}$,
 \begin{align*}
   % the invariant of the sequences of expressions is
-  \exprel{I'}(E_0, E_1) = %
+  \exprel{I}(E_0, E_1) = %
   % the conjunction of invariants over all nodes:
-  \bigland \setformer{ I(\headexps(\Gamma_0), \headexps(\Gamma_1)) }{ %
-    \Gamma_0 \in \derctxs{ P_0 }, \Gamma_1 \in \derctxs{ P_1 } } 
+  \bigland \setformer{ I(\Gamma_0, \Gamma_1) }{ %
+    & \Gamma_0 \in \derctxs{ P_0 }, \headexps(\Gamma_0) = E_0, \\ %
+    & \Gamma_1 \in \derctxs{ P_1 }, \headexps(\Gamma_1) = E_1, %
+    (\Gamma_0, \Gamma_1) \in \domain(I) } 
 \end{align*}
 %
 $I \in \dersinvs{P_0}{P_1}$ are inductive if they can be decomposed to
@@ -197,29 +232,30 @@ and $P_1$.
 For all $I_0, I_1 \in \dersrels{P_0}{P_1}$, let $I_0 \union I_1$ 
 be such that 
 % case: domain of only I0
-\textbf{(1)} $\restrict{I_0 \union I_1}{\domain(I_0) \setminus
-  \domain(I_1)} = \restrict{I_0}{\domain(I_0) \setminus \domain(I_1)}$;
+\textbf{(1)} for $\Gamma_0 = \domain(I_0) \setminus \domain(I_1)$,
+$\restrict{(I_0 \union I_1)}{ \Gamma_0 } = \restrict{I_0}{ \Gamma_0
+}$;
 % case: domain of only I1
-\textbf{(2)} $\restrict{I_0 \union I_1}{\domain(I_1) \setminus
-  \domain(I_0)} = \restrict{I_1}{\domain(I_1) \setminus
-  \domain(I_0)}$;
+\textbf{(2)} for $\Gamma_1 = \domain(I_1) \setminus \domain(I_1)$,
+$\restrict{(I_0 \union I_1)}{ \Gamma_1 } = \restrict{I_1}{ \Gamma_1
+}$;
 % case: domain of only both
 \textbf{(3)} for each $\Gamma \in \domain(I_0) \intersection
-\domain(I_1)$, $\restrict{I_0 \union I_1}(\Gamma) = I_0(\Gamma) \land
+\domain(I_1)$, $(I_0 \union I_1)(\Gamma) = I_0(\Gamma) \land
 I_1(\Gamma)$.
 %
 \begin{defn}
   \label{defn:inductive-der-rels}
-  For $I_0, I_1 \in \dersrels{P_0}{P_1}$, if $(\exprel{I_0},
-  \exprel{I_1})$ are relational invariants of $P_0$ and $P_1$, then
+  For $I_0, I_1 \in \dersrels{P_0}{P_1}$, %
+  if $(\exprel{I_0}, \exprel{I_1}) \in \relinvs{P_0}{P_1}$, then %
   $I_0 \union I_1$ are \emph{inductive} derivation relational
   invariants.
 \end{defn}
 %
-Derivation relational invariants are evidence of partial equivalence,
-by \autoref{lemma:equiv-evidence}.
+Inductive derivation relational invariants are evidence of partial
+equivalence, by \autoref{lemma:equiv-evidence}.
 %
-\sys, given programs $P_0$ and $P_1$ attempts to determine their
+\sys, given programs $P_0$ and $P_1$, attempts to determine their
 partial equivalence by synthesizing inductive derivation relational
 invariants.
 
@@ -240,20 +276,22 @@ invariants.
   \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
   % verify: main procedure
   \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:core-begin}} %
-  { \myproc{$\verifyaux(I)$ \label{line:core-aux-begin} }{ %
+  { \myproc{$\verifyaux(I \in \dersinvs{ P_0 }{ P_1 })$ %
+      \label{line:core-aux-begin} }{ %
       % check if the solution is inductive:
-      \Switch{$\chkinductive(I)$ \label{line:core-chkind} }{ %
+      \Switch{$\chkinductive(P_0, P_1, I)$ %
+        \label{line:core-chkind} }{ %
         \lCase{$\isind$}{ %
           % case: it is. Return that P0, P1 are equivalent.
           \Return{$\true$} \label{line:core-ret-equiv} %
         } %
-        \Case{$D_0 \in \dertrees{ \cc{P}_0 }{ P_0 }$, %
-          $D_1 \in \dertrees{ \cc{P}_1 }{ P_1 }$ %
+        \Case{$d_0 \in \progders{ \cc{P}_0 }$, %
+          $d_1 \in \progders{ \cc{P}_1 }$ %
           \label{line:core-case-cex}}{ %
-          \Switch{$\verifyders(D_0, D_1)$ \label{line:core-vders} }{ %
+          \Switch{$\verifyders(d_0, d_1)$ \label{line:core-vders} }{ %
             \lCase{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
               \Return{$\false$} \label{line:core-ret-non-equiv} } %
-            \lCase{$I' \in \dersrels{P_0}{P_1}$: %
+            \lCase{$I' \in \dersinvs{P_0}{P_1}$: %
               \label{line:core-subcase-invs} }{ %
               \Return{ $\verifyaux(\mergeinvs(I, I'))$ } %
               \label{line:core-recurse}
@@ -265,8 +303,10 @@ invariants.
     \Return{$\verifyaux(\emptyset)$} \label{line:core-base} } %
   %
   \caption{% interface of verify:
-    \verify: an equivalence verifier.
-  }
+    \verify: an equivalence verifier, which uses procedures
+    \chkinductive (\autoref{sec:chk-ind}), \verifyders
+    (\autoref{sec:verify-ders}), and %
+    \mergeinvs (\autoref{sec:merge}).  }
   \label{alg:verify}
 \end{algorithm}
 \end{figure}
@@ -275,17 +315,17 @@ invariants.
 The equivalence verifier \verify is given in \autoref{alg:verify}.
 %
 \verify, given $P_0, P_1 \in \stlc$ (\autoref{line:core-begin}),
-defines a procedure $\verifyaux$ that, given derivation relational
-invariants $I$, attempts to determine if $P_0 \equiv P_1$ by finding
-inductive derivation relational invariants built from $I$
+defines a procedure $\verifyaux$ that, given $I \in
+\dersinvs{P_0}{P_1}$, attempts to determine if $P_0 \equiv P_1$ by
+finding inductive derivation relational invariants built from $I$
 (\autoref{line:core-aux-begin}---\autoref{line:core-aux-end}).
 %
 \verify calls \verifyaux on the empty map of derivation relational
 invariants and returns the result (\autoref{line:core-base}).
 
 % verify auxiliary procedure:
-\verifyaux, given derivation relational invariants $I$, runs procedure
-\chkinductive on $I$ (\autoref{line:core-chkind}; 
+\verifyaux, given $I \in \dersinvs{P_0}{P_1}$, runs procedure
+\chkinductive on $I$ (\autoref{line:core-chkind};
 %
 \chkinductive is given in \autoref{sec:chk-ind}).
 %
@@ -295,26 +335,28 @@ inductive, then \chkinductive returns the value $\isind$, and
 (\autoref{line:core-ret-equiv}).
 
 % case: no inductive restriction found:
-Otherwise, \chkinductive returns a derivation $D_0$ of $P_0$ and $D_1$
-of $P_1$ that do not have derivation relational
+Otherwise, \chkinductive returns $d_0 \in \dertrees{ P_0 }$ and $d_1
+\in \dertrees{ P_1 }$ that do not have derivation relational
 invariants in $I$ (\autoref{line:core-case-cex}).
 %
-\verifyaux then runs a procedure \verifyders on $D_0$ and $D_1$
+\verifyaux then runs a procedure \verifyders on $d_0$ and $d_1$
 (\autoref{line:core-vders}; \verifyders is given in
 \autoref{sec:verify-ders}).
 %
-If \verifyders returns the value $\nonequiv$ to denote that $D_0$ and
-$D_1$ are not equivalent (\autoref{line:core-subcase-non-equiv}), then
+If \verifyders returns the value $\nonequiv$ to denote that $d_0
+\not\equiv d_1$ (\autoref{line:core-subcase-non-equiv}), then
 \verifyaux returns that $P_0 \not\equiv P_1$
 (\autoref{line:core-ret-non-equiv}).
 
 % subcase: finds path-pair invariants:
-Otherwise, \verifyders returns relational derivation invariants $I'$
-of $D_0$ and $D_1$ (\autoref{line:core-subcase-invs}).
+Otherwise, \verifyders returns $I' \in \dersinvs{d_0}{d_1}$
+(\autoref{line:core-subcase-invs}).
 %
 \verifyaux runs a procedure \mergeinvs on $I$ and $I'$, which
 generates derivation relational invariants of all pairs of derivations
-with relational invariants in both $I$ and $I'$.
+with relational invariants in $I$ or $I'$;
+%
+\mergeinvs is given in \autoref{sec:merge}.
 %
 \verifyaux recurses on the generated invariants and returns the result
 (\autoref{line:core-recurse}).
@@ -330,45 +372,50 @@ with relational invariants in both $I$ and $I'$.
   % Declare sub-program (procedure) markers.
   \SetKwProg{myproc}{Procedure}{}{}
   % Inputs: a program
-  \Input{$D \in \dersinvs{P_0}{P_1}$.}
+  \Input{$I \in \dersinvs{P_0}{P_1}$.}
   % Output: decision for safety
-  \Output{$\isind$ to denote that some restriction of $D$ is
-    inductive, or derivations of $P_0$ and $P_1$ not defined in $D$.}
+  \Output{$\isind$ to denote that some restriction of $I$ is
+    inductive, or $d_0 \in \progders{P_0}$ and %
+    $d_1 \in \progders{P_1}$ without contexts undefined in $I$.}
   % verify: main procedure
-  \myproc{$\chkinductive(D)$ \label{line:chkind-begin}} %
-  { \myproc{$\chkindaux(\Gamma_0, \Gamma_1, I)$ %
+  \myproc{$\chkinductive(P_0, P_1 \in \stlc, %
+    I_{\Gamma} \in \dersinvs{ P_0 }{ P_1 } )$ %
+    \label{line:chkind-begin}} %
+  { \myproc{$\chkindaux(\Gamma_0 \in \derctxs{P_0}^{*}, %
+      \Gamma_1 \in \derctxs{P_1}^{*}, %
+      I_E \in \relinvs{ P_0 }{ P_1 })$ %
       \label{line:chkind-aux-begin} } %
     { % bind the expressions of Gamma:
       $E \assign (\headexps(\Gamma_0), \headexps(\Gamma_1))$ %
       \label{line:chkind-bind-exps} \;
       % if Gamma is not defined,
-      \lIf{$(\Gamma_0, \Gamma_1) \notin \domain(D)$}{ %
+      \lIf{$(\Gamma_0, \Gamma_1) \notin \domain(I_{\Gamma})$}{ %
         % return a sequence of derivations of the head expressions
         \Return{$\chooseder(E)$} \label{line:chkind-counters} %
       }
       % 
       \Else{ %
-        $\varphi_E \assign I(E)$ \label{line:bind-exp-invs} \; %
-        $\varphi_{\Gamma} \assign D(\Gamma_0, \Gamma_1)$ %
+        $\varphi_E \assign I_{E}(E)$ \label{line:bind-exp-invs} \; %
+        $\varphi_{\Gamma} \assign I_{\Gamma}(\Gamma_0, \Gamma_1)$ %
         \label{line:bind-der-invs} \; %
         \lIf{$\varphi_E \entails \varphi_{\Gamma}$}{ %
           \Return{$\isind$} \label{line:ret-isind} %
         } %
         \Else{
           % strengthen the invariants at E:
-          $I' = \upd{I}{ E }{ \varphi_E \land \varphi_{\Gamma} }$ %
+          $I_E' = \upd{I_E}{ E }{ \varphi_E \land \varphi_{\Gamma} }$ %
           \label{line:str-invs} \; %
           $\tileind_0 \assign %
           \biglor \setformer{ %
-            \chkindaux(\Gamma_0', \Gamma_1, I') = %
-            \chkindaux(\Gamma_0'', \Gamma_1, I') = \isind }{ %
+            \chkindaux(\Gamma_0', \Gamma_1, I_E') = %
+            \chkindaux(\Gamma_0'', \Gamma_1, I_E') = \isind }{ %
             \Gamma_0', \Gamma_0'' \in \derctxs{P_0}, %
             \tiles(\Gamma_0, \Gamma_0', \Gamma_0'') }$ %
           \label{line:tile-isind0} \; %
           $\tileind_1 \assign %
           \biglor \setformer{ %
-            \chkindaux(\Gamma_0, \Gamma_1', I') = %
-            \chkindaux(\Gamma_0, \Gamma_1'', I') = \isind }{ %
+            \chkindaux(\Gamma_0, \Gamma_1', I_E') = %
+            \chkindaux(\Gamma_0, \Gamma_1'', I_E') = \isind }{ %
             \Gamma_1', \Gamma_1'' \in \derctxs{P_1}, %
             \tiles(\Gamma_1, \Gamma_1', \Gamma_1'') }$ %
           \label{line:tile-isind1} \; %
@@ -377,8 +424,8 @@ with relational invariants in both $I$ and $I'$.
           } %
           \lElse{ %
             \Return{ $\chooseres( %
-              \unwind{ P_0 }(\Gamma_0, \Gamma_1, I'), %
-              \unwind{ P_1 }(\Gamma_0, \Gamma_1, I'))$ } %
+              \unwind{ P_0 }(\Gamma_0, \Gamma_1, I_E'), %
+              \unwind{ P_1 }(\Gamma_0, \Gamma_1, I_E'))$ } %
             \label{line:ret-unwind} %
           } %
         } %
@@ -394,34 +441,34 @@ with relational invariants in both $I$ and $I'$.
   \label{alg:chk-ind}
 \end{algorithm}
 %
-\BH{update to walk through new algorithm}
-%
 The algorithm \chkinductive for checking the inductiveness of
 derivation relational invariants is given in
 \autoref{alg:chk-ind}.
 %
-\chkinductive, given derivation relational invariants $D$
-(\autoref{line:chkind-begin}), defines a procedure \chkindaux that
-takes $\Gamma_0 \in \derctxs{P_0}^{*}$, $\Gamma_1 \in
-\derctxs{P_1}^{*}$, and $I: \subexpseqs \to \symrels{P_0}{P_1}$ and
-returns either %
-\textbf{(1)} $\isind$ to denote that if $I$ are inductive relational
-invariants, then $D(\Gamma_0, \Gamma_1)$ have inductive relational
-invariants that entail $I$ or
+\chkinductive, given $P_0, P_1 \in \stlc$ and $I \in
+\dersinvs{P_0}{P_1}$ (\autoref{line:chkind-begin}), defines a
+procedure \chkindaux that, given $\Gamma_0 \in \derctxs{P_0}^{*}$,
+$\Gamma_1 \in \derctxs{P_1}^{*}$, and $I: \subexpseqs \to
+\symrels{P_0}{P_1}$, returns either %
+\textbf{(1)} $\isind$ to denote that if $I_{\Gamma}$ restricted to
+extensions of $\Gamma$ is inductive under $I_E$
 %
-\BH{clarify}
+\BH{define}
 %
-\textbf{(2)} derivations of $P_0$ and $P_1$ with relational invariants
-in $D$
+or
+%
+\BH{update, clarify}
+%
+\textbf{(2)} derivations of $P_0$ and $P_1$ whose contexts do not have
+relational invariants in $I$
 (\autoref{line:chkind-aux-begin}---\autoref{line:chkind-aux-end}).
 %
 If case \textbf{(1)} holds, we say that $(\Gamma_0, \Gamma_1)$ is
 inductive in $D$ under $I$.
 %
 \chkinductive calls \chkindaux on the empty derivation contexts of
-$P_0$ and $P_1$ and a map from each pair of sequences of
-sub-expressions to $\true$, and returns the result
-(\autoref{line:chkind-base}).
+$P_0$ and $P_1$ and a map from each element in $\subexpseqs$ to
+$\true$, and returns the result (\autoref{line:chkind-base}).
 
 % aux function: contexts have no invariant:
 \chkindaux collects the pair $E$ of sequences of expressions of the
@@ -434,43 +481,40 @@ expressions in $E$ (\autoref{line:chkind-counters}).
 
 % aux function: subcase: invariants are entailed by invariants in I:
 Otherwise, \chkindaux collects the relational invariants $\varphi_E$
-bound to $E$ in $I$ (\autoref{line:bind-exp-invs}), %
-collects the derivation relational invariants $\varphi_{\Gamma}$ bound
-to $\Gamma_0$ and $\Gamma_1$ (\autoref{line:bind-der-invs}), and %
+bound to $E$ in $I_E$ (\autoref{line:bind-exp-invs}), %
+collects the symbolic relation $\varphi_{\Gamma}$ bound to $\Gamma_0$
+and $\Gamma_1$ in $I_{\Gamma}$ (\autoref{line:bind-der-invs}), and %
 determines if $\varphi_E$ entails $\varphi_{\Gamma}$.
 %
 If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
-inductive in $D$ under $I$ (\autoref{line:ret-isind}).
+inductive in $I_{\Gamma}$ under $I_E$ (\autoref{line:ret-isind}).
 
 % aux fn: subcase: some tiling is inductive
-Otherwise, \chkindaux constructs relational invariants $I'$ over that
-strengthen $I$ at $E$ with $\varphi_{\Gamma}$
+Otherwise, \chkindaux constructs relational invariants $I_E'$ that
+strengthen $I_E$ at $E$ with $\varphi_{\Gamma}$
 (\autoref{line:str-invs}).
 %
 \chkindaux determines if either there is some tiling of $\Gamma_0$
-such that each tile paired with $\Gamma_1$ is inductive in $D$ under
-$I$ (\autoref{line:tile-isind0}), or there is some tiling of
-$\Gamma_1$ such that $\Gamma_0$ paired with each tile is inductive in
-$D$ under $I$ (\autoref{line:tile-isind1}).
+such that each tile paired with $\Gamma_1$ is inductive in
+$I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind0}), or there is
+some tiling of $\Gamma_1$ such that $\Gamma_0$ paired with each tile
+is inductive in $I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind1}).
 %
 If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
-inductive under $I'$ (\autoref{line:tile-isind}).
+inductive under $I_E'$ (\autoref{line:tile-isind}).
 
 % aux fn: subcase: unwind
 Otherwise, \chkindaux runs the procedure $\unwind{P_0}$ on $\Gamma_0$,
 $\Gamma_1$, and $I'$, which returns either \textbf{(1)} $\isind$ to
-denote that each predecessor of $\Gamma_0$ under $P_0$
-%
-\BH{define predecessor function}
-%
-paired with $\Gamma_1$ is inductive in $D$ under $I'$ or %
+denote that each extension of $\Gamma_0$ in $P_0$ paired with
+$\Gamma_1$ is inductive in $I_{\Gamma}$ under $I_E'$ or %
 \textbf{(2)} returns derivations of $E$ that do not have invariants in
-$D$;
+$I_{\Gamma}$;
 %
-the implementation of $\unwind{P_0}$ is defined below.
+the implementation of $\unwind{P_0}$ is given below.
 %
 \chkindaux runs a similar procedure $\unwind{P_1}$ on $\Gamma_0$,
-$\Gamma_1$, and $I'$.
+$\Gamma_1$, and $I_E'$.
 % chooseres:
 \chkindaux runs \chooseres on the results of the two calls.
 %
@@ -492,19 +536,18 @@ If so, then $\unwind{P_0}$ returns the empty sequence of derivations.
 Otherwise, let $\gamma_0 \in \derctxs{P_0}$ and $\Gamma_0' \in
 \derctxs{P_0}$ be such that $\Gamma_0 = \gamma_0 \cons \Gamma_0'$.
 %
-For each $r \in \instrules{P_0}$ that extends $\gamma_0$ in $P_0$ and
-each $0 \leq i < \degreeof(r)$, $\unwind{P_0}$ runs \chkindaux on
+For each $r \in \instrules{ P_0 }$ that extends $\gamma_0$ in $P_0$
+and each $0 \leq i < \degreeof(r)$, $\unwind{P_0}$ runs \chkindaux on
 $(((r, i) \cons \gamma_0) \cons \Gamma_0, \Gamma_1$.
 %
 If for each $r$ and $i$, \chkindaux returns $\isind$, then
 $\unwind{P_0}$ returns $\isind$.
 %
 Otherwise, if there is some $r$ and $0 \leq i < \degreeof(r)$ such
-that \chkindaux returns a sequence of derivations $D \in \ders{P_0}$
-for $\headexps(\rulepreds(r))$, then $\unwind{P_0}$ returns a
-derivation for $\headexps(\rulesucc(r))$ constructed from $D$ and $r$,
-along with derivations for $\headexps(\Gamma_0')$ and
-$\headexps(\Gamma_1)$.
+that \chkindaux returns $D \in \ders{P_0}^{*}$, then $\unwind{P_0}$
+returns the derivation $\headexps(\rulesucc{r})$ constructed by
+applying $D$ to $r$, followed by derivations for $\headexps(\Gamma_0)$
+and $\headexps(\Gamma_1)$.
 
 % handwave P1:
 The implementation of $\unwind{P_1}$ is symmetric to that of
@@ -513,10 +556,10 @@ $\unwind{P_0}$.
 \subsubsection{Verifying equivalence of derivations}
 \label{sec:verify-ders}
 %
-\verifyders, given $d_0 \in \dertrees{ P_0 }{ P_0 }$ and %
-$d_1 \in \dertrees{ P_1 }{ P_1 }$, returns either \textbf{(1)}
-derivation relational invariants of the derivation contexts of $d_0$
-and $d_1$ or %
+\verifyders, given $d_0 \in \progders{ P_0 }$ and %
+$d_1 \in \progders{ P_1 }$, returns either \textbf{(1)} derivation
+relational invariants of the derivation contexts of $d_0$ and $d_1$
+or %
 \textbf{(2)} the value $\nonequiv$ to denote that $d_0 \not\equiv
 d_1$.
 %
@@ -524,22 +567,20 @@ d_1$.
 solving a recursion-free system of Constrained Horn Clauses
 (\autoref{sec:chcs}).
 
-% define relational predicates:
-Each relational predicate of $\mathcal{S}$ is a pair of a sequence of
-derivation contexts of $d_0$, paired with a sequence of derivation
-contexts of $d_1$.
-% define cuts
+% give construction:
 \verifyders constructs a system $\mathcal{S}$, defined as follows.
+% define relational predicates:
+Each relational predicate of $\mathcal{S}$ is an element of $\derctxs{
+d_0 } \times \derctxs{d_1}$.
 %
 Let the \emph{cuts} of $d_0$, denoted $\cuts{d_0} \subseteq \derctxs{
-  P_0 }^{*}$, be the smallest set such that %
-\textbf{(1)} $[ \epsilon ] \in \cuts{d_0}$; %
-\textbf{(2)} for all $\gamma_0' \in \derctxs{ d_0 }$, %
+  d_0 }^{*}$, be the smallest set such that %
+\textbf{(1)} $[ \epsilon ] \in \cuts{ d_0 }$; %
+\textbf{(2)} for all $\gamma_0' \in \derctxs{ d_0 }$, and %
 $\Gamma_0'' \in \derctxs{ d_0 }^{*}$ such that $\gamma_0' \cons
-\Gamma_0'' \in \cuts{ d_0 }$, and %
-$p \in \rulepreds{P_0}$ such that $\gamma_0'' = p \cons \gamma_0' \in
-\derctxs{ d_0 }$, %
-it holds that $\immsubders{d_0'} \concat D_0'' \in \cuts{d_0}$.
+\Gamma_0'' \in \cuts{ d_0 }$, %
+it holds that $\derexts{ d_0 }(\gamma_0) \concat \Gamma_0'' \in
+\cuts{d_0}$.
 %
 The cuts of $d_1$, denoted $\cuts{d_1}$, are defined symmetrically.
 % define relational predicates per tiling:
@@ -548,18 +589,19 @@ The relational predicates of $\mathcal{S}$ are $\cuts{d_0} \times
 %
 For each $\gamma \in \derctxs{d_0}$, let there be a distinct copy of
 the symbolic variables for the expression of $\gamma$, denoted
-$\symvars{d}$.
+$\symvars{ \gamma }$.
 %
-For each $D \subseteq \derctxs{d_0}$, let the union of symbolic
-variables for all derivations in $D$ be denoted $\symvars{D}$.
+For each $\Gamma \subseteq \derctxs{d_0}^{*}$, let 
+$\symvars{ \Gamma } = \bigunion_{ \gamma \in \Gamma} \symvars{\gamma}$.
 %
-For each $C_0 \in \cuts{d_0}$ and $C_1 \in \cuts{d_1}$, relational
+For each $C_0 \in \cuts{ d_0 }$ and $C_1 \in \cuts{ d_1 }$, relational
 predicate $(C_0, C_1)$ has symbolic variables $\symvars{C_0},
 \symvars{C_1}$.
 %
-In each application of $(C_0, C_1)$, it is applied to these variables;
+In each application of relational predicate $(C_0, C_1)$, the
+predicate is applied to these variables;
 %
-as a result, such variables are not denoted explicitly below.
+as a result, such variables are not shown explicitly below.
 
 % give clauses for steps of P0:
 The clauses of $\mathcal{S}$ are defined as follows.
@@ -573,7 +615,7 @@ $\Gamma_0' \in \derctxs{ d_0 }^{*}$ such that $\gamma_0 \cons
 \Gamma_0' \in \cuts{ d_0 }$, and %
 $\Gamma_1 \in \cuts{ d_1 }$, there is a clause %
 \[ (\Gamma_0 \concat C_0, C_1), %
-\symstep{ P_0 }{ \prevrule{ d_0 }( \gamma_0 ) }[ %
+\symstep{ \prevrule{ d_0 }( \gamma_0 ) }[ %
 \symvars{ \Gamma_0 }, \gamma_0 ] \entails %
 (\gamma_0 \cons C_0, C_1) \]
 
@@ -587,25 +629,21 @@ each $\gamma_1 \in \derctxs{ d_1 }$ with $\Gamma_1 = \derexts{d_1}(
 $\Gamma_1' \in \derctxs{ d_1 }^{*}$ such that $\gamma_1 \cons
 \Gamma_1' \in \cuts{ d_1 }$, there is a clause
 \[ ( \Gamma_0, \Gamma_1 \concat C_1), %
-   \symstep{ P_1 }{ \prevrule{ d_1 }( \gamma_1 ) }[ %
-   \symvars{ \Gamma_1 }, \gamma_1 ] \entails %
-   (C_0, \gamma_1 \cons C_1) \]
+\symstep{ \prevrule{ d_1 }( \gamma_1 ) }[ %
+\symvars{ \Gamma_1 }, \gamma_1 ] \entails %
+(C_0, \gamma_1 \cons C_1) 
+\]
 
 % split into P0 and P1 tilings
-$\mathcal{S}$ contains clauses that constrain that the invariants for
-tilings of a sequence of derivation contexts of $d_0$ must entail the
-relational invariant for the sequence that they tile.
-%
-In particular, for all $C_0, C_0', C_0'' \in \cuts{d_0}$ such that
-$C_0'$ and $C_0''$ are a tiling of $C_0$, and %
-each $C_1 \in \cuts{d_1}$, there is a clause
-\[ (C_0', C_1), (C_0'', C_1) \entails (C_0, C_1)
-\]
+For all $C_0, C_0', C_0'' \in \cuts{d_0}$ such that $C_0'$ and $C_0''$
+are a tiling of $C_0$, and %
+each $C_1 \in \cuts{d_1}$, $\mathcal{S}$ contains a clause
+\[ (C_0', C_1), (C_0'', C_1) \entails (C_0, C_1) \]
 %
 Symmetrically, for each $C_0 \in \cuts{d_0}$ and %
 for all $C_0, C_1', C_1'' \in \cuts{d_1}$ such that $C_1'$ and $C_1''$
 are a tiling of $C_1$, %
-there is a clause 
+$\mathcal{S}$ contains a clause
 \[ (C_0, C_1'), (C_0, C_1'') \entails (C_0, C_1)
 \]
 
@@ -621,13 +659,17 @@ empty derivation context of $d_1$: $( [ \epsilon ], [ \epsilon ])$.
 If \solvechc returns that $\mathcal{S}$ has no solution, then
 \verifyders returns $\nonequiv$, to denote that $D_0 \not\equiv D_1$.
 %
-Otherwise, if \solvechc returns some $\sigma \in \interps{ \mathcal{S}
-}$, then \verifyders returns $I \in \dersinvs{P_0}{P_1}$, where for
-each $\Gamma_0 \in \derctxs{ P_0 }$ and $\Gamma_1 \in \derctxs{ P_1
-}$, $I(\Gamma_0, \Gamma_1) = \subs{ \sigma(\Gamma_0, \Gamma_1) }{
-  \symvars{ \headexps{ \Gamma_0 } }, \symvars{ \Gamma_1 } }$.
+Otherwise, if \solvechc returns some $\sigma \in \solutions{
+  \mathcal{S} }$, then \verifyders returns $I \in
+\dersinvs{P_0}{P_1}$, where for each $\Gamma_0 \in \derctxs{ P_0 }$
+and $\Gamma_1 \in \derctxs{ P_1 }$,
+\[ I(\Gamma_0, \Gamma_1) = %
+\subs{ \sigma(\Gamma_0, \Gamma_1) }{ %
+  \symvars{ \headexps( \Gamma_0 ) }, %
+  \symvars{ \headexps( \Gamma_1 ) } } \]
 
 \subsubsection{Merging Derivation Relational Invariants}
+\label{sec:merge}
 % mergeinvs: give components of invariants 0:
 $\mergeinvs$, given $I_0, I_1 \in \dersinvs{P_0}{P_1}$, returns $I'
 \in \dersinvs{P_0}{P_1}$ such that
