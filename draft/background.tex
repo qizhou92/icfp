@@ -22,19 +22,21 @@ We then define partial equivalence of STLC programs
       | &\ \ite{ e }{ e }{ e } \\
       % or an abstraction,
       | &\ \lambda x.\ e \\
-      % or an application,
-      | &\ e\ e \\
       % or a fixpoint,
-      | &\ \fix{ f }{ e }
+      | &\ \fix{ f }{ e } \\
+      % or an application,
+      | &\ e\ e 
     \end{align*}
-    \caption{The space of program expressions, $\expr$.} %
+    \caption{The space of program expressions, $\expr$.
+      %
+      Metavariable $e$ ranges over $\expr$.} %
     \label{fig:exprs}
   \end{minipage}
   %
   \begin{minipage}{0.48\linewidth}
     \begin{align*} %
       \tau \rightarrow &\ \base\ %
-      |\ \base \to \tau \\
+      |\ \tau \to \tau \\
       \base \rightarrow &\ \bools\ %
       |\ \ints
     \end{align*}
@@ -228,7 +230,7 @@ takes as input and the spaces of values to which it evaluates.
 %
 The space of types is given in \autoref{fig:types}.
 %
-A type is either a base type or a function from a base type to a type.
+A type is either a base type or a function from a type to a type.
 %
 The definition of types in \autoref{fig:types} thus does not include
 higher-order expressions.
