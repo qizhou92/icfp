@@ -14,7 +14,7 @@ import Text.ParserCombinators.Parsec.Number
 data Sort = BoolSort
             | IntegerSort
             | RealSort
-  deriving (Eq,Show)
+  deriving (Eq,Show,Ord)
 
 parseSort :: Parser Sort
 
@@ -35,6 +35,7 @@ parseName = many (letter <|> digit <|> char '!') <* spaces
 parseVariable :: Parser Sort
 parseVariable = do 
   name <- parseArgument
+  spaces
   sort <- parseSort
   return sort
 parseListSort :: Parser [Sort]
@@ -75,7 +76,7 @@ constant_pretty_print x = case x of
                  ConstantReal value -> show value
 
 data Function = Function String [Sort]
-  deriving (Eq,Show)
+  deriving (Eq,Show,Ord)
 
 
 parseFunction :: Parser Function
@@ -84,6 +85,8 @@ parseFunction = do
   spaces
   name <- parseName
   list <- parseListSort
+  spaces
+  reserved "Bool"
   return (Function name list)
 
 function_parameter_number :: Function -> Int
@@ -178,6 +181,7 @@ parseSymbol :: Parser String
 parseSymbol = do
   string "a!"
   number <- many digit
+  spaces
   return ("a!"++(number))
 
 parseSymbolExpr :: ParseState -> Parser Expr
@@ -188,6 +192,7 @@ parseSymbolExpr  (ParseState symbolMap sortMap) =  do
 parseVar :: ParseState  -> Parser Expr
 parseVar (ParseState symbolMap sortMap) = do
   name <- parseArgument
+  spaces
   return (ExprVar (Var name (sortMap Map.! name)))
 
 -- parse float number might only apply for non-negative number, but it is fine here.
@@ -211,21 +216,21 @@ parseAdd :: ParseState -> Parser Expr
 parseAdd parseState = do
   reserved "+"
   spaces
-  exprs <- many (parsePureExpr parseState) 
+  exprs <- many (parseExpr parseState) 
   return (MkAdd exprs)
 
 parseMul :: ParseState -> Parser Expr
 parseMul parseState = do
   reserved "*"
   spaces
-  exprs <- many (parsePureExpr parseState) 
+  exprs <- many (parseExpr parseState) 
   return (MkMul exprs)
 
 parseSub :: ParseState -> Parser Expr
 parseSub parseState = do
   reserved "-"
   spaces
-  exprs <- many (parsePureExpr parseState) 
+  exprs <- many (parseExpr parseState) 
   return (MkSub exprs)
 
 -- be careful it might be /
@@ -233,140 +238,142 @@ parseDiv1 :: ParseState -> Parser Expr
 parseDiv1 parseState = do
   reserved "div"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkDiv_1 expr1 expr2)
 
 parseDiv2 :: ParseState -> Parser Expr
 parseDiv2 parseState = do
   reserved "/"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkDiv_2 expr1 expr2)
 
 parseMod :: ParseState -> Parser Expr
 parseMod parseState = do
   reserved "mod"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkMod expr1 expr2)
 
 parseRem :: ParseState -> Parser Expr
 parseRem parseState = do
   reserved "rem"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkRem expr1 expr2)
 
 parseLt :: ParseState -> Parser Expr
 parseLt parseState = do
   reserved "<"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkLt expr1 expr2)
 
 parseLe :: ParseState -> Parser Expr
 parseLe parseState = do
   reserved "<="
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkLe expr1 expr2)
 
 parseGt :: ParseState -> Parser Expr
 parseGt parseState = do
   reserved ">"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkGt expr1 expr2)
 
 parseGe :: ParseState -> Parser Expr
 parseGe parseState = do
   reserved ">="
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkGe expr1 expr2)
 
 parseEq :: ParseState -> Parser Expr
 parseEq parseState = do
   reserved "="
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkEq expr1 expr2)
 
 parseNot :: ParseState -> Parser Expr
 parseNot parseState = do
   reserved "not"
   spaces
-  expr <- parsePureExpr parseState
+  expr <- parseExpr parseState
   return (MkNot expr)
 
 parseIff :: ParseState -> Parser Expr
 parseIff parseState = do
   reserved "Iff"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkIff expr1 expr2)
 
 parseImplies :: ParseState -> Parser Expr
 parseImplies parseState = do
   reserved "=>"
   spaces
-  expr1 <- parsePureExpr parseState
-  expr2 <- parsePureExpr parseState
+  expr1 <- parseExpr parseState
+  spaces
+  expr2 <- parseExpr parseState
   return (MkImplies expr1 expr2)
 
 parseAnd :: ParseState -> Parser Expr
 parseAnd parseState = do
   reserved "and"
   spaces
-  exprs <- many (parsePureExpr parseState)
+  exprs <- many (parseExpr parseState)
   return (MkAnd exprs)
 
 parseOr :: ParseState -> Parser Expr
 parseOr parseState = do
   reserved "or"
   spaces
-  exprs <- many (parsePureExpr parseState)
+  exprs <- many (parseExpr parseState)
   return (MkOr exprs)
-
-parseExpr :: ParseState -> Parser Expr
-
-parseExpr parseState = 
-  parsePureExpr parseState
-  <|> parseLetExpr parseState
 
 parseLetSecondExpr :: (Bool,(Expr,ParseState))  -> Parser Expr
 
 parseLetSecondExpr (x,(y,z)) = case x of
   True -> return y
-  False -> parsePureExpr z
+  False -> parseExpr z
 
 parseLetExpr ::ParseState -> Parser Expr
 
 parseLetExpr parseState = do
  reserved "let"
- argumentParseResult <-parseLetListArgs parseState
+ argumentParseResult <- parens (parseLetListArgs parseState)
  parseLetSecondExpr argumentParseResult
- 
-
-parseLetExprArgus ::ParseState -> Parser (ParseState,(Bool, Expr))
-parseLetExprArgus parseState = undefined
 
 
 parseSingleLetPair :: ParseState ->Parser ParseState
 
 parseSingleLetPair (ParseState symbolMap sortMap) = do
  name <-parseSymbol
- expr <-parsePureExpr (ParseState symbolMap sortMap)
+ spaces
+ expr <-parseExpr (ParseState symbolMap sortMap)
  let newMap = Map.insert name expr symbolMap
  return (ParseState newMap sortMap)
 
@@ -389,30 +396,81 @@ parseListLetPair parseState = do
   newParseState'<- (parseListLetPair newParseState)
   return newParseState'
 
-parsePureExpr :: ParseState -> Parser Expr
+parseExpr :: ParseState -> Parser Expr
 
-parsePureExpr parseState = 
+parseExpr parseState = 
       parseSymbolExpr parseState
   <|> parseVar parseState
   <|> parseConstant parseState
-  <|> parens (parseAdd parseState)
-  <|> parens (parseMul parseState)
-  <|> parens (parseSub parseState)
-  <|> parens (parseDiv1 parseState)
-  <|> parens (parseDiv2 parseState)
-  <|> parens (parseMod parseState)
-  <|> parens (parseRem parseState)
-  <|> parens (parseLt parseState)
-  <|> parens (parseLe parseState)
-  <|> parens (parseGt parseState)
-  <|> parens (parseGe parseState)
-  <|> parens (parseEq parseState)
-  <|> parens (parseNot parseState)
-  <|> parens (parseIff parseState)
-  <|> parens (parseImplies parseState)
-  <|> parens (parseAnd parseState)
-  <|> parens (parseOr parseState)
+  <|> parens (parseNeedParensExpr parseState)
 
+parseNeedParensExpr parseState = 
+      parseAdd parseState
+  <|> parseMul parseState
+  <|> parseSub parseState
+  <|> parseDiv1 parseState
+  <|> parseDiv2 parseState
+  <|> parseMod parseState
+  <|> parseRem parseState
+  <|> parseLe parseState
+  <|> parseLt parseState
+  <|> parseGe parseState
+  <|> parseGt parseState
+  <|> parseEq parseState
+  <|> parseNot parseState
+  <|> parseIff parseState
+  <|> parseImplies parseState
+  <|> parseAnd parseState
+  <|> parseOr parseState
+  <|> parseLetExpr parseState
+parseSatResult :: Parser Bool
+parseSatResult = 
+  (do
+  reserved "unsat"
+  spaces
+  return True)
+  <|> (do
+  reserved "sat"
+  spaces
+  return False
+  )
+parseCHCResult :: Parser (Bool, (Map.Map Function Expr))
+parseCHCResult = do
+  result <- parseSatResult
+  predicateSoltuions <- parsePredicatesSoltuions result
+  return (result,predicateSoltuions)
+
+parsePredicatesSoltuions :: Bool -> Parser (Map.Map Function Expr)
+parsePredicatesSoltuions result = case result of
+ True  ->(do  
+          result <- parseAllPredicatesSoltuions
+          return result)
+ False ->  return Map.empty
+
+parseAllPredicatesSoltuions :: Parser (Map.Map Function Expr)
+parseAllPredicatesSoltuions = 
+  do
+    (x,y) <- parens (parseFunctionInvariant)
+    oldMap <- parseAllPredicatesSoltuions
+    let theMap = Map.insert x y oldMap
+    return theMap
+  <|>
+    return Map.empty 
+
+
+parseFunctionInvariant :: Parser (Function,Expr)
+parseFunctionInvariant = do
+  function <- parseFunction
+  expr <- parseExpr (ParseState Map.empty (getVariableSortMap function))
+  return (function,expr)
+
+getVariableSortMap :: Function -> (Map.Map String Sort)
+getVariableSortMap (Function name list) = getSortMap 1 list
+
+getSortMap :: Int -> [Sort] -> (Map.Map String Sort)
+getSortMap number list = case list of
+ x:xs -> Map.insert ("x!"++show(number)) x (getSortMap (number+1) xs)
+ otherwise -> Map.empty
 
 lexer = T.makeTokenParser emptyDef
 parens    = T.parens lexer

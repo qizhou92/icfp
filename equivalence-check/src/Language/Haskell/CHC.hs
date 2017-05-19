@@ -46,18 +46,6 @@ decl_var_list_pretty_print list = case list of
     x:xs -> (decl_var_pretty_print x) ++ "\n" ++ (decl_var_list_pretty_print xs)
     otherwise -> "" 
 
-sort_list_pretty_print :: [Sort] -> String
-sort_pretty_print :: Sort -> String
-
-sort_pretty_print sort = case sort of
-    BoolSort -> "Bool"
-    IntegerSort -> "Int"
-    RealSort -> "Real"
-
-sort_list_pretty_print list = case list of
-    x:xs -> (sort_pretty_print x) ++ "  " ++ (sort_list_pretty_print xs)
-    otherwise -> ""
-
 decl_predicate_pretty_print :: Function -> String
 decl_predicate_pretty_print (Function functionName sortList) = "(declare-rel "++ functionName ++ "  (" ++ (sort_list_pretty_print sortList) ++ " ) )"
 
