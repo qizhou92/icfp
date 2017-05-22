@@ -231,7 +231,19 @@ parseSub parseState = do
   reserved "-"
   spaces
   exprs <- many (parseExpr parseState) 
-  return (MkSub exprs)
+  return (mkSubExpr exprs)
+
+mkSubExpr:: [Expr] -> Expr
+mkSubExpr list = case list of
+   x:[]  -> (subExprToNegativeExpr x)  
+   otherwise -> (MkSub list)
+
+subExprToNegativeExpr :: Expr -> Expr
+subExprToNegativeExpr theExpr = case theExpr of
+  ExprConstant (ConstantInt value) -> ExprConstant (ConstantInt (0-value))
+  otherwise -> (MkSub ((ExprConstant (ConstantInt 0)):[theExpr]))
+
+
 
 -- be careful it might be /
 parseDiv1 :: ParseState -> Parser Expr
