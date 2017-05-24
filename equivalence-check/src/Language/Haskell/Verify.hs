@@ -6,8 +6,10 @@ module Language.Haskell.Verify (
 
 
 import Language.Haskell.Types
-
 import Data.Monoid 
+
+import qualified Language.Haskell.Expr as Logic 
+import qualified Data.HashMap.Strict   as M 
 
 verify :: ProgramBind -> ProgramBind -> IO Result 
 verify (x1,p0) (x2,p1) = Result (x1, x2) <$> vAux mempty 
@@ -30,7 +32,9 @@ verifyDers _ _ = error "TODO: verifyDers"
 
 data IndRes   = IsInd | IndDers {_indRes0 :: Ders, _indRes1 :: Ders}
 data Ders      
-data DersInvs = DersInvs 
+data DerCtxs
+type Invariant = Logic.Expr
+data DersInvs = DersInvs (M.HashMap (DerCtxs, DerCtxs) Invariant)
 
 instance Monoid DersInvs where
   mempty  = DersInvs
