@@ -9,9 +9,10 @@ import Language.Haskell.Misc
 import Language.Haskell.GHC.Misc
 
 
-type Program = (Var, CoreBind) 
+type ProgramBind = (Var, CoreExpr) 
+type Program     = CoreExpr
 
-goalsToPrograms :: CoreProgram -> (Var, Var) -> (Program, Program)
+goalsToPrograms :: CoreProgram -> (Var, Var) -> (ProgramBind, ProgramBind)
 goalsToPrograms cbs (x1, x2) = ((x1, findBind cbs x1), (x2, findBind cbs x2))
 
 
