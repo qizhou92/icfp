@@ -11,7 +11,7 @@ cabal-version:       >=1.10
 
 executable equivalence-check
   main-is:             EquivalenceCheck.hs
-  ghc-options:         -W -threaded
+  ghc-options:         -W -threaded -Werror
   build-depends:       base >=4.9 && <4.10
                      , ghc == 8.0.2
                      , ghc-paths

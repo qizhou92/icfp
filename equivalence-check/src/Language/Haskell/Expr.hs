@@ -1,5 +1,4 @@
 module Language.Haskell.Expr where
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.Parsec
 import Text.Parsec.String
@@ -31,7 +30,7 @@ parseName = many (letter <|> digit <|> char '!') <* spaces
 
 parseVariable :: Parser Sort
 parseVariable = do 
-  name <- parseArgument
+  parseArgument
   spaces
   sort <- parseSort
   return sort
@@ -51,14 +50,14 @@ sort_pretty_print sort = case sort of
 
 sort_list_pretty_print list = case list of
     x:xs -> (sort_pretty_print x) ++ "  " ++ (sort_list_pretty_print xs)
-    otherwise -> ""
+    [] -> ""
 
 data Var = Var String Sort
      deriving (Eq, Show)
 
 var_pretty_print :: Var -> String
 
-var_pretty_print (Var name sort) = show name
+var_pretty_print (Var name _) = show name
 
 data Constant = ConstantInt Integer
                | ConstantBool Bool
@@ -88,13 +87,13 @@ parseFunction = do
 
 function_parameter_number :: Function -> Int
 
-function_parameter_number (Function name list)
+function_parameter_number (Function _ list)
  | null list = 0
  | otherwise = length list
 
 function_name :: Function -> String
 
-function_name (Function name list) = name
+function_name (Function name _) = name
 
 
 
@@ -131,7 +130,7 @@ list_parameter_pretty_print :: [Parameter] -> String
 
 list_parameter_pretty_print list = case list of
    x:xs -> (parameter_pretty_print x) ++ "  " ++ (list_parameter_pretty_print xs)
-   otherwise -> ""
+   [] -> ""
 
 parameter_pretty_print :: Parameter -> String
 
@@ -143,7 +142,7 @@ list_expr_pretty_print :: [Expr] -> String
 
 list_expr_pretty_print list = case list of
   x:xs -> (expr_pretty_print x) ++ "  " ++ (list_expr_pretty_print xs)
-  otherwise -> ""  
+  [] -> ""  
 
 expr_pretty_print :: Expr -> String
 
@@ -151,8 +150,8 @@ expr_pretty_print x = case x of
             ExprVar y -> var_pretty_print y
             ExprConstant y -> constant_pretty_print y
             ApplyFunction f args -> case args of 
-                                 x:xs -> (function_name f)
-                                 otherwise -> "( "++(function_name f)++(list_parameter_pretty_print args)++" )"
+                                 _:_ -> (function_name f)
+                                 [] -> "( "++(function_name f)++(list_parameter_pretty_print args)++" )"
             MkAdd exprs -> "(+ "++(list_expr_pretty_print exprs)++" )"
             MkMul exprs -> "(* "++(list_expr_pretty_print exprs)++" )"
             MkSub exprs -> "(- "++(list_expr_pretty_print exprs)++" )"
@@ -170,6 +169,7 @@ expr_pretty_print x = case x of
             MkImplies expr1 expr2 -> "(=> " ++ (expr_pretty_print expr1) ++ "  " ++ (expr_pretty_print expr2) ++ " )" 
             MkAnd exprs -> "(and " ++ (list_expr_pretty_print exprs) ++ " )"
             MkOr  exprs -> "(or " ++ (list_expr_pretty_print exprs) ++ " )"
+            MkEmpty -> ""
 
 
 data ParseState = ParseState (Map.Map String Expr) (Map.Map String Sort)
@@ -182,19 +182,19 @@ parseSymbol = do
   return ("a!"++(number))
 
 parseSymbolExpr :: ParseState -> Parser Expr
-parseSymbolExpr  (ParseState symbolMap sortMap) =  do
+parseSymbolExpr  (ParseState symbolMap _) =  do
  symbolName <- parseSymbol
  return (symbolMap Map.! symbolName)
 
 parseVar :: ParseState  -> Parser Expr
-parseVar (ParseState symbolMap sortMap) = do
+parseVar (ParseState _ sortMap) = do
   name <- parseArgument
   spaces
   return (ExprVar (Var name (sortMap Map.! name)))
 
 -- parse float number might only apply for non-negative number, but it is fine here.
 parseConstant :: ParseState -> Parser Expr
-parseConstant (ParseState symbolMap sortMap)= 
+parseConstant  _ = 
              (reserved "true" >> return (ExprConstant (ConstantBool True)))
          <|> (reserved "false" >> return (ExprConstant (ConstantBool False)))
          <|> (do 
@@ -231,14 +231,14 @@ parseSub parseState = do
   return (mkSubExpr exprs)
 
 mkSubExpr:: [Expr] -> Expr
-mkSubExpr list = case list of
-   x:[]  -> (subExprToNegativeExpr x)  
-   otherwise -> (MkSub list)
+mkSubExpr list 
+   |(length list) == 1 = (subExprToNegativeExpr (head list))  
+   |otherwise = (MkSub list)
 
 subExprToNegativeExpr :: Expr -> Expr
 subExprToNegativeExpr theExpr = case theExpr of
   ExprConstant (ConstantInt value) -> ExprConstant (ConstantInt (0-value))
-  otherwise -> (MkSub ((ExprConstant (ConstantInt 0)):[theExpr]))
+  _ -> (MkSub ((ExprConstant (ConstantInt 0)):[theExpr]))
 
 
 
@@ -474,12 +474,12 @@ parseFunctionInvariant = do
   return (function,expr)
 
 getVariableSortMap :: Function -> (Map.Map String Sort)
-getVariableSortMap (Function name list) = getSortMap 1 list
+getVariableSortMap (Function _ list) = getSortMap 1 list
 
 getSortMap :: Int -> [Sort] -> (Map.Map String Sort)
 getSortMap number list = case list of
  x:xs -> Map.insert ("x!"++show(number)) x (getSortMap (number+1) xs)
- otherwise -> Map.empty
+ [] -> Map.empty
 
 lexer = T.makeTokenParser emptyDef
 parens    = T.parens lexer

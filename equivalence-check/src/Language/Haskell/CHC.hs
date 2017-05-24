@@ -1,7 +1,6 @@
 module Language.Haskell.CHC where
 
 import Language.Haskell.Expr
-import Data.List
 
 data Rule = Rule Expr Expr
 
@@ -12,7 +11,7 @@ rule_pretty_print (Rule h b) = "(rule (=> " ++ (expr_pretty_print h) ++ "  "++ (
 rule_list_pretty_print :: [Rule] -> String
 rule_list_pretty_print list = case list of 
     x:xs -> (rule_pretty_print x) ++ "\n" ++ (rule_list_pretty_print xs)
-    otherwise -> "\n"
+    [] -> "\n"
 
 data CHC = CHC [Rule] [Function] [Var] Expr
 
@@ -44,7 +43,7 @@ decl_var_pretty_print (Var name sort) = case sort of
 
 decl_var_list_pretty_print list = case list of
     x:xs -> (decl_var_pretty_print x) ++ "\n" ++ (decl_var_list_pretty_print xs)
-    otherwise -> "" 
+    [] -> "" 
 
 decl_predicate_pretty_print :: Function -> String
 decl_predicate_pretty_print (Function functionName sortList) = "(declare-rel "++ functionName ++ "  (" ++ (sort_list_pretty_print sortList) ++ " ) )"
@@ -52,7 +51,7 @@ decl_predicate_pretty_print (Function functionName sortList) = "(declare-rel "++
 decl_predicate_list_pretty_print :: [Function] -> String
 decl_predicate_list_pretty_print list = case list of
     x:xs -> (decl_predicate_pretty_print x) ++ "\n" ++ (decl_predicate_list_pretty_print xs)
-    otherwise -> "(declare-rel Goal ()) \n"
+    [] -> "(declare-rel Goal ()) \n"
 
 query_pretty_print :: Expr -> String
 query_pretty_print query= "(rule (=> " ++ (expr_pretty_print query) ++ " Goal))\n (query Goal : print-certificate true)"
