@@ -1,7 +1,4 @@
 module Language.Haskell.Expr where
-import Data.String
-import Data.Bool
-import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.Parsec

@@ -6,7 +6,8 @@ module Language.Haskell.Verify (
 
 
 import Language.Haskell.Types
-import Data.Monoid 
+import Data.Monoid
+import Language.Haskell.Expr
 
 -- NV This does not compile
 -- import qualified Language.Haskell.Expr as Logic 
@@ -63,7 +64,6 @@ instance Monoid DersInvs where
 
 
 -- TODO replace this with Logic.Expr
-data Expr = ETrue | EAnd Expr Expr 
 instance Monoid Expr where 
-  mempty  = ETrue
-  mappend = EAnd
+  mempty  = ExprConstant (ConstantBool True)
+  mappend x y= MkAnd [x,y]

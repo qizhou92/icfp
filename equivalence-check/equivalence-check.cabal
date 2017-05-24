@@ -11,7 +11,7 @@ cabal-version:       >=1.10
 
 executable equivalence-check
   main-is:             EquivalenceCheck.hs
-  ghc-options:         -W -threaded -Werror  
+  ghc-options:         -W -threaded -Werror
   build-depends:       base >=4.9 && <4.10
                      , ghc == 8.0.2
                      , ghc-paths
@@ -28,3 +28,4 @@ executable equivalence-check
                        Language.Haskell.Types
                        Language.Haskell.Verify
                        Language.Haskell.CHC
+                       Language.Haskell.Expr
