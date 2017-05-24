@@ -17,6 +17,9 @@ executable equivalence-check
                      , ghc-paths
                      , temporary
                      , containers
+                     , parsec
+                     , parsec-numbers
+                     , unordered-containers
   hs-source-dirs:      src
   default-language:    Haskell2010
   other-modules:       Language.Haskell.GHC.GhcPlay
