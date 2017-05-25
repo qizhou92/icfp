@@ -8,10 +8,6 @@ module Language.Haskell.Verify (
 import Language.Haskell.Types
 import Data.Monoid
 import Language.Haskell.Expr
-
--- NV This does not compile
--- import qualified Language.Haskell.Expr as Logic 
-
 import qualified Data.Map   as M 
 
 -------------------------------------------------------------------------------
@@ -55,15 +51,13 @@ data DerCtxs = DerCtxs
   deriving (Eq, Ord)
 
 
-type Invariant = Expr -- = Logic.Expr
-data DersInvs = DersInvs (M.Map (DerCtxs, DerCtxs) Invariant)
+type Invariant = Expr
+data DersInvs  = DersInvs (M.Map (DerCtxs, DerCtxs) Invariant)
 
 instance Monoid DersInvs where
   mempty  = mempty
   mappend (DersInvs m1) (DersInvs m2) = DersInvs $ M.unionWith mappend m1 m2 
 
-
--- TODO replace this with Logic.Expr
 instance Monoid Expr where 
   mempty  = ExprConstant (ConstantBool True)
   mappend x y= MkAnd [x,y]
