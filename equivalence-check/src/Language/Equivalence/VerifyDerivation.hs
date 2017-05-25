@@ -18,29 +18,36 @@ data DerivationNode = DerivationNode SubExprssion HyperEdge
 
 -- repalce the int data type by subexpression to get all merge/split subexpression possible set
 
+--
+
+getStepClause :: DerivationNode -> Rule
+getStepClause = undefined
+
+getSplitCluase :: DerivationNode -> Rule
+getSplitCluase = undefined
 
 getAllPossibleList:: [Int] -> [ [ [Int] ]]
 getAllPossibleList list = case list of
   x:xs -> (insertElementIntoAllList x (getAllPossibleList xs))
-  otherwise -> []
+  _ -> []
 
 insertElementIntoAllList :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
 
 insertElementIntoAllList element list = case list of
   [] -> [[[element]]] 
-  otherwise->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
+  _->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
 
 insertElementIntoAllList1 :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ] 
 insertElementIntoAllList1 element list = case list of
   x:xs -> if null x 
           then [[element]]:(insertElementIntoAllList1 element xs)
           else ([element]:x):(insertElementIntoAllList1 element xs)
-  otherwise -> []
+  _ -> []
 
 insertElementIntoAllList2 :: Int -> [ [ [Int] ]]  -> [ [ [Int] ] ] 
 insertElementIntoAllList2 element list = case list of
 	x:xs -> (insertAllIndex element (length(x)) x) ++ (insertElementIntoAllList2 element xs)
-	otherwise -> []
+	_ -> []
 
 insertAllIndex :: Int -> Int -> [ [Int] ] -> [ [ [Int] ] ]
 insertAllIndex element len oldList 
