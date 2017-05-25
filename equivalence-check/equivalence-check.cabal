@@ -13,18 +13,17 @@ executable equivalence-check
   main-is:             EquivalenceCheck.hs
   ghc-options:         -W -threaded -Werror
   build-depends:       base >=4.9 && <4.10
-                     , ghc == 8.0.2
                      , ghc-paths
                      , temporary
                      , containers
                      , parsec
                      , parsec-numbers
                      , unordered-containers
+                     , pretty
+                     
   hs-source-dirs:      src
   default-language:    Haskell2010
-  other-modules:       Language.Haskell.GHC.GhcPlay
-                       Language.Haskell.GHC.Misc
-                       Language.Haskell.Misc
+  other-modules:       Language.Haskell.Misc
                        Language.Haskell.Types
                        Language.Haskell.Verify
                        Language.Haskell.CHC
