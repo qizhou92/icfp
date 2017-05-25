@@ -25,7 +25,7 @@ parseArgument = do
   return ("x!"++(number))
 
 parseName :: Parser String
-parseName = many (letter <|> digit <|> char '!') <* spaces
+parseName = many (letter <|> digit <|> char '!' <|> char '@') <* spaces
 
 
 parseVariable :: Parser Sort
@@ -57,7 +57,7 @@ data Var = Var String Sort
 
 var_pretty_print :: Var -> String
 
-var_pretty_print (Var name _) = show name
+var_pretty_print (Var name _) = name
 
 data Constant = ConstantInt Integer
                | ConstantBool Bool
@@ -150,8 +150,8 @@ expr_pretty_print x = case x of
             ExprVar y -> var_pretty_print y
             ExprConstant y -> constant_pretty_print y
             ApplyFunction f args -> case args of 
-                                 _:_ -> (function_name f)
-                                 [] -> "( "++(function_name f)++(list_parameter_pretty_print args)++" )"
+                                 _:_ -> "( "++(function_name f)++"  "++(list_parameter_pretty_print args)++" )"
+                                 [] -> (function_name f)
             MkAdd exprs -> "(+ "++(list_expr_pretty_print exprs)++" )"
             MkMul exprs -> "(* "++(list_expr_pretty_print exprs)++" )"
             MkSub exprs -> "(- "++(list_expr_pretty_print exprs)++" )"
@@ -446,12 +446,13 @@ parseSatResult =
 parseCHCResult :: Parser (Bool, (Map.Map Function Expr))
 parseCHCResult = do
   result <- parseSatResult
-  predicateSoltuions <- parsePredicatesSoltuions result
+  predicateSoltuions <- parens (parsePredicatesSoltuions result)
   return (result,predicateSoltuions)
 
 parsePredicatesSoltuions :: Bool -> Parser (Map.Map Function Expr)
 parsePredicatesSoltuions result = case result of
- True  ->(do  
+ True  ->(do
+          reserved "fixedpoint"  
           result <- parseAllPredicatesSoltuions
           return result)
  False ->  return Map.empty
@@ -474,7 +475,7 @@ parseFunctionInvariant = do
   return (function,expr)
 
 getVariableSortMap :: Function -> (Map.Map String Sort)
-getVariableSortMap (Function _ list) = getSortMap 1 list
+getVariableSortMap (Function _ list) = getSortMap 0 list
 
 getSortMap :: Int -> [Sort] -> (Map.Map String Sort)
 getSortMap number list = case list of
