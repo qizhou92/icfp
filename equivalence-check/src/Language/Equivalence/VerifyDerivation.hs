@@ -1,7 +1,7 @@
-module Language.Haskell.VerifyDerivation where
+module Language.Equivalence.VerifyDerivation where
 
-import Language.Haskell.CHC
-import Language.Haskell.Expr
+import Language.Equivalence.CHC
+import Language.Equivalence.Expr
 
 -- Subexprssion is the data type represents the subexprrsion in derivation, first argument 
 -- string represents the name of the subexprssion, second argument list of string represents the list of variable name 

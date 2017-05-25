@@ -1,4 +1,4 @@
-module Language.Haskell.Misc where
+module Language.Equivalence.Misc where
 
 -- import Outputable hiding (showPpr)
 import Debug.Trace (trace)

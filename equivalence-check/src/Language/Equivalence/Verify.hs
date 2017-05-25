@@ -1,4 +1,4 @@
-module Language.Haskell.Verify (
+module Language.Equivalence.Verify (
 
    verify
 
@@ -6,11 +6,11 @@ module Language.Haskell.Verify (
 
 
 import Data.Monoid
-import Language.Haskell.Types
-import Language.Haskell.Expr
+import Language.Equivalence.Types
+import Language.Equivalence.Expr
 
 -- NV This does not compile
--- import qualified Language.Haskell.Expr as Logic
+-- import qualified Language.Equivalence.Expr as Logic
 
 import qualified Data.Map   as M
 
