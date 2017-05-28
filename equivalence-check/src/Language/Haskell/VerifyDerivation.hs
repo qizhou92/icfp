@@ -1,5 +1,5 @@
 module Language.Haskell.VerifyDerivation where
-
+import qualified Data.Set as Set
 import Language.Haskell.CHC
 import Language.Haskell.Expr
 
@@ -18,13 +18,34 @@ data DerivationNode = DerivationNode SubExprssion HyperEdge
 
 -- repalce the int data type by subexpression to get all merge/split subexpression possible set
 
---
+-- 
 
-getStepClause :: DerivationNode -> Rule
-getStepClause = undefined
 
-getSplitCluase :: DerivationNode -> Rule
-getSplitCluase = undefined
+data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
+
+getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> CHC -> CHC
+getAllRulesOfCHC pairRelatingSet theCHC
+ |null pairRelatingSet = theCHC
+ |otherwise = do 
+               let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
+               let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
+               let (newCHC1,newPredicates1) = getStepRules singlePairRelatingSet theCHC
+               let (newCHC2,newPredicates2) = getSplitRules singlePairRelatingSet newCHC1
+               let newPairSet1 = getNewPairRelatingSet newPairRelatingSet newPredicates1
+               let newPairSet2 = getNewPairRelatingSet newPairSet1 newPredicates2
+               getAllRulesOfCHC newPairSet2 newCHC2
+
+getNewPairRelatingSet :: (Set.Set PairRelatingSet)->[PairRelatingSet]->(Set.Set PairRelatingSet)
+getNewPairRelatingSet = undefined
+
+getStepRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
+getStepRules = undefined
+
+getSplitRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
+getSplitRules = undefined
+
+getSuccessors :: DerivationNode -> [DerivationNode]
+getSuccessors (DerivationNode _ (HyperEdge _ successors)) = successors
 
 getAllPossibleList:: [Int] -> [ [ [Int] ]]
 getAllPossibleList list = case list of
