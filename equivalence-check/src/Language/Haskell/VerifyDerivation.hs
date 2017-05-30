@@ -1,5 +1,5 @@
 module Language.Haskell.VerifyDerivation where
-
+import qualified Data.Set as Set
 import Language.Haskell.CHC
 import Language.Haskell.Expr
 
@@ -18,29 +18,57 @@ data DerivationNode = DerivationNode SubExprssion HyperEdge
 
 -- repalce the int data type by subexpression to get all merge/split subexpression possible set
 
+-- 
+
+
+data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
+
+getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> CHC -> CHC
+getAllRulesOfCHC pairRelatingSet theCHC
+ |null pairRelatingSet = theCHC
+ |otherwise = do 
+               let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
+               let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
+               let (newCHC1,newPredicates1) = getStepRules singlePairRelatingSet theCHC
+               let (newCHC2,newPredicates2) = getSplitRules singlePairRelatingSet newCHC1
+               let newPairSet1 = getNewPairRelatingSet newPairRelatingSet newPredicates1
+               let newPairSet2 = getNewPairRelatingSet newPairSet1 newPredicates2
+               getAllRulesOfCHC newPairSet2 newCHC2
+
+getNewPairRelatingSet :: (Set.Set PairRelatingSet)->[PairRelatingSet]->(Set.Set PairRelatingSet)
+getNewPairRelatingSet = undefined
+
+getStepRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
+getStepRules = undefined
+
+getSplitRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
+getSplitRules = undefined
+
+getSuccessors :: DerivationNode -> [DerivationNode]
+getSuccessors (DerivationNode _ (HyperEdge _ successors)) = successors
 
 getAllPossibleList:: [Int] -> [ [ [Int] ]]
 getAllPossibleList list = case list of
   x:xs -> (insertElementIntoAllList x (getAllPossibleList xs))
-  otherwise -> []
+  _ -> []
 
 insertElementIntoAllList :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
 
 insertElementIntoAllList element list = case list of
   [] -> [[[element]]] 
-  otherwise->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
+  _->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
 
 insertElementIntoAllList1 :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ] 
 insertElementIntoAllList1 element list = case list of
   x:xs -> if null x 
           then [[element]]:(insertElementIntoAllList1 element xs)
           else ([element]:x):(insertElementIntoAllList1 element xs)
-  otherwise -> []
+  _ -> []
 
 insertElementIntoAllList2 :: Int -> [ [ [Int] ]]  -> [ [ [Int] ] ] 
 insertElementIntoAllList2 element list = case list of
 	x:xs -> (insertAllIndex element (length(x)) x) ++ (insertElementIntoAllList2 element xs)
-	otherwise -> []
+	_ -> []
 
 insertAllIndex :: Int -> Int -> [ [Int] ] -> [ [ [Int] ] ]
 insertAllIndex element len oldList 

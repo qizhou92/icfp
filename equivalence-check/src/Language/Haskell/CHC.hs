@@ -37,9 +37,9 @@ decl_var_list_pretty_print :: [Var] -> String
 
 decl_var_pretty_print :: Var -> String
 decl_var_pretty_print (Var name sort) = case sort of 
-    BoolSort -> "(declare-var " ++ (show name) ++ " Bool)"
-    IntegerSort -> "(declare-var " ++ (show name) ++ " Int)"
-    RealSort -> "(declare-var " ++ (show name) ++ " Real)"
+    BoolSort -> "(declare-var " ++ name ++ " Bool)"
+    IntegerSort -> "(declare-var " ++ name ++ " Int)"
+    RealSort -> "(declare-var " ++ name ++ " Real)"
 
 decl_var_list_pretty_print list = case list of
     x:xs -> (decl_var_pretty_print x) ++ "\n" ++ (decl_var_list_pretty_print xs)
@@ -54,10 +54,12 @@ decl_predicate_list_pretty_print list = case list of
     [] -> "(declare-rel Goal ()) \n"
 
 query_pretty_print :: Expr -> String
-query_pretty_print query= "(rule (=> " ++ (expr_pretty_print query) ++ " Goal))\n (query Goal : print-certificate true)"
+query_pretty_print query= "(rule (=> " ++ (expr_pretty_print query) ++ " Goal))\n (query Goal :print-certificate true)"
 
 chc_pretty_print :: CHC -> String
 chc_pretty_print (CHC rules predicates variables query) = do
-    (decl_predicate_list_pretty_print predicates) ++ (decl_var_list_pretty_print variables) 
-    ++ (rule_list_pretty_print rules) ++ (query_pretty_print query)
+    "(set-option :fixedpoint.engine \"duality\")\n" ++ (decl_predicate_list_pretty_print predicates) ++ (decl_var_list_pretty_print variables) ++ (rule_list_pretty_print rules) ++ (query_pretty_print query)
+
+chc_write_file :: CHC -> IO()
+chc_write_file theCHC = writeFile "./test.z3" (chc_pretty_print theCHC)
 
