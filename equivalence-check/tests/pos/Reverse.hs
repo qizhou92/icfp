@@ -1,5 +1,5 @@
-{-@ checkEq reverse0 reverse1 @-}
-{-@ checkEq reverse2 reverse1 @-}
+-- @checkEq reverse0 reverse1
+-- @checkEq reverse2 reverse1
 
 reverse0 x =
   let go0 res x =
@@ -9,6 +9,7 @@ reverse0 x =
       res
   in
     go0 0 x
+;
 
 reverse1 x =
   let go1 rev x =
@@ -18,6 +19,7 @@ reverse1 x =
       rev
   in
      go1 0 x
+;
 
 reverse2 x =
   let go1 rev x =

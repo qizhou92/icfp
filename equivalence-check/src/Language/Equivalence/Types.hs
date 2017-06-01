@@ -60,6 +60,7 @@ mkPairs :: [String] -> [(Var, Var)]
 mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
 mkPairs _            = []
 
+
 data Error = Error {errMsg :: String}
              deriving (Show, Typeable)
 
