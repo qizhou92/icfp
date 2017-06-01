@@ -39,17 +39,25 @@ checkInd _ _ _ = error "TODO: checkInd"
 verifyDers :: Der -> Der -> IO (Maybe DersInvs)
 verifyDers (Der _ _ _ _) _ = error "TODO: verifyDers"
 
+
+-------------------------------------------------------------------------------
+-- | unwind -------------------------------------------------------------------
+-------------------------------------------------------------------------------
+unwind :: DersInvs -> IO (Der, Der)
+unwind (Der _ _ _ _) _ = error "TODO: unwind"
+
+
 -------------------------------------------------------------------------------
 -- | Data Structures ----------------------------------------------------------
 -------------------------------------------------------------------------------
 
 data RuleName  
 
-data IndRes   = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
+data IndRes = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
 
-type DEnv = [(Var, CoreExpr)]
+type DEnv   = [(Var, CoreExpr)]
 
-data Der = Der RuleName DEnv CoreExpr [Der] 
+data Der     = Der RuleName DEnv CoreExpr [Der] 
 
 data DerCtxs = DerCtxs [CoreExpr]
   deriving (Eq, Ord)
