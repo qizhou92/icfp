@@ -38,7 +38,11 @@ data EqEnv
           }
 
 instance Show EqEnv where
-   show (EqEnv _ x) = "EqEnv {" ++ "eqGoals = " ++ unlines (showPpr <$> x) ++ " }"
+   show (EqEnv p x) = printf " EqEnv: goals = %s \nprogram:\n%s" gs ps
+      where
+        gs          = unlines (showPpr <$> x)
+        ps          = progString p
+
 
 data Config = Config
   { cfgFile :: String
@@ -157,6 +161,12 @@ exprString (ELet x e e')  = printf "let %s = %s in \n %s" (show x) (show e) (sho
 exprString (EApp e1 e2)   = printf "(%s %s)" (show e1) (show e2)
 exprString (ELam x e)     = printf "\\%s -> %s" (show x) (show e)
 exprString ENil           = "[]"
+
+bindString :: Bind -> String
+bindString (x, e) = printf "let %s = %s" (show x) (exprString e)
+
+progString :: Program -> String
+progString xes = L.intercalate "\n" (bindString <$> xes)
 
 --------------------------------------------------------------------------------
 

@@ -12,10 +12,11 @@ main = equivalenceCheck =<< makeConfig =<< getArgs
 
 equivalenceCheck :: Config -> IO ExitCode
 equivalenceCheck cfg = do
-    eqEnv <- makeEqEnv cfg
-    res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
-    putStrLn (unlines (show <$> res))
-    exitWith ExitSuccess
+  eqEnv <- makeEqEnv cfg
+  putStrLn ("************** GOALS ************** \n" ++ show eqEnv)
+  res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
+  putStrLn (unlines (show <$> res))
+  exitWith ExitSuccess
 
 makeEqEnv :: Config -> IO EqEnv
 makeEqEnv cfg = do
