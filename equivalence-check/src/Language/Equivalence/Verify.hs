@@ -45,8 +45,11 @@ verifyDers _ _ = error "TODO: verifyDers"
 
 data IndRes   = IsInd | IndDers {_indRes0 :: Ders, _indRes1 :: Ders}
 data Ders
-data DerCtxs = DerCtxs
+data DerCtxs = DerCtxs [CoreExpr]
   deriving (Eq, Ord)
+
+instance Ord CoreExpr where 
+  compare = error "todo"
 
 
 type Invariant = Expr
