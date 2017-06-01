@@ -23,7 +23,7 @@ tokens :-
   $white+                       ;
 
   -- Comments
-  "#".*                         ;
+  "--".*                        ;
 
   -- Syntax
   let                           { \p _ -> LET    p }
@@ -52,6 +52,7 @@ tokens :-
   \)                            { \p _ -> RPAREN p }
   \:                            { \p _ -> COLON  p }
   \,                            { \p _ -> COMMA  p }
+  \;                            { \p _ -> SEMI   p }
   $alpha [$alpha $digit \_ \']* { \p s -> ID     p s }
 
 {
@@ -84,6 +85,7 @@ data Token
   | RBRAC  AlexPosn
   | COLON  AlexPosn
   | COMMA  AlexPosn
+  | SEMI   AlexPosn
   | EOF    AlexPosn
   deriving (Eq,Show)
 

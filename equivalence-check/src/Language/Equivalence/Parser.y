@@ -53,6 +53,7 @@ import Control.Exception
     '['   { LBRAC _  }
     ']'   { RBRAC _  }
     ','   { COMMA _  }
+    ';'   { SEMI _  }
 
 
 -- Operators
@@ -65,9 +66,9 @@ import Control.Exception
 %%
 
 Prog : Bind                         { [$1]    }
-     | Bind Prog                    { $1 : $2 }
+     | Bind ';'   Prog              { $1 : $3 }
 
-Bind : Id '=' Expr                  { ($1, $3) }
+Bind : Id Ids '=' Expr              { ($1, mkLam $2 $4) }
 
 Expr : Expr ':' Expr                { EBin Cons  $1 $3 }
      | Expr '&&' Expr               { EBin And   $1 $3 }

@@ -1,26 +1,31 @@
-module Reverse where 
+-- @checkEq reverse0 reverse1
+-- @checkEq reverse2 reverse1
 
-{- checkEq reverse0 reverse1 -}
-{- checkEq reverse2 reverse1 -}
+reverse0 x =
+  let go0 res x =
+    if 0 < x then
+      go0 ((res * 10) + (mod x 10)) (div x 10)
+    else
+      res
+  in
+    go0 0 x
+;
 
-import Prelude 
-reverse0 :: Int -> Int 
-reverse0 x = go0 0 x 
-  where 
-    go0 res x | 0 < x     = go0 (res * 10 + x `mod` 10) (x `div` 10) 
-              | otherwise = res 
+reverse1 x =
+  let go1 rev x =
+    if 0 < x then
+      go1 ((rev * 10) + (mod x 10)) (div x 10)
+    else
+      rev
+  in
+     go1 0 x
+;
 
-
-
-reverse1 :: Int -> Int 
-reverse1 x = go1 0 x 
-  where
-    go1 rev x | 0 < x     = go1 (rev * 10 + x `mod` 10) (x `div` 10)
-              | otherwise = rev 
-
-
-reverse2 :: Int -> Int 
-reverse2 x = go1 0 x 
-  where
-    go1 rev x | 0 < x     = go1 (rev * 10 + x `mod` 10) (x `div` 10)
-              | otherwise = rev 
+reverse2 x =
+  let go1 rev x =
+     if 0 < x then
+       go1 ((rev * 10) + (mod x 10)) (div x 10)
+     else
+       rev
+  in
+    go1 0 x
