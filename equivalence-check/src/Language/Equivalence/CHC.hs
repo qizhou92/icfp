@@ -1,6 +1,6 @@
-module Language.Haskell.CHC where
+module Language.Equivalence.CHC where
 
-import Language.Haskell.Expr
+import Language.Equivalence.Expr
 
 data Rule = Rule Expr Expr
 
