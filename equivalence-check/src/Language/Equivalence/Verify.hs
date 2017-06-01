@@ -1,28 +1,28 @@
-module Language.Haskell.Verify (
+module Language.Equivalence.Verify (
 
-   verify 
+   verify
 
 ) where
 
 
-import Language.Haskell.Types
 import Data.Monoid
-import Language.Haskell.Expr
-import qualified Data.Map   as M 
+import Language.Equivalence.Types
+import Language.Equivalence.Expr
+import qualified Data.Map   as M
 
 -------------------------------------------------------------------------------
 -- | verify -------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
-verify :: ProgramBind -> ProgramBind -> IO Result 
-verify (x1,p0) (x2,p1) = Result (x1, x2) <$> vAux mempty 
+verify :: Bind -> Bind -> IO Result
+verify (x1, p0) (x2, p1) = Result (x1, x2) <$> vAux mempty
   where
-    vAux :: DersInvs -> IO Bool 
-    vAux i = do 
-      ires <- checkInd p0 p1 i 
+    vAux :: DersInvs -> IO Bool
+    vAux i = do
+      ires <- checkInd p0 p1 i
       case ires of
-        IsInd -> return True 
-        IndDers d0 d1 -> do vders <- verifyDers d0 d1 
+        IsInd -> return True
+        IndDers d0 d1 -> do vders <- verifyDers d0 d1
                             case vders of
                               Nothing -> return False
                               Just i' -> vAux (i <> i')
@@ -30,14 +30,12 @@ verify (x1,p0) (x2,p1) = Result (x1, x2) <$> vAux mempty
 -------------------------------------------------------------------------------
 -- | checkInd -----------------------------------------------------------------
 -------------------------------------------------------------------------------
-
-checkInd :: Program -> Program -> DersInvs -> IO IndRes 
+checkInd :: CoreExpr -> CoreExpr -> DersInvs -> IO IndRes
 checkInd _ _ _ = error "TODO: checkInd"
 
 -------------------------------------------------------------------------------
 -- | verifyDers ---------------------------------------------------------------
 -------------------------------------------------------------------------------
-
 verifyDers :: Ders -> Ders -> IO (Maybe DersInvs)
 verifyDers _ _ = error "TODO: verifyDers"
 
@@ -46,7 +44,7 @@ verifyDers _ _ = error "TODO: verifyDers"
 -------------------------------------------------------------------------------
 
 data IndRes   = IsInd | IndDers {_indRes0 :: Ders, _indRes1 :: Ders}
-data Ders      
+data Ders
 data DerCtxs = DerCtxs
   deriving (Eq, Ord)
 
@@ -56,8 +54,8 @@ data DersInvs  = DersInvs (M.Map (DerCtxs, DerCtxs) Invariant)
 
 instance Monoid DersInvs where
   mempty  = mempty
-  mappend (DersInvs m1) (DersInvs m2) = DersInvs $ M.unionWith mappend m1 m2 
+  mappend (DersInvs m1) (DersInvs m2) = DersInvs $ M.unionWith mappend m1 m2
 
-instance Monoid Expr where 
+instance Monoid Expr where
   mempty  = ExprConstant (ConstantBool True)
   mappend x y= MkAnd [x,y]
