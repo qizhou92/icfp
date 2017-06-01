@@ -1,7 +1,8 @@
 module Language.Equivalence.Verify (
 
    verify
-
+   , RuleName(..)
+  
 ) where
 
 
@@ -31,31 +32,31 @@ verify (x1, p0) (x2, p1) = Result (x1, x2) <$> vAux mempty
 -- | checkInd -----------------------------------------------------------------
 -------------------------------------------------------------------------------
 checkInd :: CoreExpr -> CoreExpr -> DersInvs -> IO IndRes
-checkInd _ _ _ = error "TODO: checkInd"
+checkInd _ _ _ = error "TODO: niki"
 
 -------------------------------------------------------------------------------
 -- | verifyDers ---------------------------------------------------------------
 -------------------------------------------------------------------------------
 verifyDers :: Der -> Der -> IO (Maybe DersInvs)
-verifyDers (Der _ _ _ _) _ = error "TODO: verifyDers"
-
+verifyDers (Der _ _ _ _) _ = error "TODO: qizhou"
 
 -------------------------------------------------------------------------------
 -- | unwind -------------------------------------------------------------------
 -------------------------------------------------------------------------------
-unwind :: DersInvs -> IO (Der, Der)
-unwind (Der _ _ _ _) _ = error "TODO: unwind"
+_unwind :: DersInvs -> IO (Der, Der)
+_unwind = error "TODO: unwind"
 
 
 -------------------------------------------------------------------------------
 -- | Data Structures ----------------------------------------------------------
 -------------------------------------------------------------------------------
 
-data RuleName  
+data RuleName = RNConst | RNVar | RNOp | RNIteTrue | RNIteFalse | RNAbs 
+              | RNFix | RNAppLam |RNAppFix
 
-data IndRes = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
+data IndRes  = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
 
-type DEnv   = [(Var, CoreExpr)]
+type DEnv    = [(Var, CoreExpr)]
 
 data Der     = Der RuleName DEnv CoreExpr [Der] 
 
