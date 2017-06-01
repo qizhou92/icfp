@@ -156,15 +156,15 @@ exprString :: CoreExpr -> String
 exprString (EInt i)       = printf "%d" i
 exprString (EBool b)      = printf "%s" (show b)
 exprString (EVar (Var x)) = x
-exprString (EBin o e1 e2) = printf "(%s %s %s)" (show e1) (show o) (show e2)
-exprString (EIf c t e)    = printf "if %s then %s else %s" (show c) (show t) (show e)
-exprString (ELet x e e')  = printf "let %s = %s in \n %s" (show x) (show e) (show e')
-exprString (EApp e1 e2)   = printf "(%s %s)" (show e1) (show e2)
-exprString (ELam x e)     = printf "\\%s -> %s" (show x) (show e)
+exprString (EBin o e1 e2) = printf "(%s %s %s)" (exprString e1) (binopString o) (exprString e2)
+exprString (EIf c t e)    = printf "if %s then %s else %s" (exprString c) (exprString t) (exprString e)
+exprString (ELet x e e')  = printf "let %s = %s in \n %s" (show x) (exprString e) (exprString e')
+exprString (EApp e1 e2)   = printf "(%s %s)" (exprString e1) (exprString e2)
+exprString (ELam x e)     = printf "\\%s -> %s" (show x) (exprString e)
 exprString ENil           = "[]"
 
 bindString :: Bind -> String
-bindString (x, e) = printf "let %s = %s" (show x) (exprString e)
+bindString (x, e) = printf "let %s =\n  %s" (show x) (exprString e)
 
 progString :: Program -> String
 progString xes = L.intercalate "\n" (bindString <$> xes)
