@@ -7,7 +7,7 @@ module Language.Equivalence.Verify (
 
 import Data.Monoid
 import Language.Equivalence.Types
-import Language.Equivalence.Expr
+import Language.Equivalence.Expr hiding (Var)
 import qualified Data.Map   as M
 
 -------------------------------------------------------------------------------
@@ -36,21 +36,26 @@ checkInd _ _ _ = error "TODO: checkInd"
 -------------------------------------------------------------------------------
 -- | verifyDers ---------------------------------------------------------------
 -------------------------------------------------------------------------------
-verifyDers :: Ders -> Ders -> IO (Maybe DersInvs)
-verifyDers _ _ = error "TODO: verifyDers"
+verifyDers :: Der -> Der -> IO (Maybe DersInvs)
+verifyDers (Der _ _ _ _) _ = error "TODO: verifyDers"
 
 -------------------------------------------------------------------------------
 -- | Data Structures ----------------------------------------------------------
 -------------------------------------------------------------------------------
 
-data IndRes   = IsInd | IndDers {_indRes0 :: Ders, _indRes1 :: Ders}
-data Ders
+data RuleName  
+
+data IndRes   = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
+
+type DEnv = [(Var, CoreExpr)]
+
+data Der = Der RuleName DEnv CoreExpr [Der] 
+
 data DerCtxs = DerCtxs [CoreExpr]
   deriving (Eq, Ord)
 
 instance Ord CoreExpr where 
   compare = error "todo"
-
 
 type Invariant = Expr
 data DersInvs  = DersInvs (M.Map (DerCtxs, DerCtxs) Invariant)
