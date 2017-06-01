@@ -53,7 +53,7 @@ sort_list_pretty_print list = case list of
     [] -> ""
 
 data Var = Var String Sort
-     deriving (Eq, Show)
+     deriving (Eq, Show,Ord)
 
 var_pretty_print :: Var -> String
 
@@ -62,7 +62,7 @@ var_pretty_print (Var name _) = name
 data Constant = ConstantInt Integer
                | ConstantBool Bool
                | ConstantReal Float
-  deriving (Eq, Show)
+  deriving (Eq, Show,Ord)
 
 constant_pretty_print :: Constant -> String 
 
@@ -99,7 +99,7 @@ function_name (Function name _) = name
 
 data Parameter = ParameterVar Var 
   | ParameterConstant Constant
-  deriving ( Show )
+  deriving ( Show,Eq,Ord )
 
 data Expr  = ExprVar Var
             |ExprConstant Constant
@@ -122,7 +122,7 @@ data Expr  = ExprVar Var
             |MkAnd [Expr]
             |MkOr  [Expr]
             |MkEmpty
-  deriving ( Show )
+  deriving ( Show,Eq,Ord )
 
 list_parameter_pretty_print :: [Parameter] -> String
 

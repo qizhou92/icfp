@@ -8,44 +8,64 @@ import Language.Haskell.Expr
 -- Int represents the count of SubExprssion
 
 data SubExprssion = SubExprssion String [Var] Int
-
+ deriving(Show,Eq,Ord)
 
 data HyperEdge = HyperEdge Expr [DerivationNode]
+ deriving(Show,Eq,Ord)
 
 -- Node represents the given derivation, the first argument is current SubExprssion, the second argument is the list of HyperEdge
 
 data DerivationNode = DerivationNode SubExprssion HyperEdge
+ deriving(Show,Eq,Ord)
 
 -- repalce the int data type by subexpression to get all merge/split subexpression possible set
 
 -- 
-
+data Derivation = DT [Var] [Expr] String Expr
 
 data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
+ deriving(Show,Eq,Ord)
 
 getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> CHC -> CHC
 getAllRulesOfCHC pairRelatingSet theCHC
  |null pairRelatingSet = theCHC
- |otherwise = do 
+ |otherwise =  do
                let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
                let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
-               let (newCHC1,newPredicates1) = getStepRules singlePairRelatingSet theCHC
-               let (newCHC2,newPredicates2) = getSplitRules singlePairRelatingSet newCHC1
-               let newPairSet1 = getNewPairRelatingSet newPairRelatingSet newPredicates1
-               let newPairSet2 = getNewPairRelatingSet newPairSet1 newPredicates2
-               getAllRulesOfCHC newPairSet2 newCHC2
+               let (newCHC,newPredicates) = updateCHC  singlePairRelatingSet theCHC
+               let newPairSet = getNewPairRelatingSet newPairRelatingSet newPredicates
+               getAllRulesOfCHC newPairSet newCHC
 
 getNewPairRelatingSet :: (Set.Set PairRelatingSet)->[PairRelatingSet]->(Set.Set PairRelatingSet)
-getNewPairRelatingSet = undefined
+getNewPairRelatingSet sets list = case list of
+ x:xs ->(Set.insert x (getNewPairRelatingSet sets xs))
+ _ -> sets
+
+updateCHC :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
+updateCHC = undefined
 
 getStepRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
-getStepRules = undefined
+getStepRules (PairRelatingSet leftList rightList _) theCHC = undefined
+
+getStepRulesOneSide :: [DerivationNode] -> [DerivationNode] -> CHC -> (CHC,[PairRelatingSet])
+getStepRulesOneSide beUnwind secondProgram currentCHC = 
+
+getAllStepRules :: Bool->Int -> [DerivationNode] -> [DerivationNode] -> CHC -> (CHC,[PairRelatingSet])
+getAllStepRules isLeft index list otherList oldCHC = do
+  let (x1,x2) = splitAt index list
+  let theDerivaion = head x2
+  let newX2 = drop 1 x2
+  let (theExpr,successors) = getSingleStepRules newX2
+  let newDerivationNodeList = x1 ++ (successors ++ newX2)
+
+ 
+
+getSingleStepRules :: DerivationNode -> (Expr,[DerivationNode])
+getSingleStepRules (DerivationNode _ (HyperEdge theExpr successors))=(theExpr,successors) 
 
 getSplitRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
 getSplitRules = undefined
 
-getSuccessors :: DerivationNode -> [DerivationNode]
-getSuccessors (DerivationNode _ (HyperEdge _ successors)) = successors
 
 getAllPossibleList:: [Int] -> [ [ [Int] ]]
 getAllPossibleList list = case list of

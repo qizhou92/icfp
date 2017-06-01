@@ -1,0 +1,10 @@
+unsat
+(fixedpoint 
+(define-fun Goal () Bool
+  false)
+(define-fun @Fail!0 () Bool
+  false)
+(define-fun R1 ((x!0 Int) (x!1 Bool)) Bool
+  (or (and (= x!0 5) x!1) (and (not (= x!0 5)) (not x!1))))
+)
+
