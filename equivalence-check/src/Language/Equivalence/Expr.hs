@@ -1,4 +1,4 @@
-module Language.Haskell.Expr where
+module Language.Equivalence.Expr where
 import qualified Data.Map as Map
 import Text.Parsec
 import Text.Parsec.String

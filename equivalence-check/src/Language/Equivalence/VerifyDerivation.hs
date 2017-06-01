@@ -1,10 +1,10 @@
-module Language.Haskell.VerifyDerivation where
+module Language.Equivalence.VerifyDerivation where
+import Language.Equivalence.CHC
+import Language.Equivalence.Expr
 import qualified Data.Set as Set
-import Language.Haskell.CHC
-import Language.Haskell.Expr
 
--- Subexprssion is the data type represents the subexprrsion in derivation, first argument 
--- string represents the name of the subexprssion, second argument list of string represents the list of variable name 
+-- Subexprssion is the data type represents the subexprrsion in derivation, first argument
+-- string represents the name of the subexprssion, second argument list of string represents the list of variable name
 -- Int represents the count of SubExprssion
 
 data SubExprssion = SubExprssion String [Var] Int
@@ -22,6 +22,8 @@ data DerivationNode = DerivationNode SubExprssion HyperEdge
 
 -- 
 data Derivation = DT [Var] [Expr] String Expr
+--
+
 
 data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
  deriving(Show,Eq,Ord)
@@ -29,7 +31,7 @@ data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
 getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> CHC -> CHC
 getAllRulesOfCHC pairRelatingSet theCHC
  |null pairRelatingSet = theCHC
- |otherwise =  do
+ |otherwise = do
                let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
                let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
                let (newCHC,newPredicates) = updateCHC  singlePairRelatingSet theCHC
@@ -75,27 +77,27 @@ getAllPossibleList list = case list of
 insertElementIntoAllList :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
 
 insertElementIntoAllList element list = case list of
-  [] -> [[[element]]] 
+  [] -> [[[element]]]
   _->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
 
-insertElementIntoAllList1 :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ] 
+insertElementIntoAllList1 :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
 insertElementIntoAllList1 element list = case list of
-  x:xs -> if null x 
+  x:xs -> if null x
           then [[element]]:(insertElementIntoAllList1 element xs)
           else ([element]:x):(insertElementIntoAllList1 element xs)
   _ -> []
 
-insertElementIntoAllList2 :: Int -> [ [ [Int] ]]  -> [ [ [Int] ] ] 
+insertElementIntoAllList2 :: Int -> [ [ [Int] ]]  -> [ [ [Int] ] ]
 insertElementIntoAllList2 element list = case list of
 	x:xs -> (insertAllIndex element (length(x)) x) ++ (insertElementIntoAllList2 element xs)
 	_ -> []
 
 insertAllIndex :: Int -> Int -> [ [Int] ] -> [ [ [Int] ] ]
-insertAllIndex element len oldList 
+insertAllIndex element len oldList
   | 0<len = (insertByIndex (len - 1) element oldList) : (insertAllIndex element (len -1) oldList)
   | otherwise = []
 
 insertByIndex :: Int -> Int -> [ [Int] ] -> [ [ Int ] ]
-insertByIndex index element (x:xs)  
+insertByIndex index element (x:xs)
   |0<index = x:(insertByIndex (index -1) element xs)
   |otherwise =  (element:x):xs
