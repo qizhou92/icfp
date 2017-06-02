@@ -76,7 +76,7 @@ chooseDer (e0, e1)
 
 
 implies :: Expr -> Expr -> IO Bool 
-implies = error "TODO: qizhou"
+implies = error "Using checkEntail in CHC.hs"
 
 -------------------------------------------------------------------------------
 -- | unwind -------------------------------------------------------------------

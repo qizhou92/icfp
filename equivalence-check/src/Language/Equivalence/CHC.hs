@@ -1,7 +1,8 @@
 module Language.Equivalence.CHC where
 
 import Language.Equivalence.Expr
-
+import System.Process
+import qualified Data.Set as Set
 data Rule = Rule Expr Expr
 
 rule_pretty_print :: Rule -> String
@@ -19,7 +20,25 @@ add_rule :: Rule->CHC -> CHC
 
 add_rule  newRule (CHC rules predicates variables query) = (CHC (newRule:rules) predicates variables query)
 
+decl_var :: Var -> String
+decl_var (Var name sort) = case sort of 
+    BoolSort -> "(declare-const " ++ name ++ " Bool)"
+    IntegerSort -> "(declare-const " ++ name ++ " Int)"
+    RealSort -> "(declare-const " ++ name ++ " Real)"
 
+checkEntail :: Expr -> Expr -> IO Bool
+checkEntail expr1 expr2 = do
+  let varList = (collectVar expr1) ++ (collectVar expr2)
+  let list = Set.toList (Set.fromList varList)
+  let string1 = unlines (map decl_var list)
+  let expr3 = MkAnd [expr1, (MkNot expr2)]
+  let string2 = "(assert " ++ (expr_pretty_print  expr3) ++ " )\n (check-sat)\n"
+  writeFile "./test.z3" (string1++string2)
+  callCommand "z3 test.z3 > output1.txt"
+  x <-readFile "./output1.txt"
+  if x == "unsat\n"
+     then return True
+     else return False
 
 register_predicate :: Function -> CHC -> CHC
 

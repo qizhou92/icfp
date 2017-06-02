@@ -124,6 +124,27 @@ data Expr  = ExprVar Var
             |MkEmpty
   deriving ( Show,Eq,Ord )
 
+collectVar :: Expr -> [Var]
+collectVar x = case x of
+  ExprVar var -> [var]
+  MkAdd list -> concat (map collectVar list)
+  MkMul list -> concat (map collectVar list)
+  MkSub list -> concat (map collectVar list)
+  MkDiv_1 expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkDiv_2 expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkMod expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkRem expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkLt expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkLe expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkGt expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkGe expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkEq expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkNot expr1 -> (collectVar expr1)
+  MkIff expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkImplies expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  MkAnd list -> concat (map collectVar list)
+  MkOr list -> concat (map collectVar list)
+  _ -> []
 list_parameter_pretty_print :: [Parameter] -> String
 
 
@@ -481,6 +502,8 @@ getSortMap :: Int -> [Sort] -> (Map.Map String Sort)
 getSortMap number list = case list of
  x:xs -> Map.insert ("x!"++show(number)) x (getSortMap (number+1) xs)
  [] -> Map.empty
+
+
 
 lexer = T.makeTokenParser emptyDef
 parens    = T.parens lexer
