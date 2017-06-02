@@ -2,7 +2,7 @@ module Language.Equivalence.VerifyDerivation where
 import Language.Equivalence.CHC
 import Language.Equivalence.Expr
 import qualified Data.Set as Set
-
+import qualified Data.List as List
 -- Subexprssion is the data type represents the subexprrsion in derivation, first argument
 -- string represents the name of the subexprssion, second argument list of string represents the list of variable name
 -- Int represents the count of SubExprssion
@@ -25,7 +25,7 @@ data Derivation = DT [Var] [Expr] String Expr
 --
 
 
-data PairRelatingSet =PairRelatingSet [DerivationNode] [DerivationNode] Function
+data PairRelatingSet = PairRelatingSet [DerivationNode] [DerivationNode]
  deriving(Show,Eq,Ord)
 
 getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> CHC -> CHC
@@ -46,58 +46,74 @@ getNewPairRelatingSet sets list = case list of
 updateCHC :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
 updateCHC = undefined
 
-getStepRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
-getStepRules (PairRelatingSet leftList rightList _) theCHC = undefined
 
-getStepRulesOneSide :: [DerivationNode] -> [DerivationNode] -> CHC -> (CHC,[PairRelatingSet])
-getStepRulesOneSide beUnwind secondProgram currentCHC = 
 
-getAllStepRules :: Bool->Int -> [DerivationNode] -> [DerivationNode] -> CHC -> (CHC,[PairRelatingSet])
-getAllStepRules isLeft index list otherList oldCHC = do
+
+getSplitRules :: PairRelatingSet -> [(Rule,[PairRelatingSet])]
+getSplitRules (PairRelatingSet oldLeft oldRight) = do
+  let leftSplit = splitRelationSet oldLeft
+  let rightSplit = splitRelationSet oldRight
+  let leftNewRule = map (getPairOfNewRelationSetLeft (PairRelatingSet oldLeft oldRight)) leftSplit 
+  let rightNewRule = map (getPairOfNewRelationSetRight (PairRelatingSet oldLeft oldRight))rightSplit
+  leftNewRule ++ rightNewRule
+
+getPairOfNewRelationSetLeft :: PairRelatingSet -> ([DerivationNode],[DerivationNode]) -> (Rule,[PairRelatingSet])
+getPairOfNewRelationSetLeft (PairRelatingSet oldRight oldLeft) (newLeft1,newLeft2) = do
+ let newPairRelatings = [(PairRelatingSet oldRight newLeft1) , (PairRelatingSet oldRight newLeft2)]
+ let rule = getRule MkEmpty newPairRelatings (PairRelatingSet oldRight oldLeft)
+ (rule,newPairRelatings)
+
+getPairOfNewRelationSetRight :: PairRelatingSet -> ([DerivationNode],[DerivationNode]) ->(Rule, [PairRelatingSet])
+getPairOfNewRelationSetRight (PairRelatingSet oldRight oldLeft) (newRight1,newRight2) = do
+ let newPairRelatings = [(PairRelatingSet newRight1 oldLeft) , (PairRelatingSet newRight2 oldLeft)]
+ let rule = getRule MkEmpty newPairRelatings (PairRelatingSet oldRight oldLeft)
+ (rule,newPairRelatings)
+
+splitRelationSet :: [DerivationNode] -> [([DerivationNode],[DerivationNode])]
+splitRelationSet  list = do
+ map (getSplitPair list) (getPowerSet list)
+
+getSplitPair :: [DerivationNode] -> [DerivationNode] -> ([DerivationNode],[DerivationNode])
+getSplitPair list sublist = ( (list List.\\ sublist) , sublist )
+
+getPowerSet :: [DerivationNode] -> [ [DerivationNode] ]
+getPowerSet theList = case theList of
+  x:xs -> do
+           let list = getPowerSet xs
+           (map (x: ) list) ++ list
+  _ -> [ [] ] 
+
+getAllStepRules :: PairRelatingSet -> [ (Rule,PairRelatingSet) ] 
+getAllStepRules (PairRelatingSet left right) = do
+ let list1 = getAllRules 0 left
+ let list2 = getAllRules 0 right
+ let firstResult = map (getRulesAndPairRelatingSetLeft (PairRelatingSet left right)) list1
+ let secondResult = map (getRulesAndPairRelatingSetRight (PairRelatingSet left right)) list2
+ firstResult ++ secondResult
+
+getRulesAndPairRelatingSetLeft :: PairRelatingSet -> (Expr,[DerivationNode]) -> (Rule,PairRelatingSet)
+getRulesAndPairRelatingSetLeft (PairRelatingSet oldLeft oldRight) (expr1,newRelationSet) = do
+  let newPairRelatingSet = (PairRelatingSet newRelationSet oldRight)
+  let newRule = getRule expr1 [(PairRelatingSet oldLeft oldRight)] newPairRelatingSet
+  (newRule,newPairRelatingSet)
+
+getRulesAndPairRelatingSetRight :: PairRelatingSet -> (Expr,[DerivationNode]) -> (Rule,PairRelatingSet)
+getRulesAndPairRelatingSetRight (PairRelatingSet oldLeft oldRight) (expr1,newRelationSet) = do
+  let newPairRelatingSet = (PairRelatingSet oldRight oldLeft)
+  let newRule = getRule expr1 [(PairRelatingSet oldLeft oldRight)] newPairRelatingSet
+  (newRule,newPairRelatingSet)
+
+getRule :: Expr -> [PairRelatingSet] -> PairRelatingSet -> Rule
+getRule = undefined
+
+
+getAllRules :: Int -> [DerivationNode] -> [(Expr,[DerivationNode])]
+getAllRules index list
+  | index < length list = (getSuccessors index list) : (getAllRules (index+1) list)
+  | otherwise = []    
+
+getSuccessors :: Int -> [DerivationNode] ->(Expr ,[DerivationNode])
+getSuccessors index list = do
+  let DerivationNode _ (HyperEdge expr successors) = list !! index
   let (x1,x2) = splitAt index list
-  let theDerivaion = head x2
-  let newX2 = drop 1 x2
-  let (theExpr,successors) = getSingleStepRules newX2
-  let newDerivationNodeList = x1 ++ (successors ++ newX2)
-
- 
-
-getSingleStepRules :: DerivationNode -> (Expr,[DerivationNode])
-getSingleStepRules (DerivationNode _ (HyperEdge theExpr successors))=(theExpr,successors) 
-
-getSplitRules :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
-getSplitRules = undefined
-
-
-getAllPossibleList:: [Int] -> [ [ [Int] ]]
-getAllPossibleList list = case list of
-  x:xs -> (insertElementIntoAllList x (getAllPossibleList xs))
-  _ -> []
-
-insertElementIntoAllList :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
-
-insertElementIntoAllList element list = case list of
-  [] -> [[[element]]]
-  _->(insertElementIntoAllList1 element list) ++ (insertElementIntoAllList2 element list)
-
-insertElementIntoAllList1 :: Int -> [ [ [ Int ]]] -> [ [ [Int] ] ]
-insertElementIntoAllList1 element list = case list of
-  x:xs -> if null x
-          then [[element]]:(insertElementIntoAllList1 element xs)
-          else ([element]:x):(insertElementIntoAllList1 element xs)
-  _ -> []
-
-insertElementIntoAllList2 :: Int -> [ [ [Int] ]]  -> [ [ [Int] ] ]
-insertElementIntoAllList2 element list = case list of
-	x:xs -> (insertAllIndex element (length(x)) x) ++ (insertElementIntoAllList2 element xs)
-	_ -> []
-
-insertAllIndex :: Int -> Int -> [ [Int] ] -> [ [ [Int] ] ]
-insertAllIndex element len oldList
-  | 0<len = (insertByIndex (len - 1) element oldList) : (insertAllIndex element (len -1) oldList)
-  | otherwise = []
-
-insertByIndex :: Int -> Int -> [ [Int] ] -> [ [ Int ] ]
-insertByIndex index element (x:xs)
-  |0<index = x:(insertByIndex (index -1) element xs)
-  |otherwise =  (element:x):xs
+  (expr,(x1 ++ (successors ++ (tail x2))))
