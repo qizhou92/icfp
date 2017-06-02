@@ -7,6 +7,7 @@ module Language.Equivalence.Verify (
 
 
 import Data.Monoid
+import Data.List ((\\))
 import Data.Maybe (fromMaybe)
 import Language.Equivalence.Types
 import Language.Equivalence.Expr hiding (Var)
@@ -109,7 +110,13 @@ data DerCtxs = DerCtxs [CoreExpr]
   deriving (Eq, Ord)
 
 tiles :: DerCtxs -> [(DerCtxs, DerCtxs)]
-tiles (DerCtxs xs) = [(DerCtxs xs1, DerCtxs xs2) | (xs1, xs2) <- (`splitAt` xs) <$> [0..length xs]]
+-- Ordering is not important in splitting 
+tiles (DerCtxs xs) = [(DerCtxs ys, DerCtxs (xs\\ys)) | ys <- powerset xs]
+  where
+   powerset = foldr (\x acc -> acc ++ (map ((:) x) acc)) [[]]
+
+-- Ordering is not important in splitting 
+-- tiles (DerCtxs xs) = [(DerCtxs xs1, DerCtxs xs2) | (xs1, xs2) <- (`splitAt` xs) <$> [0..length xs]]
 
 hd :: DerCtxs -> CoreExpr
 hd (DerCtxs (x:_)) = x
