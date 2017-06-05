@@ -18,8 +18,6 @@ data HyperEdge = HyperEdge Expr [DerivationNode]
 data DerivationNode = DerivationNode SubExprssion HyperEdge
  deriving(Show,Eq,Ord)
 
--- repalce the int data type by subexpression to get all merge/split subexpression possible set
-
 -- 
 data Derivation = DT [Var] [Expr] String Expr
 --
@@ -44,9 +42,25 @@ getNewPairRelatingSet sets list = case list of
  _ -> sets
 
 updateCHC :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
-updateCHC = undefined
+updateCHC oldPredicate oldCHC = do
+  let stepRuleList = getAllStepRules oldPredicate
+  let splitRuleList = getSplitRules oldPredicate
+  let newCHC1 = foldr updateStepRule oldCHC stepRuleList
+  let newCHC2 = foldr updateSplitRule newCHC1 splitRuleList
+  let newPrediactList = (map getStepPredicates stepRuleList) ++ (concat (map getSplitPredicates splitRuleList))
+  (newCHC2,newPrediactList) 
 
+getStepPredicates :: (Rule,PairRelatingSet) -> PairRelatingSet
+getStepPredicates (_,newPredicate) = newPredicate
 
+updateStepRule :: (Rule,PairRelatingSet) -> CHC -> CHC
+updateStepRule (r1,_) oldCHC = add_rule r1 oldCHC
+
+getSplitPredicates :: (Rule,[PairRelatingSet]) -> [PairRelatingSet]
+getSplitPredicates (_,list) = list
+
+updateSplitRule :: (Rule,[PairRelatingSet]) -> CHC -> CHC
+updateSplitRule (r1,_) oldCHC= add_rule r1 oldCHC
 
 
 getSplitRules :: PairRelatingSet -> [(Rule,[PairRelatingSet])]
