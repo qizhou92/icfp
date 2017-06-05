@@ -2,6 +2,7 @@ module Language.Equivalence.Verify (
 
    verify
    , RuleName(..)
+   , Der(..)
   
 ) where
 

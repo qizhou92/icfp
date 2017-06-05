@@ -7,7 +7,7 @@ data Rule = Rule Expr Expr
 
 rule_pretty_print :: Rule -> String
 
-rule_pretty_print (Rule h b) = "(rule (=> " ++ (expr_pretty_print h) ++ "  "++ (expr_pretty_print b) ++ " ))"
+rule_pretty_print (Rule b h) = "(rule (=> " ++ (expr_pretty_print b) ++ "  "++ (expr_pretty_print h) ++ " ))"
 
 rule_list_pretty_print :: [Rule] -> String
 rule_list_pretty_print list = case list of 

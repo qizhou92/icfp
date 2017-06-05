@@ -3,25 +3,64 @@ import Language.Equivalence.CHC
 import Language.Equivalence.Expr
 import qualified Data.Set as Set
 import qualified Data.List as List
+import Language.Equivalence.Verify
 -- Subexprssion is the data type represents the subexprrsion in derivation, first argument
 -- string represents the name of the subexprssion, second argument list of string represents the list of variable name
 -- Int represents the count of SubExprssion
 
-data SubExprssion = SubExprssion String [Var] Int
- deriving(Show,Eq,Ord)
 
 data HyperEdge = HyperEdge Expr [DerivationNode]
  deriving(Show,Eq,Ord)
 
 -- Node represents the given derivation, the first argument is current SubExprssion, the second argument is the list of HyperEdge
 
-data DerivationNode = DerivationNode SubExprssion HyperEdge
+data DerivationNode = DerivationNode [Var] HyperEdge Int
  deriving(Show,Eq,Ord)
 
--- 
-data Derivation = DT [Var] [Expr] String Expr
---
+-- need translate the coreExpr
 
+translateDT ::  Int -> Der -> (DerivationNode,Int)
+translateDT = undefined
+
+verifyPairs :: Der -> Der -> CHC
+verifyPairs tree1 tree2 = do
+  let (node1,number) = translateDT 0 tree1
+  let (node2,number2) = translateDT (number+1) tree2
+  let pairSet = PairRelatingSet [node1] [node2]
+  let startSet =Set.insert  pairSet (Set.empty)
+  let emptyCHC = CHC [] [] [] MkEmpty
+  getAllRulesOfCHC startSet emptyCHC
+--
+getSortList :: [Var] -> [Sort]
+getSortList list = case list of
+  (Var _ sort):xs -> sort : getSortList xs
+  _ -> []
+getDerivatonNodeSortList :: DerivationNode -> [Sort]
+getDerivatonNodeSortList (DerivationNode varList _ _)=getSortList varList
+
+getStringName :: DerivationNode -> String -> String
+getStringName (DerivationNode list _ uniqueId) oldName = 
+  (show uniqueId) ++ "#" ++ oldName
+
+getFunction:: PairRelatingSet -> Function
+getFunction (PairRelatingSet list1 list2) = do
+  let sortList = (concat (map getDerivatonNodeSortList list1)) ++ (concat (map getDerivatonNodeSortList list2))
+  let uniqueName = (foldr getStringName "" list1) ++ (foldr getStringName "" list2)
+  Function uniqueName sortList
+
+getArgList :: [Var] -> [Parameter]
+getArgList list = case list of
+  x:xs -> (ParameterVar x) : getArgList xs
+  _ -> []
+
+getDerivatonNodeArgList :: DerivationNode -> [Parameter]
+getDerivatonNodeArgList (DerivationNode varList _ _)= getArgList varList
+
+getFunctionExpr :: PairRelatingSet -> Expr
+getFunctionExpr (PairRelatingSet list1 list2) = do 
+  let function = getFunction  (PairRelatingSet list1 list2)
+  let args = (concat (map getDerivatonNodeArgList list1)) ++ (concat (map getDerivatonNodeArgList list2))
+  ApplyFunction function args
 
 data PairRelatingSet = PairRelatingSet [DerivationNode] [DerivationNode]
  deriving(Show,Eq,Ord)
@@ -32,7 +71,8 @@ getAllRulesOfCHC pairRelatingSet theCHC
  |otherwise = do
                let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
                let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
-               let (newCHC,newPredicates) = updateCHC  singlePairRelatingSet theCHC
+               let chcWithRegister = register_predicate (getFunction singlePairRelatingSet) theCHC
+               let (newCHC,newPredicates) = updateCHC  singlePairRelatingSet chcWithRegister
                let newPairSet = getNewPairRelatingSet newPairRelatingSet newPredicates
                getAllRulesOfCHC newPairSet newCHC
 
@@ -48,7 +88,8 @@ updateCHC oldPredicate oldCHC = do
   let newCHC1 = foldr updateStepRule oldCHC stepRuleList
   let newCHC2 = foldr updateSplitRule newCHC1 splitRuleList
   let newPrediactList = (map getStepPredicates stepRuleList) ++ (concat (map getSplitPredicates splitRuleList))
-  (newCHC2,newPrediactList) 
+  (newCHC2,newPrediactList)
+
 
 getStepPredicates :: (Rule,PairRelatingSet) -> PairRelatingSet
 getStepPredicates (_,newPredicate) = newPredicate
@@ -118,7 +159,9 @@ getRulesAndPairRelatingSetRight (PairRelatingSet oldLeft oldRight) (expr1,newRel
   (newRule,newPairRelatingSet)
 
 getRule :: Expr -> [PairRelatingSet] -> PairRelatingSet -> Rule
-getRule = undefined
+getRule expr bodyPredicaes headPredicate = do
+ let listOfPredicatesExpr = map getFunctionExpr bodyPredicaes
+ Rule (MkAnd (expr:listOfPredicatesExpr)) (getFunctionExpr headPredicate) 
 
 
 getAllRules :: Int -> [DerivationNode] -> [(Expr,[DerivationNode])]
@@ -128,6 +171,6 @@ getAllRules index list
 
 getSuccessors :: Int -> [DerivationNode] ->(Expr ,[DerivationNode])
 getSuccessors index list = do
-  let DerivationNode _ (HyperEdge expr successors) = list !! index
+  let DerivationNode _ (HyperEdge expr successors) _ = list !! index
   let (x1,x2) = splitAt index list
   (expr,(x1 ++ (successors ++ (tail x2))))
