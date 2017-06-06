@@ -59,7 +59,7 @@ var_pretty_print :: Var -> String
 
 var_pretty_print (Var name _) = name
 
-data Constant = ConstantInt Integer
+data Constant = ConstantInt Int
                | ConstantBool Bool
                | ConstantReal Float
   deriving (Eq, Show,Ord)

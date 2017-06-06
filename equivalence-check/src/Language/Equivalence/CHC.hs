@@ -1,8 +1,11 @@
 module Language.Equivalence.CHC where
-
+import qualified Data.Map as Map
 import Language.Equivalence.Expr
 import System.Process
+import System.Exit
 import qualified Data.Set as Set
+import Text.ParserCombinators.Parsec
+
 data Rule = Rule Expr Expr
 
 rule_pretty_print :: Rule -> String
@@ -81,4 +84,17 @@ chc_pretty_print (CHC rules predicates variables query) = do
 
 chc_write_file :: CHC -> IO()
 chc_write_file theCHC = writeFile "./test.z3" (chc_pretty_print theCHC)
+
+
+chc_execute :: CHC -> IO (Bool, (Map.Map Function Expr))
+chc_execute theCHC = do
+  chc_write_file theCHC
+  callCommand "z3 test.z3 > output1.txt"
+  x <-readFile "./output1.txt"
+  let result  = parse parseCHCResult "unknonw.txt" x
+  case result of 
+     Left e -> do
+                print ("error in parse"++(show e)) 
+                exitWith (ExitFailure 10)
+     Right result -> return result
 

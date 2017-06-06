@@ -1,7 +1,11 @@
 module Language.Haskell.Test where
-import Language.Haskell.Expr
-import Language.Haskell.CHC
+
+import Language.Equivalence.CHC
+
+import Language.Equivalence.Expr
+
 import System.Process
+
 import Text.ParserCombinators.Parsec
 
 --- main is the function to write the CHC system to the file and call z3 on the file
@@ -29,8 +33,9 @@ main = do
 -- build the CHC system, the first list is rules, the second list is predicates, the third
 -- list is variables, and the last is query expression
 	let theCHC = CHC [rule1,rule2] [r1] [x1,x2] query
-	chc_write_file theCHC
-	callCommand "z3 test.z3 > output1.txt"
+	result  <- chc_execute theCHC
+	print result
+
 main2 :: IO ()
 main2 = do
 	x <-readFile "./output1.txt"
