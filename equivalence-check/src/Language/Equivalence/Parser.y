@@ -41,6 +41,7 @@ import Control.Exception
     '+'   { PLUS _   }
     '-'   { MINUS _  }
     '*'   { MUL _    }
+    '/'   { DIV _    }
     '&&'  { AND _    }
     '||'  { OR  _    }
     '=='  { EQL _    }
@@ -62,7 +63,7 @@ import Control.Exception
 %right ':' '->'
 %left '||' '&&'
 %left '+' '-'
-%left '*'
+%left '*' '/'
 %%
 
 Prog : Bind                         { [$1]    }
@@ -80,6 +81,7 @@ Expr : Expr ':' Expr                { EBin Cons  $1 $3 }
      | Expr '+'  Expr               { EBin Plus  $1 $3 }
      | Expr '-'  Expr               { EBin Minus $1 $3 }
      | Expr '*'  Expr               { EBin Mul   $1 $3 }
+     | Expr '/'  Expr               { EBin Div   $1 $3 }
      | if Expr then Expr else Expr  { EIf  $2 $4 $6    }
      | '\\' Id '->' Expr            { ELam $2 $4       }
      | let Id '='  Expr in Expr     { ELet $2 $4 $6    }

@@ -4,12 +4,15 @@ module Language.Equivalence.Types where
 
 import           GHC.Exts( IsString(..) )
 import           Text.Printf (printf)
-import           Text.PrettyPrint.HughesPJ
+import           Text.PrettyPrint.HughesPJ hiding ((<>))
 import           Control.Exception
 import           Data.Typeable
 import qualified Data.List as L
 import           System.Exit
 import           Language.Equivalence.Misc
+
+import Data.Monoid
+import qualified Data.Set as S 
 
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
@@ -102,7 +105,8 @@ data CoreExpr
   | ELet Var   CoreExpr  CoreExpr
   | EApp CoreExpr  CoreExpr
   | ELam Var   CoreExpr
-  deriving (Eq, Show)
+  | EFix Var   CoreExpr
+  deriving (Eq, Show, Ord)
 
 data Value
   = VInt  Int
@@ -161,6 +165,7 @@ exprString (EIf c t e)    = printf "if %s then %s else %s" (exprString c) (exprS
 exprString (ELet x e e')  = printf "let %s = %s in \n %s" (show x) (exprString e) (exprString e')
 exprString (EApp e1 e2)   = printf "(%s %s)" (exprString e1) (exprString e2)
 exprString (ELam x e)     = printf "\\%s -> %s" (show x) (exprString e)
+exprString (EFix x e)     = printf "fix %s %s" (show x) (exprString e)
 exprString ENil           = "[]"
 
 bindString :: Bind -> String
@@ -188,3 +193,51 @@ exprList = foldr (EBin Cons) ENil
 
 valueList :: [Value] -> Value
 valueList = foldr VPair VNil
+
+
+isFix :: CoreExpr -> Bool 
+isFix (ELet x ex _) =  x `S.member` (freeVars ex)
+isFix _             = False 
+
+freeVars :: CoreExpr -> S.Set Var
+freeVars (EVar v)       = S.singleton v
+freeVars (EInt _)       = mempty
+freeVars (EBool _)      = mempty
+freeVars ENil           = mempty
+freeVars (EBin _ e1 e2) = freeVars e1 <> freeVars e2 
+freeVars (EIf e e1 e2)  = freeVars e <> freeVars e1 <> freeVars e2 
+freeVars (ELet x ex e)  = S.filter (/= x) (freeVars ex <> freeVars e)
+freeVars (EApp e1 e2)   = freeVars e1 <> freeVars e2 
+freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
+freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
+
+
+
+subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
+subst (x,e) (EVar v)
+  | x == v        
+  = e 
+  | otherwise
+  = EVar v 
+subst _ e@(EInt _)      = e
+subst _ e@(EBool _)      = e
+subst _ e@ENil           = e
+subst su (EBin b e1 e2) = EBin b (subst su e1) (subst su e2)
+subst su (EIf e e1 e2)  = EIf (subst su e) (subst su e1) (subst su e2)
+subst su@(y,_) (ELet x ex e)
+  | x == y 
+  = ELet x ex e 
+  | otherwise
+  = ELet x (subst su ex) (subst su e)
+subst su (EApp e1 e2)   
+  = EApp (subst su e1) (subst su e2) 
+subst su@(y,_) (ELam x e)     
+  | x == y 
+  = ELam x e 
+  | otherwise
+  = ELam x (subst su e)
+subst su@(y,_) (EFix x e)     
+  | x == y 
+  = EFix x e 
+  | otherwise
+  = EFix x (subst su e)

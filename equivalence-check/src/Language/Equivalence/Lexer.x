@@ -40,6 +40,7 @@ tokens :-
   [\+]                          { \p _ -> PLUS   p }
   [\-]                          { \p _ -> MINUS  p }
   [\*]                          { \p _ -> MUL    p }
+  [\/]                          { \p _ -> DIV    p }
   "<"                           { \p _ -> LESS   p }
   "<="                          { \p _ -> LEQ    p }
   "=="                          { \p _ -> EQL p }
@@ -79,6 +80,7 @@ data Token
   | PLUS   AlexPosn
   | MINUS  AlexPosn
   | MUL    AlexPosn
+  | DIV    AlexPosn
   | LPAREN AlexPosn
   | RPAREN AlexPosn
   | LBRAC  AlexPosn
