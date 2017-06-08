@@ -10,6 +10,7 @@ import System.Process
 -- string represents the name of the subexprssion, second argument list of string represents the list of variable name
 -- Int represents the count of SubExprssion
 
+-- function need to implemented, the substitute function, register all var
 
 data HyperEdge = HyperEdge Expr [DerivationNode]
  deriving(Show,Eq,Ord)
