@@ -69,7 +69,7 @@ constant_pretty_print :: Constant -> String
 constant_pretty_print x = case x of 
                  ConstantInt value -> show value
                  ConstantBool value -> if value then "true"
-                                          else  "true"
+                                          else  "false"
                  ConstantReal value -> show value
 
 data Function = Function String [Sort]
