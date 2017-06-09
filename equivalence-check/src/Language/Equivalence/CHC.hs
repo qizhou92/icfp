@@ -7,6 +7,9 @@ import qualified Data.Set as Set
 import Text.ParserCombinators.Parsec
 
 data Rule = Rule Expr Expr
+  
+instance Show Rule where
+  show = rule_pretty_print 
 
 rule_pretty_print :: Rule -> String
 
@@ -19,6 +22,8 @@ rule_list_pretty_print list = case list of
 
 data CHC = CHC [Rule] [Function] [Var] Expr
 
+instance  Show CHC where
+  show = chc_pretty_print 
 add_rule :: Rule->CHC -> CHC
 
 add_rule  newRule (CHC rules predicates variables query) = (CHC (newRule:rules) predicates variables query)
