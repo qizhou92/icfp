@@ -68,14 +68,13 @@ makeDerivations denv e@(EBin bop e1 e2)
        d2 <- makeDerivations denv e2 
        return $ Der RNOp denv e (eBin bop (doutExpr d1) (doutExpr d2)) [d1,d2] 
 makeDerivations denv e@(EIf b e1 e2) 
-  = do let dtrue  = Der RAAssume denv b (EBool True) [] 
-       let dfalse = Der RAAssume denv b (EBool False) []
-       let d1 = Der RASymbolic denv e1 e1 [] 
-       let d2 = Der RASymbolic denv e2 e2 []  
+  = do dcondition <- makeDerivations denv b 
+       d1 <- makeDerivations denv e1 
+       d2 <- makeDerivations denv e2 
        -- d1 <- makeDerivations (i-1) denv e1
        -- d2 <- makeDerivations (i-1) denv e2 
-       [Der RNIteTrue denv e (doutExpr d1) [dtrue,d1],
-        Der RNIteFalse denv e (doutExpr d2) [dfalse,d2]]  
+       [Der RNIteTrue denv e (doutExpr d1) [dcondition,d1],
+        Der RNIteFalse denv e (doutExpr d2) [dcondition,d2]]  
 makeDerivations denv e@(ELam _ _)
   = return $ Der RNAbs denv e e [] 
 makeDerivations denv e@(EFix _ _)
@@ -95,7 +94,7 @@ makeDerivations _ e@ENil
 makeAppDerivations :: DEnv -> CoreExpr -> Der -> CoreExpr -> CoreExpr -> CoreExpr -> [Der]
 makeAppDerivations denv e d1 (EFix x e1') _ e2 
   = do d2 <- makeDerivations ((x,EFix x e1'):denv) (EApp e1' e2)
-       return $ Der RNAppLam denv e (doutExpr d2) [d1, d2]
+       return $ Der RNAppFix denv e (doutExpr d2) [d1, d2]
 makeAppDerivations denv e d1 (ELam x e1') _ e2 
   = do d2 <- makeDerivations denv e2
        d3 <- makeDerivations ((x, doutExpr d2):denv) e1'
@@ -116,8 +115,6 @@ eBin Eq    (EBool n) (EBool m) = EBool (n == m)
 eBin Ne    (EBool n) (EBool m) = EBool (n /= m)
 eBin Lt    (EInt n)  (EInt m)  = EBool (n <  m)
 eBin Le    (EInt n)  (EInt m)  = EBool (n <= m)
-eBin Lt    (EBool n) (EBool m) = EBool (n < m)
-eBin Le    (EBool n) (EBool m) = EBool (n <= m)
 eBin And   (EBool n) (EBool m) = EBool (n && m)
 eBin Or    (EBool n) (EBool m) = EBool (n || m)
 eBin bop   e1        e2        = EBin bop e1 e2 
