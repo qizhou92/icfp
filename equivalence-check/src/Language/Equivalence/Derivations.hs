@@ -115,6 +115,8 @@ eBin Eq    (EBool n) (EBool m) = EBool (n == m)
 eBin Ne    (EBool n) (EBool m) = EBool (n /= m)
 eBin Lt    (EInt n)  (EInt m)  = EBool (n <  m)
 eBin Le    (EInt n)  (EInt m)  = EBool (n <= m)
+eBin Lt    (EBool n) (EBool m) = EBool (n < m)
+eBin Le    (EBool n) (EBool m) = EBool (n <= m)
 eBin And   (EBool n) (EBool m) = EBool (n && m)
 eBin Or    (EBool n) (EBool m) = EBool (n || m)
 eBin bop   e1        e2        = EBin bop e1 e2 
