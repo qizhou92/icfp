@@ -58,12 +58,15 @@ translateRNOp :: Int -> Der -> (DerivationNode,Int)
 translateRNOp uniqueId (Der ruleName env dinExpr doutExpr successors) = do
   let firstDer = successors !! 0
   let secondDer = successors !! 1
-  let (firstDerivationNode,nextId) = translateDT uniqueId firstDer
-  let (secondDerivationNode,nextId2) = translateDT nextId secondDer
-  let smtExpr = getBinaryExpr firstDerivationNode secondDerivationNode dinExpr
+  let ((DerivationNode varlist1 h1 i1),nextId) = translateDT uniqueId firstDer
+  let ((DerivationNode varlist2 h2 i2),nextId2) = translateDT nextId secondDer
+  let smtExpr = getBinaryExpr (DerivationNode varlist1 h1 i1) (DerivationNode varlist2 h2 i2) dinExpr
   let  var =  Var ("output#uniqueId"++show(nextId2)++"@1")  (head (getOutputType doutExpr))
   let smtExpr2 = MkEq smtExpr (ExprVar var)
-  let newHyperEdge = HyperEdge smtExpr2 [firstDerivationNode,secondDerivationNode]
+  let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId2 []
+  let freeVariablesEqual2 = freeVariablesEqual (denv secondDer) i2 nextId2 []
+  let finalSmtExpr = MkAnd (smtExpr2:(freeVariablesEqual1++freeVariablesEqual2)) 
+  let newHyperEdge = HyperEdge finalSmtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2)]
   let newVarlist = (getFreeVarList nextId2 env) ++ (getVarList nextId2 1 (getOutputType doutExpr))
   ((DerivationNode newVarlist newHyperEdge nextId2),nextId2+1)
 
@@ -89,7 +92,10 @@ translateRNIteTrue uniqueId (Der ruleName env dinExpr doutExpr list) = do
   let ((DerivationNode varlist2 h2 i2),nextId2) = translateDT nextId secondDer
   let var =  Var ("output#uniqueId"++show(nextId2)++"@1")  (head (getOutputType doutExpr))
   let smtExpr = MkAnd [(ExprVar (last varlist1)), (MkEq (ExprVar (last varlist2)) (ExprVar var))]
-  let newHyperEdge = HyperEdge smtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2)]
+  let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId2 []
+  let freeVariablesEqual2 = freeVariablesEqual (denv secondDer) i2 nextId2 []
+  let finalSmtExpr = MkAnd (smtExpr:(freeVariablesEqual1++freeVariablesEqual2))
+  let newHyperEdge = HyperEdge finalSmtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2)]
   let newVarlist = (getFreeVarList nextId2 env) ++ (getVarList nextId2 1 (getOutputType doutExpr))
   ((DerivationNode newVarlist newHyperEdge nextId2),nextId2+1)
 
@@ -101,7 +107,10 @@ translateRNIteFalse uniqueId (Der ruleName env dinExpr doutExpr list) = do
   let ((DerivationNode varlist2 h2 i2),nextId2) = translateDT nextId secondDer
   let  var =  Var ("output#uniqueId"++show(nextId2)++"@1")  (head (getOutputType doutExpr))
   let smtExpr = MkAnd [ (MkNot (ExprVar (last varlist1))), (MkEq (ExprVar (last varlist2)) (ExprVar var))]
-  let newHyperEdge = HyperEdge smtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2)]
+  let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId2 []
+  let freeVariablesEqual2 = freeVariablesEqual (denv secondDer) i2 nextId2 []
+  let finalSmtExpr = MkAnd (smtExpr:(freeVariablesEqual1++freeVariablesEqual2))
+  let newHyperEdge = HyperEdge finalSmtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2)]
   let newVarlist = (getFreeVarList nextId2 env) ++ (getVarList nextId2 1 (getOutputType doutExpr))
   ((DerivationNode newVarlist newHyperEdge nextId2),nextId2+1)
 
@@ -113,8 +122,13 @@ translateRNAppLam uniqueId (Der ruleName env _ coreExpr list) = do
   let ((DerivationNode varlist1 h1 i1),nextId) = translateDT uniqueId firstDer
   let ((DerivationNode varlist2 h2 i2),nextId2) = translateDT nextId secondDer
   let ((DerivationNode varlist3 h3 i3),nextId3) = translateDT nextId2 thirdDer
-  let smtExpr = MkAnd ((bindingArgs (doutExpr firstDer) i2 i3):(outputEquals coreExpr i3 nextId3))
-  let newHyperEdge = HyperEdge smtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2),(DerivationNode varlist3 h3 i3)]
+  let smtExpr = ((bindingArgs (doutExpr firstDer) i2 i3):(outputEquals coreExpr i3 nextId3))
+  let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId2 []
+  let freeVariablesEqual2 = freeVariablesEqual (denv secondDer) i2 nextId2 []
+  let (Types.ELam var1 _) = doutExpr firstDer
+  let freeVariablesEqual3 = freeVariablesEqual (denv thirdDer) i3 nextId2 [var1]
+  let finalSmtExpr = MkAnd (smtExpr ++ freeVariablesEqual1 ++ freeVariablesEqual2 ++ freeVariablesEqual3)
+  let newHyperEdge = HyperEdge finalSmtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2),(DerivationNode varlist3 h3 i3)]
   let newVarlist = (getFreeVarList nextId3 env) ++ (getVarList nextId3 1 (getOutputType coreExpr))
   ((DerivationNode newVarlist newHyperEdge nextId3),nextId3+1)
 
@@ -129,16 +143,40 @@ outputEquals doutExpr uniqueId1 uniqueId2 = do
   let sortList = getOutputType doutExpr
   getEqualExpr uniqueId1 uniqueId2 1 sortList
 
+freeVariablesEqual :: DEnv -> Int -> Int -> [Types.Var] -> [Expr]
+freeVariablesEqual denv uniqueId1 uniqueId2 notEqualList = do
+  let freeVarList = map (\(x,y) -> x) denv
+  let sameVarList = filter (\x -> not (elem x notEqualList)) freeVarList
+  map (freeVariableEqual uniqueId1 uniqueId2) sameVarList
+
 translateRNAppFix :: Int -> Der -> (DerivationNode,Int)
-translateRNAppFix uniqueId (Der ruleName env dinExpr doutExpr list) = undefined
+translateRNAppFix uniqueId (Der ruleName env dinExpr doutExpr list) = do
+ let firstDer = list !! 0 
+ let ((DerivationNode varlist1 h1 i1),nextId) = translateDT uniqueId firstDer
+ let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId []
+ let smtExpr = MkAnd ((outputEquals doutExpr uniqueId nextId) ++ freeVariablesEqual1)
+ let newHyperEdge = HyperEdge smtExpr [(DerivationNode varlist1 h1 i1)]
+ let newVarlist = (getFreeVarList nextId env) ++ (getVarList nextId 1 (getOutputType doutExpr))
+ ((DerivationNode newVarlist newHyperEdge nextId),nextId+1)
+
+freeVariableEqual :: Int -> Int -> Types.Var ->  Expr
+freeVariableEqual uniqueId1 uniqueId2 (Types.Var name)=
+ MkEq (ExprVar (Var (name++"#"++(show uniqueId1)) getVarSort)) (ExprVar (Var (name++"#"++(show uniqueId2)) getVarSort))
+
 ---- needs to be implemented
 getOutputType :: Types.CoreExpr -> [Sort]
 getOutputType _ = [IntegerSort]
 
 --- translate var list get free variable list qizhou
 getFreeVarList :: Int -> DEnv -> [Var]
-getFreeVarList _ _= []
+getFreeVarList uniqueId denv = do
+  let freeVarList = map (\(x,y) -> x) denv
+  map (typeVarToSMTVar uniqueId) freeVarList
 
+typeVarToSMTVar :: Int -> Types.Var -> Var
+typeVarToSMTVar uniqueId (Types.Var name) = Var (name++"#"++(show uniqueId)) getVarSort
+
+--- needs to be implemented
 getVarSort :: Sort
 getVarSort =  undefined
 ---- buld var list according to corresponding sort list
