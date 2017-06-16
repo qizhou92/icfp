@@ -10,6 +10,7 @@ import           Data.Typeable
 import qualified Data.List as L
 import           System.Exit
 import           Language.Equivalence.Misc
+import           Language.Equivalence.Expr hiding (Var)
 
 import Data.Monoid
 import qualified Data.Set as S 
@@ -211,7 +212,22 @@ freeVars (EApp e1 e2)   = freeVars e1 <> freeVars e2
 freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
 freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
 
+-- need to implement get var type
+getVarSort :: Var -> Sort
+getVarSort = IntegerSort
 
+-- paritally implemented, need to figure out let
+getSort :: CoreExpr -> [Sort]
+getSort (EVar v) = [(getVarSort v)]
+getSort (EInt _) = [IntegerSort]
+getSort (EBool _) = [BoolSort]
+getSort (EBin _ e1 _) = getSort e1
+getSort (EIf _ e1 _) = getSort e1
+getSort (EApp e1 e2) = (drop (length (getSort e1)) (getSort e2))
+getSort (ELam x e) = (getVarSort x):(getSort e)
+getSort (EFix _ e) = getSort e
+getSort ENil = []
+getSort (ELet _ _ _) = []
 
 subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
 subst (x,e) (EVar v)
