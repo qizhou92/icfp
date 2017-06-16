@@ -3,14 +3,188 @@
 %
 In this section, we describe our technical approach in detail.
 %
-In \autoref{sec:rel-invs}, we define the class of proof
-structures synthesized by \sys.
+In \autoref{sec:rel-types}, we define a type system for proving
+equivalence of programs.
 %
-In \autoref{sec:verifier}, we present the verification algorithm used
-by \sys to synthesize such structures.
+In \autoref{sec:verifier}, we present an algorithm for inferring such
+types.
 
-\subsection{Relational invariants as equivalence proofs}
-\label{sec:rel-invs}
+\subsection{Equivalence proofs as relational types}
+\label{sec:rel-types}
+%
+In this section, we describe a space of types over collections of
+expressions, which can represent proofs of equivalence of functional
+programs.
+%
+In \autoref{sec:rel-type-space}, we give key instances of such types,
+and operators for constructing such types.
+%
+In \autoref{sec:rel-type-sys}, we give a type system for relational
+types.
+
+\subsubsection{A space of relational types}
+\label{sec:rel-type-space}
+%
+\sys, given programs $P_0$ and $P_1$, attempts to verify that $P_0
+\equiv P_1$ by synthesizing a proof that $(P_0, P_1)$ has a relational
+type of equivalent programs.
+
+% define relational types:
+Relational types describe sets of tuples of values, each of which may
+be a higher-order values.
+%
+\BH{define type positions (in background?)}
+%
+\begin{defn}
+  \label{defn:rel-type}
+  For $T \in \types^{*}$, $P_0, P_1 \subseteq ?? \times \typepos$, the
+  space of relational types of $P_0$ in $T$ over $P_1$, denoted
+  $\reltypes{ T }{ P_0 }{ P_1 }$, is the smallest space that satisfies
+  the following conditions:
+  % case: nil type is a relational type
+  \textbf{(1)} $\nilrel \in \reltypes{ T }{ P_0 }{ P_1 }$;
+  % case: constructed relational types from relational types:
+  \textbf{(2)} for $P_B, P_F \subseteq \typepos{ T }$ the extensions
+  of $P_0$ that are positions of base and function types, %
+  $\tau \in \reltypes{ T }{ P_F }{ P_1 \union P_B }$, and %
+  $\varphi \in \formulas{ P_1 \union P_B \union P_F }$, it holds that
+  $(\tau, \varphi) \in \reltypespos{ T }{ P_0 }{ P_1 }$.
+\end{defn}
+%
+For $T \in \types^{*}$, the relational types over $T$ are denoted
+$\reltypestypes{ T } = \reltypespos{ T }{ ?? \times \epsilon }{
+  \emptyset }$.
+%
+\BH{clean up so that type position only points into a type that
+  actually has the position}
+%
+The space of relational types over all sequences of types is denoted
+$\reltypes = \bigunion_{T \in \types^{*} } \reltypestypes{T}$.
+
+\BH{give relational type of higher-order expressions from running
+  example}
+
+\BH{define the equivalence for any pair of base types}
+%
+For each $\tau \in \types$, there is a relational type $\tau_{\equiv}
+\in \reltypestypes{ [ \tau, \tau] }$ such that for all $e_0, e_1 \in
+\stlc$, if $e_0 \equiv e_1$, then $e_0$ paired with $e_1$ have type
+$\tau_{\equiv}$.
+%
+\BH{define the equivalence type for each type}
+
+% 
+The definition of when a collection of expressions has a relational
+type, and the connection between equivalence the each base type's
+equivalence type, is given in \autoref{sec:rel-type-sys}.
+
+\BH{define intersection of relational types}
+
+\subsubsection{A system for relational types}
+\label{sec:rel-type-sys}
+% rules for determining if expression sequences have a relational type:
+\begin{figure}
+  \centering
+  \begin{gather*}
+    % the syntax-guided rules:
+    % rule: expression is a const:
+    \inference[ CONST ]{ %
+      \Gamma, \Phi \judges E : \tau }{ %
+      \Gamma, \Phi \judges c \union E : %
+      \replace{ \tau }{ c }{ \fresh(E, c) } } \\
+    % rule: expression is a var:
+    \inference[ VAR ]{ %
+      \Gamma, \Phi \judges E : \tau }{ %
+      \Gamma, \Phi \judges E : %
+      \replace{ \tau }{ (\fresh(E, x), x) }{ \fresh(E, x) } } \\
+    % rule: expression is an op:
+    \inference[ OP ]{ 
+      \Gamma, \Phi \judges \elts{ e_0, e_1 } \union E : \tau }{ %
+      \Gamma, \Phi \judges \elts{ e_0 \oplus e_1 } : %
+      \replace{ \tau }{ \fresh(E, e_0) \oplus \fresh(E, e_1) }{ %
+        \fresh( E, e_0 \oplus e_1 ) } } \\
+    % rule: expression is an if-then-else:
+    \inference[ ITE ]{ %
+      \Gamma, \Phi \judges e_1 \union E : \tau_1 %
+      \Gamma, \Phi \judges e_2 \union E : \tau_2 }{ %
+      \Gamma, \Phi \judges \ite{ e_0 }{ e_1 }{ e_2 } : %
+      \tau_1 \lor \tau_2 } \\
+    % rule: expression is an abstraction:
+    \inference[ ABS ]{ }{ } \\
+    % rule: expression is a fixpoint:
+    \inference[ FIX ]{ }{ } \\
+    % rule: expression is an application:
+    \inference[ APP ]{ }{ } \\
+    % rule: subtyping
+    \inference[ SUB ]{ %
+    }{ %
+    } \\
+    % rule: allow the P0 expressions to be split:
+    \inference[ SPLIT ]{ 
+      % if E0 is tiled by E0' and E0'',
+      \tiles(E_0, E_0', E_0'') & %
+      % prefix has some relational type:
+      \restrict{ \Gamma }{ E_0', E_1 } \judges (E_0', E_1) : \tau_0 & %
+      % suffix has some relational type:
+      \restrict{ \Gamma }{ E_0'', E_1 } \judges (E_0'', E_1) : \tau_1 } %
+    { \Gamma \judges (E_0, E_1) : \unify_0(\tau_0, \tau_1, f) } \\
+    % rule: allow the P1 expressions to be split:
+  \end{gather*}
+  \caption{A system for determining if sequences of expressions have
+    a relational type.}
+  \label{fig:reltypes-rules}
+\end{figure}
+%
+\BH{define the fresh allocator}
+%
+\BH{structure typing rules as having one rule for each form of expression}
+%
+\BH{define type-judgment system over relational types}
+%
+Relational types are assigned to program expressions, to prove that
+the expressions evaluate to equivalent values.
+%
+\autoref{fig:reltypes-rules} contains a set of inference rules that
+define a proof system for determining if sequences of expressions have
+a relational type.
+%
+In particular, Rule~STEP0 asserts that if 
+%
+\BH{complete}
+Rule~STEP1 asserts that if
+%
+\BH{complete}
+% split 0: rule for splitting invariants over sequences:
+Rule~SPLIT0 asserts that for all $E_0, E_0', E_0'' \in \expr^{*}$ such
+that $E_0'$ and $E_0''$ tile $E_0$ and %
+each $E_1 \in \expr^{*}$, if %
+\textbf{(1)} under $\Gamma \in \relctxs$ restricted to $E_0'$ and
+$E_1$, $(E_0', E_1)$ has type $\tau_0$ and %
+\textbf{(2)} under $\Gamma$ restricted to $E_0''$ and $E_1$, $(E_0',
+E_1)$ has type $\tau_1$, then under $\Gamma$, $(E_0, E_1)$ has type
+as a type the conjunctive unification
+%
+\BH{fix in rules}
+%
+of $\tau_0$ and $\tau_1$.
+% split 1: rule for splitting invariants over sequences:
+Rule~SPLIT1 asserts that for each $E_0 \in \expr^{*}$ and %
+all $E_1, E_1', E_1'' \in \subexps$ such that $E_1'$ and $E_1''$ tile
+$E_1$, if %
+\textbf{(1)} under $\Gamma \in \relctxs$ restricted to $E_0$ and
+$E_1'$, $(E_0, E_1')$ has type $\tau_0$ and %
+\textbf{(2)} under $\Gamma$ restricted to $E_0$ and $E_1''$, $(E_0,
+E_1'')$ has type $\tau_1$, then under $\Gamma$, $(E_0, E_1)$ has as a
+type the conjunctive unification
+%
+\BH{fix in rules}
+%
+of $\tau_0$ and $\tau_1$.
+
+% types as proving equivalence:
+\BH{state main soundness result}
+
+\BH{integrate (deprecated) material from below}
 %
 \sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
 that $P_0 \equiv P_1$ that is represented as set sequences of
