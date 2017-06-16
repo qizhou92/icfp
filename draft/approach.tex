@@ -86,66 +86,88 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
 \begin{figure}
   \centering
   \begin{gather*}
-    % the syntax-guided rules:
     % rule: expression is a const:
     \inference[ CONST ]{ %
-      \Gamma, \Phi \judges E : \tau }{ %
-      \Gamma, \Phi \judges c \union E : %
-      \replace{ \tau }{ c }{ \fresh(E, c) } } \\
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \disjadd{ (c, i) }{ E } : %
+      \replace{ \tau }{ c }{ (c, i) } } 
     % rule: expression is a var:
     \inference[ VAR ]{ %
-      \Gamma, \Phi \judges E : \tau }{ %
-      \Gamma, \Phi \judges E : %
-      \replace{ \tau }{ (\fresh(E, x), x) }{ \fresh(E, x) } } \\
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \disjadd{ (x, i) }{ E } : %
+      \replace{ \tau }{ x }{ (x, i) } } \\
     % rule: expression is an op:
     \inference[ OP ]{ 
-      \Gamma, \Phi \judges \elts{ e_0, e_1 } \union E : \tau }{ %
-      \Gamma, \Phi \judges \elts{ e_0 \oplus e_1 } : %
-      \replace{ \tau }{ \fresh(E, e_0) \oplus \fresh(E, e_1) }{ %
-        \fresh( E, e_0 \oplus e_1 ) } } \\
+      \Gamma \judges %
+      \elts{ (e_0, i_0), (e_1, i_1) } \disjunion E : \tau }{ %
+      \Gamma \judges \disjadd{ (e_0 \oplus e_1, i) }{ E } : %
+      \replace{ \tau }{ (e_0, i_0) \oplus (e_1, i_1) }{ %
+        (e_0 \oplus e_1, i) } } \\
     % rule: expression is an if-then-else:
     \inference[ ITE ]{ %
-      \Gamma, \Phi \judges e_1 \union E : \tau_1 %
-      \Gamma, \Phi \judges e_2 \union E : \tau_2 }{ %
-      \Gamma, \Phi \judges \ite{ e_0 }{ e_1 }{ e_2 } : %
+      \Gamma, (e_0, i_0) = \true \judges %
+      \elts{ (e_0, i_0), (e_1, i_1) } \disjunion E : %
+      \tau_1 &
+      \Gamma, (e_0, i_0) = \false \judges %
+      \elts{ (e_0, i_0), (e_2, i_2) } \disjunion E : %
+      \tau_2 }{ %
+      \Gamma \judges \disjadd{ \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
       \tau_1 \lor \tau_2 } \\
-    % rule: expression is an abstraction:
-    \inference[ ABS ]{ }{ } \\
-    % rule: expression is a fixpoint:
-    \inference[ FIX ]{ }{ } \\
-    % rule: expression is an application:
-    \inference[ APP ]{ }{ } \\
-    % rule: subtyping
-    \inference[ SUB ]{ %
+    % rule: multiset contains an expression that is an abstraction
+    \inference[ ABS ]{ \Gamma, \tau \judges \disjadd{ (e, i) }{ E } : \tau' &
     }{ %
+      \Gamma \judges \disjadd{ (\lambda x.\ e, i') }{ E } : %
+      \replace{ \tau \rightarrow \tau' }{ x }{ \alpha_0 } } 
+    % rule: expression is a fixpoint:
+    \inference[ FIX ]{ %
+      \Gamma, \tau \judges \disjadd{ (e, i'') }{ E } : \tau }{ %
+      \Gamma \judges \disjadd{ ( \fix{ f }{ e }, i ) }{ E } : %
+      \replace{ \tau }{ (f, i') }{ ( \fix{ f }{ e }, i ) }
     } \\
-    % rule: allow the P0 expressions to be split:
-    \inference[ SPLIT ]{ 
-      % if E0 is tiled by E0' and E0'',
-      \tiles(E_0, E_0', E_0'') & %
-      % prefix has some relational type:
-      \restrict{ \Gamma }{ E_0', E_1 } \judges (E_0', E_1) : \tau_0 & %
-      % suffix has some relational type:
-      \restrict{ \Gamma }{ E_0'', E_1 } \judges (E_0'', E_1) : \tau_1 } %
-    { \Gamma \judges (E_0, E_1) : \unify_0(\tau_0, \tau_1, f) } \\
-    % rule: allow the P1 expressions to be split:
+    % rule: expression is an application:
+    \inference[ APP ]{ %
+      \Gamma \disjadd{ (e_0, i_0) }{ E } : \tau_0 \rightarrow \tau_0' & 
+      \Gamma \disjadd{ (e_1, i_1) }{ E } : %
+      \replace{ \tau_0 }{ \alpha_0 }{ (e_1, i_1) }
+    }{ \Gamma \disjadd{ (e_0\ e_1, i) }{ E } \judges \tau } \\
+    % rule: subtyping:
+    \inference[ SUB ]{ %
+      \Gamma \judges E : \tau & \tau \subtype \tau'
+    }{ \Gamma \judges E : \tau' } 
+    % rule: empty set has the true relational type:
+    \inference[ EMPTY ]{ }{ %
+      \Gamma \judges \emptyset : \bigland \Gamma }
+    % rule: split multiset of expressions:
+    \inference[ UNION ]{ 
+      \Gamma \judges E_0 : \tau_0 &
+      \Gamma \judges E_1 : \tau_1 } %
+    { \Gamma \judges E_0 \union E_1 : \tau_0 \land \tau_1 } 
   \end{gather*}
-  \caption{A system for determining if sequences of expressions have
-    a relational type.}
+  \caption{A proof system for relational types.}
   \label{fig:reltypes-rules}
 \end{figure}
-%
-\BH{define the fresh allocator}
+% introduce the has-type relation
+\BH{define the True relational type}
 %
 \BH{structure typing rules as having one rule for each form of expression}
 %
 \BH{define type-judgment system over relational types}
 %
-Relational types are assigned to program expressions, to prove that
-the expressions evaluate to equivalent values.
+\BH{define subtyping rules}
+%
+Relational types are associated with multisets of program expressions
+to prove that the expressions satisfy relational properties, such as
+functional equivalence.
 %
 \autoref{fig:reltypes-rules} contains a set of inference rules that
-define a proof system for determining if sequences of expressions have
+define a proof system for establishing that a multiset of expressions
+has a relational type.
+%
+For $\Gamma, \tau \in \reltypes$ and $E \multiset{ \expr }$, the fact
+that under $\Gamma$, $E$ has type $\tau$ is denoted $\Gamma \judges E
+: \tau$.
+
+determining if sequences of expressions have
 a relational type.
 %
 In particular, Rule~STEP0 asserts that if 

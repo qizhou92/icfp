@@ -85,7 +85,7 @@ Let $P$ be fixed for the rest of this section.
   \centering
   \begin{gather*}
   % evaluate const:
-  \inference[ CONST ]{ }{ c \evalsto c } \qquad
+  \inference[ CONST ]{ }{ c \evalsto c }
   % evaluate binary operations:
   \inference[ OP ]{ %
     e_0 \evalsto v_0 & %
@@ -95,7 +95,7 @@ Let $P$ be fixed for the rest of this section.
   \inference[ ITE-T ]{ %
     e_0 \evalsto \true & %
     e_1 \evalsto v_1 } %
-  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 } \qquad
+  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 }
   % evaluate if-then-else by else branch
   \inference[ ITE-F ]{ %
     e_0 \evalsto \false & %
@@ -103,15 +103,15 @@ Let $P$ be fixed for the rest of this section.
   { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_2 } \\
   % evaluate an abstraction:
   \inference[ ABS ]{ } %
-  { \lambda x.\ e \evalsto \lambda x.\ e } \qquad
+  { \lambda x.\ e \evalsto \lambda x.\ e }
   % evaluate a fix:
-  \inference[ FIX ]{ e[ \fix{ f }{ e } / f ] \evalsto v } %
-  { \fix{ f }{ e } \evalsto v } \qquad
+  \inference[ FIX ]{ \replace{e}{ \fix{ f }{ e } }{ f } \evalsto v } %
+  { \fix{ f }{ e } \evalsto v }
   % application:
   \inference[ APP ]{ %
     e_0 \evalsto \lambda x.\ e_0' & %
     e_1 \evalsto v_1 & %
-    e_0'[ v_1 / x ] \evalsto v }
+    \replace{ e_0' }{ v_1 }{ x } \evalsto v }
   { e_0\ e_1 \evalsto v } 
   \end{gather*}
   \caption{The natural semantics of $\stlc$.}
