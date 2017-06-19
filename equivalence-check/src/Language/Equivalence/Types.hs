@@ -214,14 +214,24 @@ freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
 
 -- need to implement get var type
 getVarSort :: Var -> Sort
-getVarSort = IntegerSort
+getVarSort _ = IntegerSort
 
 -- paritally implemented, need to figure out let
 getSort :: CoreExpr -> [Sort]
 getSort (EVar v) = [(getVarSort v)]
 getSort (EInt _) = [IntegerSort]
 getSort (EBool _) = [BoolSort]
-getSort (EBin _ e1 _) = getSort e1
+getSort (EBin op e1 _) = case op of
+  Plus -> [IntegerSort]
+  Minus -> [IntegerSort]
+  Mul -> [IntegerSort]
+  Div -> [IntegerSort]
+  Eq -> [BoolSort]
+  Ne -> [BoolSort]
+  Lt -> [BoolSort]
+  Le -> [BoolSort]
+  And -> [BoolSort]
+  Or -> [BoolSort]
 getSort (EIf _ e1 _) = getSort e1
 getSort (EApp e1 e2) = (drop (length (getSort e1)) (getSort e2))
 getSort (ELam x e) = (getVarSort x):(getSort e)
