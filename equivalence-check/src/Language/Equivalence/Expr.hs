@@ -470,16 +470,15 @@ parseSatResult =
 parseCHCResult :: Parser (Bool, (Map.Map Function Expr))
 parseCHCResult = do
   result <- parseSatResult
-  predicateSoltuions <- parens (parsePredicatesSoltuions result)
-  return (result,predicateSoltuions)
+  if result then (do predicateSoltuions <- parens (parsePredicatesSoltuions)
+                     (return (result,predicateSoltuions)))
+  else (return (result,Map.empty))
 
-parsePredicatesSoltuions :: Bool -> Parser (Map.Map Function Expr)
-parsePredicatesSoltuions result = case result of
- True  ->(do
-          reserved "fixedpoint"  
-          result <- parseAllPredicatesSoltuions
-          return result)
- False ->  return Map.empty
+parsePredicatesSoltuions :: Parser (Map.Map Function Expr)
+parsePredicatesSoltuions = do
+  reserved "fixedpoint"  
+  result <- parseAllPredicatesSoltuions
+  return result
 
 parseAllPredicatesSoltuions :: Parser (Map.Map Function Expr)
 parseAllPredicatesSoltuions = 

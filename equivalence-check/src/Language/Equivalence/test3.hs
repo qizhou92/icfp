@@ -13,9 +13,9 @@ main = do
   let two=Types.EInt 2
   let three=Types.EInt 3
   let four=Types.EInt 4
-  let coreExpr1 = Types.EBin Types.Plus one three
-  let coreExpr2 = Types.EBin Types.Plus one four
+  let coreExpr1 = Types.EBin Types.Plus one two
+  let coreExpr2 = Types.EBin Types.Plus two three
   let dEnv= []
-  let d1 = ((makeDerivations dEnv coreExpr1) !! 0)
-  let d2 = ((makeDerivations dEnv four) !! 0)
+  let d1 = ((makeDerivations dEnv coreExpr2) !! 0)
+  let d2 = ((makeDerivations dEnv coreExpr1) !! 0)
   verifyPairs d1 d2
