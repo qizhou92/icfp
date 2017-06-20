@@ -490,6 +490,29 @@ parseAllPredicatesSoltuions =
   <|>
     return Map.empty 
 
+subExpr :: (Map.Map Var Var) -> Expr -> Expr
+subExpr substitutionList originalExpr = case originalExpr of
+   ExprVar theOldVar -> if (Map.member theOldVar substitutionList) then(ExprVar (substitutionList Map.! theOldVar))
+                            else (ExprVar theOldVar)
+   MkAdd list -> MkAdd (map (subExpr substitutionList) list)
+   MkMul list -> MkMul (map (subExpr substitutionList) list)
+   MkSub list -> MkSub (map (subExpr substitutionList) list)
+   MkDiv_1 expr1 expr2 -> MkDiv_1 (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkDiv_2 expr1 expr2 -> MkDiv_2 (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkMod expr1 expr2 -> MkMod (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkRem expr1 expr2 -> MkRem (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkLt  expr1 expr2 -> MkLt (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkLe expr1 expr2 -> MkLe (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkGt expr1 expr2 -> MkGt (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkGe expr1 expr2 -> MkGe (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkEq expr1 expr2 -> MkEq (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkNot expr1 -> MkNot (subExpr substitutionList expr1) 
+   MkIff expr1 expr2 -> MkIff (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkImplies expr1 expr2 -> MkImplies (subExpr substitutionList expr1) (subExpr substitutionList expr2)
+   MkAnd list -> MkAnd (map (subExpr substitutionList) list)
+   MkOr  list -> MkOr (map (subExpr substitutionList) list)
+   _ -> originalExpr
+
 
 parseFunctionInvariant :: Parser (Function,Expr)
 parseFunctionInvariant = do
