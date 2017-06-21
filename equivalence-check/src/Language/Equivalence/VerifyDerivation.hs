@@ -27,7 +27,7 @@ instance Show DerivationNode where
 -- need translate the coreExpr
 derivationNode_short_print :: DerivationNode -> String
 derivationNode_short_print (DerivationNode list (HyperEdge smtExpr successors) value) = do
-  let string1 = "------------------------------------------------------\n"
+  let string1 = "------------------------------------------------------\n Value "++show(value)++"\n"
   let string2 = string1 ++ (decl_var_list_pretty_print list)
   let string3 = string2 ++ (show smtExpr)
   let string4 = string3 ++ "\n------------------------------------------------\n"
@@ -198,8 +198,8 @@ getVarList uniqueId index sortList = case sortList of
 getEqualExpr :: Int -> Int ->Int -> [Sort] -> [Expr]
 getEqualExpr uniqueId1 uniqueId2 index sortList = case sortList of
  x:xs -> do
-     let expr1 = (ExprVar (Var ("output!"++show(uniqueId1)++"@"++show(index)) x))
-     let expr2 = (ExprVar (Var ("output!"++show(uniqueId2)++"@"++show(index)) x))
+     let expr1 = (ExprVar (Var ("output!"++show(uniqueId1)) x))
+     let expr2 = (ExprVar (Var ("output!"++show(uniqueId2)) x))
      let eqExpr = MkEq expr1 expr2
      eqExpr:(getEqualExpr uniqueId1 uniqueId2 (index+1) xs)
  [] -> []
@@ -230,8 +230,8 @@ generateQuery (DerivationNode varlist1 h1 i1) (DerivationNode varlist2 h2 i2) de
 
 generateArgSmtExpr :: Int -> Int -> (Types.Var , Types.CoreExpr) -> Expr
 generateArgSmtExpr uniqueId1 uniqueId2 ((Types.Var name),_) = do
-   let expr1 = (ExprVar (Var (show(name)++"!"++show(uniqueId1)) IntegerSort))
-   let expr2 = (ExprVar (Var (show(name)++"!"++show(uniqueId2)) IntegerSort))
+   let expr1 = (ExprVar (Var (name++"!"++show(uniqueId1)) IntegerSort))
+   let expr2 = (ExprVar (Var (name++"!"++show(uniqueId2)) IntegerSort))
    MkEq expr1 expr2
 
 
@@ -299,6 +299,7 @@ updateCHC oldPredicate oldCHC = do
   let newCHC2 = foldr updateSplitRule newCHC1 splitRuleList
   let newPrediactList = (map getStepPredicates stepRuleList) ++ (concat (map getSplitPredicates splitRuleList))
   (newCHC2,newPrediactList)
+  -- (concat (map getSplitPredicates splitRuleList))
 
 
 getStepPredicates :: (Rule,PairRelatingSet) -> PairRelatingSet
@@ -335,15 +336,19 @@ getPairOfNewRelationSetRight (PairRelatingSet oldLeft oldRight) (newRight1,newRi
  (rule,newPairRelatings)
 
 splitRelationSet :: [DerivationNode] -> [([DerivationNode],[DerivationNode])]
-splitRelationSet  list = case list of
-  x:xs -> eliminateEmptyPair (map (getSplitPair list) (getPowerSet xs))
-  _ -> []
+splitRelationSet  list = eliminateEmptyPair (easySplit ((length list) -1) list)
+
+easySplit :: Int -> [DerivationNode] -> [([DerivationNode],[DerivationNode])]
+easySplit index list =
+  if index > 0 then (splitAt index list):(easySplit (index-1) list)
+    else []
 
 eliminateEmptyPair :: [([DerivationNode],[DerivationNode])] -> [([DerivationNode],[DerivationNode])]
 eliminateEmptyPair = filter (\(x1, x2) -> not (null x1) && not (null x2))
 
 getSplitPair :: [DerivationNode] -> [DerivationNode] -> ([DerivationNode],[DerivationNode])
 getSplitPair list sublist = ( (list List.\\ sublist) , sublist )
+
 
 getPowerSet :: [DerivationNode] -> [ [DerivationNode] ]
 getPowerSet theList = case theList of
@@ -354,8 +359,8 @@ getPowerSet theList = case theList of
 
 getAllStepRules :: PairRelatingSet -> [ (Rule,PairRelatingSet) ] 
 getAllStepRules (PairRelatingSet left right) = do
- let list1 = getAllRules 0 left
- let list2 = getAllRules 0 right
+ let list1 = getFirstRules left
+ let list2 = getFirstRules right
  let firstResult = map (getRulesAndPairRelatingSetLeft (PairRelatingSet left right)) list1
  let secondResult = map (getRulesAndPairRelatingSetRight (PairRelatingSet left right)) list2
  firstResult ++ secondResult
@@ -386,7 +391,15 @@ eliminateNullPredicate list = case list of
 getAllRules :: Int -> [DerivationNode] -> [(Expr,[DerivationNode])]
 getAllRules index list
   | index < length list = (getSuccessors index list) : (getAllRules (index+1) list)
-  | otherwise = []    
+  | otherwise = []
+
+getFirstRules :: [DerivationNode] -> [(Expr,[DerivationNode])]
+getFirstRules list = case list of
+  x:xs -> do 
+           let (smtExpr,newList) = (getSuccessors 0 list)
+           if (((length newList) > 2) && ((length list) /= 1)) then []
+             else [(smtExpr,newList)] 
+  _ -> []
 
 getSuccessors :: Int -> [DerivationNode] ->(Expr ,[DerivationNode])
 getSuccessors index list = do
