@@ -223,9 +223,11 @@ parseConstant  _ =
          <|> (reserved "false" >> return (ExprConstant (ConstantBool False)))
          <|> (do 
               value <- int
+              spaces
               return (ExprConstant (ConstantInt value)))
          <|> (do
               value <- floating
+              spaces
               return (ExprConstant (ConstantReal value))
               )
 
