@@ -5,6 +5,30 @@ import Language.Equivalence.Types
 import qualified Data.List as L 
 
 
+
+predecessors :: CoreExpr -> [CoreExpr]
+predecessors (EInt _) = []
+predecessors (EBool _) = []
+predecessors ENil = []
+predecessors (EVar _) = []
+predecessors (EBin _ e1 e2) = [e1, e2]
+predecessors (EIf e1 e2 e3) = [e1, e2, e3]
+predecessors (ELam _ _) = []
+predecessors (EFix _ _) = []
+predecessors (EApp e1 e2) = predecessorsApp e1 e2 
+predecessors e@(ELet x ex e')
+  | isFix e 
+  = predecessors (subst (x, EFix x ex) e')
+  | otherwise 
+  = predecessors (subst (x,ex) e)
+
+-- NV This does not make sense: should I evaluate it?
+predecessorsApp :: CoreExpr -> CoreExpr -> [CoreExpr]
+predecessorsApp e1 e2 = [e1, e2]
+
+
+
+
 -------------------------------------------------------------------------------
 ------- | Derivations with History of choices ---------------------------------
 -------------------------------------------------------------------------------

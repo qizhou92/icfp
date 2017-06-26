@@ -15,6 +15,7 @@ import Language.Equivalence.Expr hiding (Var)
 import qualified Data.Map   as M
 
 import System.Exit
+import Debug.Trace (trace)
 
 -------------------------------------------------------------------------------
 -- | verify -------------------------------------------------------------------
@@ -28,19 +29,18 @@ verify (x1, p0) (x2, p1) = do
   putStrLn (show $ makeDerivations [] p1)
   putStrLn ("DERIVATIONS FOR P1 APPLIED = " ++ show x1 ++ " = ")
   putStrLn (show $ makeDerivations [] (EApp p0 (EInt 0)) )
-  Result (x1, x2) <$> vAux (initDerivations p0) (initDerivations p1) mempty
+  Result (x1, x2) <$> vAux mempty
   where
-    vAux :: Derivations -> Derivations -> DersInvs -> IO Bool
-    vAux ders1 ders2 i = do
+    vAux :: DersInvs -> IO Bool
+    vAux i = do
       ires <- checkInd p0 p1 i
       case ires of
         IsInd -> return True
-        NonInd -> do let (ders1', d1) = unwind ders1 
-                     let (ders2', d2) = unwind ders2
-                     vders <- verifyDers d1 d2
-                     case vders of
-                      Nothing -> return False
-                      Just i' -> vAux ders1' ders2' (i <> i')
+        IndDers d1 d2 -> do
+          vders <- verifyDers d1 d2
+          case vders of
+            Nothing -> return False
+            Just i' -> vAux (i <> i')
 
 -------------------------------------------------------------------------------
 -- | checkInd -----------------------------------------------------------------
@@ -65,34 +65,48 @@ checkInd _p0 _p1 iγ  = cAux mempty mempty (const mempty)
           i1  <- or <$> mapM (\(γ1', γ1'') -> bothIsInd <$> cAux γ0 γ1' ie' <*> cAux γ0 γ1'' ie') (tiles γ1) 
           if i0 || i1  
             then return IsInd
-            else return NonInd -- NV CHECK chooseRes <$> unwind p0 γ0 γ1 ie' <*> unwind p1 γ0 γ1 ie'
+            else chooseRes <$> unwind ie' γ0 γ1  <*> unwind ie' γ1 γ0 
       where
         e  = (hd γ0, hd γ1)
         φe = ie e  
         φγ = dersInvsLookup (γ0,γ1) iγ
 
+    unwind :: ((CoreExpr, CoreExpr) -> Invariant) -> DerCtxs -> DerCtxs -> IO IndRes
+    unwind i γ0 (DerCtxs es) 
+      = untilInd (extract es <$> [1..length es]) 
+      where
+        untilInd []       = error "unwind"
+        untilInd [γ1]     = cAux γ0 (makeContext γ1) i 
+        untilInd (γ1:γ1s) = do res <- cAux γ0 (makeContext γ1) i
+                               case res of 
+                                IsInd -> return IsInd
+                                _ ->  untilInd γ1s
+
+
+makeContext :: ([CoreExpr], CoreExpr) -> DerCtxs
+makeContext (xs,x) = 
+  DerCtxs (trace ("PREDESESSORS OF " ++ show x ++ " ARE "  ++ show (predecessors x)) (predecessors x) ++ xs) 
+
+extract :: [a] -> Int -> ([a],a)
+extract xs i = go [] xs i 
+  where
+    go acc (x:xs) 1 = ((reverse acc)++xs,x)
+    go acc (x:xs) i = go (x:acc) xs (i-1)
+    go _ _ _ = error "extract"
+
 bothIsInd :: IndRes -> IndRes -> Bool
 bothIsInd IsInd IsInd = True 
 bothIsInd _ _         = False 
 
--- NV CHECL 
-_chooseRes :: IndRes -> IndRes -> IndRes
-_chooseRes IsInd _ = IsInd
-_chooseRes _ IsInd = IsInd
-_chooseRes x _     = x 
+chooseRes :: IndRes -> IndRes -> IndRes
+chooseRes IsInd _ = IsInd
+chooseRes _ IsInd = IsInd
+chooseRes x _     = x 
 
 chooseDer :: (CoreExpr, CoreExpr) -> IO IndRes
 chooseDer (e0, e1) 
   = putStrLn ("chooseDer on " ++ show (e0,e1))
      >> exitWith (ExitFailure 0)
-
-
--------------------------------------------------------------------------------
--- | unwind -------------------------------------------------------------------
--------------------------------------------------------------------------------
--- NV CHECK 
--- unwind :: CoreExpr -> DerCtxs -> DerCtxs -> a -> IO IndRes
--- unwind = error "TODO: unwind"
 
 
 -------------------------------------------------------------------------------
@@ -107,7 +121,7 @@ verifyDers _ _ = error "TODO: qizhou"
 -- | Data Structures ----------------------------------------------------------
 -------------------------------------------------------------------------------
 
-data IndRes  = IsInd | NonInd -- NV CHECK IndDers {_indRes0 :: Der, _indRes1 :: Der}
+data IndRes  = IsInd | IndDers {_indRes0 :: Der, _indRes1 :: Der}
 
 data DerCtxs = DerCtxs [CoreExpr]
   deriving (Eq, Ord, Show)

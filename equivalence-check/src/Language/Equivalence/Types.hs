@@ -221,7 +221,7 @@ getSort :: CoreExpr -> [Sort]
 getSort (EVar v) = [(getVarSort v)]
 getSort (EInt _) = [IntegerSort]
 getSort (EBool _) = [BoolSort]
-getSort (EBin op e1 _) = case op of
+getSort (EBin op _ _) = case op of
   Plus -> [IntegerSort]
   Minus -> [IntegerSort]
   Mul -> [IntegerSort]
@@ -232,6 +232,7 @@ getSort (EBin op e1 _) = case op of
   Le -> [BoolSort]
   And -> [BoolSort]
   Or -> [BoolSort]
+  Cons -> []
 getSort (EIf _ e1 _) = getSort e1
 getSort (EApp e1 e2) = (drop (length (getSort e1)) (getSort e2))
 getSort (ELam x e) = (getVarSort x):(getSort e)
