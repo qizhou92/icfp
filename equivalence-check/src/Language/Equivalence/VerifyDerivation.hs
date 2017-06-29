@@ -3,10 +3,12 @@ import Language.Equivalence.CHC
 import Language.Equivalence.Expr
 import qualified Data.Set as Set
 import qualified Data.List as List
+import Data.List.Split
 import Language.Equivalence.Verify
 import Language.Equivalence.Derivations
 import qualified Language.Equivalence.Types as Types
 import System.Process
+import qualified Data.Map as Map
 -- Subexprssion is the data type represents the subexprrsion in derivation, first argument
 -- string represents the name of the subexprssion, second argument list of string represents the list of variable name
 -- Int represents the count of SubExprssion
@@ -147,11 +149,10 @@ translateRNAppLam uniqueId (Der ruleName env _ coreExpr list) = do
   let ((DerivationNode varlist1 h1 i1),nextId) = translateDT uniqueId firstDer
   let ((DerivationNode varlist2 h2 i2),nextId2) = translateDT nextId secondDer
   let ((DerivationNode varlist3 h3 i3),nextId3) = translateDT nextId2 thirdDer
-  let smtExpr = ((bindingArgs (doutExpr firstDer) i2 i3):(outputEquals coreExpr i3 nextId3))
+  let smtExpr = (outputEquals coreExpr i3 nextId3)
   let freeVariablesEqual1 = freeVariablesEqual (denv firstDer) i1 nextId3 []
   let freeVariablesEqual2 = freeVariablesEqual (denv secondDer) i2 nextId3 []
-  let (Types.ELam var1 _) = doutExpr firstDer
-  let freeVariablesEqual3 = freeVariablesEqual (denv thirdDer) i3 nextId3 [var1]
+  let freeVariablesEqual3 = freeVariablesEqual (denv thirdDer) i3 nextId3 []
   let finalSmtExpr = MkAnd (smtExpr ++ freeVariablesEqual1 ++ freeVariablesEqual2 ++ freeVariablesEqual3)
   let newHyperEdge = HyperEdge finalSmtExpr [(DerivationNode varlist1 h1 i1),(DerivationNode varlist2 h2 i2),(DerivationNode varlist3 h3 i3)]
   let newVarlist = (getFreeVarList nextId3 env) ++ (getVarList nextId3 1 (Types.getSort coreExpr))
@@ -213,7 +214,7 @@ getEqualExpr uniqueId1 uniqueId2 index sortList = case sortList of
  [] -> []
 
 
-verifyPairs :: Der -> Der -> IO Bool
+verifyPairs :: Der -> Der -> IO (Bool,(Map.Map Function Expr))
 verifyPairs tree1 tree2 = do
   let (node1,number) = translateDT 0 tree1
   let (node2,number2) = translateDT number tree2
@@ -225,7 +226,7 @@ verifyPairs tree1 tree2 = do
   let emptyCHC = CHC [] [] (varList1++varList2) query
   let theCHC = getAllRulesOfCHC startSet Set.empty emptyCHC
   (result,theMap) <- chc_execute theCHC
-  return result
+  return (result,theMap)
 
 generateQuery :: DerivationNode ->DerivationNode -> DEnv -> Expr
 generateQuery (DerivationNode varlist1 h1 i1) (DerivationNode varlist2 h2 i2) denv = do
@@ -414,3 +415,8 @@ getSuccessors index list = do
   let DerivationNode _ (HyperEdge expr successors) _= list !! index
   let (x1,x2) = splitAt index list
   (expr,(x1 ++ (successors ++ (tail x2))))
+
+getIdList :: String -> [Int]
+getIdList name = do
+  let list = drop 1 name
+  map read (splitOn "!" list)

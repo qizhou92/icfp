@@ -2,8 +2,6 @@ module Language.Equivalence.Derivations where
 
 import Language.Equivalence.Types
 
-import qualified Data.List as L 
-
 
 
 predecessors :: CoreExpr -> [CoreExpr]
@@ -82,11 +80,8 @@ makeDerivations denv e@(EInt _)
   = return $ Der RNConst denv e e []
 makeDerivations denv e@(EBool _) 
   = return $ Der RNConst denv e e [] 
-makeDerivations denv e@(EVar x) 
-  | Just ex <- L.lookup x denv  
-  = return $ Der RNVar denv e ex []
-  | otherwise 
-  = error ("makeDerivations failed on EVar: "  ++ show x)
+makeDerivations denv e@(EVar _) 
+  = return $ Der RNVar denv e e []
 makeDerivations denv e@(EBin bop e1 e2) 
   = do d1 <- makeDerivations denv e1
        d2 <- makeDerivations denv e2 
@@ -101,8 +96,9 @@ makeDerivations denv e@(EIf b e1 e2)
         Der RNIteFalse denv e (doutExpr d2) [dcondition,d2]]  
 makeDerivations denv e@(ELam _ _)
   = return $ Der RNAbs denv e e [] 
-makeDerivations denv e@(EFix _ _)
-  = return $ Der RNFix denv e e [] 
+makeDerivations denv e@(EFix var e1)
+  = do d1 <-makeDerivations denv (substituteCoreExpr (var,(EFix var e1)) e1)
+       return $ Der RNFix denv e (doutExpr d1) [d1] 
 makeDerivations denv e@(EApp e1 e2)
   = do d1 <- makeDerivations denv e1 
        makeAppDerivations denv e d1 (doutExpr d1) e1 e2 
@@ -116,17 +112,23 @@ makeDerivations _ e@ENil
 
 
 makeAppDerivations :: DEnv -> CoreExpr -> Der -> CoreExpr -> CoreExpr -> CoreExpr -> [Der]
-makeAppDerivations denv e d1 (EFix x e1') _ e2 
-  = do d2 <- makeDerivations ((x,EFix x e1'):denv) (EApp e1' e2)
-       return $ Der RNAppFix denv e (doutExpr d2) [d1, d2]
 makeAppDerivations denv e d1 (ELam x e1') _ e2 
   = do d2 <- makeDerivations denv e2
-       d3 <- makeDerivations ((x, doutExpr d2):denv) e1'
+       d3 <- makeDerivations denv (substituteCoreExpr (x, (doutExpr d2)) e1')
        return $ Der RNAppLam denv e (doutExpr d3) [d1, d2, d3]
 makeAppDerivations _ _ _ e _ e2 
   = error ("makeAppDerivations without Lam: " ++ exprString e ++ "\nTO\n" ++ exprString e2)
 
 
+substituteCoreExpr :: (Var,CoreExpr) -> CoreExpr -> CoreExpr
+substituteCoreExpr (variable,value) originalCoreExpr = case originalCoreExpr of
+  EVar var-> if var == variable then value else (EVar var)
+  EBin op c1 c2 -> EBin op (substituteCoreExpr (variable,value) c1) (substituteCoreExpr (variable,value) c2)
+  EIf c1 c2 c3 -> EIf (substituteCoreExpr (variable,value) c1) (substituteCoreExpr (variable,value) c2) (substituteCoreExpr (variable,value) c3)
+  EApp c1 c2 -> EApp (substituteCoreExpr (variable,value) c1) (substituteCoreExpr (variable,value) c2)
+  ELam v1 c1 -> if v1 == variable then ELam v1 c1 else ELam v1 (substituteCoreExpr (variable,value) c1)
+  ELet v1 c1 c2 -> ELet v1 (substituteCoreExpr (variable,value) c1) (substituteCoreExpr (variable,value) c2)
+  _ ->originalCoreExpr
 
 eBin :: Binop -> CoreExpr -> CoreExpr -> CoreExpr
 eBin Plus  (EInt n)  (EInt m)  = EInt (n + m)
