@@ -45,8 +45,8 @@ unwind (DS dd [] [])      = (DS dd [] [], dd)
 initDerivations :: CoreExpr -> Derivations
 initDerivations e = DS dd ds [] 
   where 
-    ds = makeDerivations [] e
-    dd = if null ds then Der RAAssume [] e e [] else head ds 
+    ds = makeDerivations [] e e
+    dd = if null ds then Der RAAssume [] e e e[] else head ds 
 
 
 -------------------------------------------------------------------------------
@@ -56,7 +56,8 @@ initDerivations e = DS dd ds []
 data Der     = Der {drulename :: RuleName, 
                     denv      :: DEnv, 
                     dinExpr   :: CoreExpr, 
-                    doutExpr  :: CoreExpr, 
+                    doutExpr  :: CoreExpr,
+                    annotedExpr :: CoreExpr,
                     dpremises :: [Der]} 
 
 type DEnv    = [(Var, CoreExpr)]
@@ -70,53 +71,71 @@ data RuleName = RNConst | RNVar | RNOp | RNIteTrue | RNIteFalse | RNAbs
 unwindDer :: Der -> [Der]
 unwindDer der 
   | drulename der == RASymbolic
-  = makeDerivations (denv der) (dinExpr der)
+  = makeDerivations (denv der) (dinExpr der) (annotedExpr der)
   | otherwise
   = do dds <- mapM unwindDer (dpremises der)
        return $ der {dpremises = dds}
 
-makeDerivations :: DEnv -> CoreExpr -> [Der]
-makeDerivations denv e@(EInt _)  
-  = return $ Der RNConst denv e e []
-makeDerivations denv e@(EBool _) 
-  = return $ Der RNConst denv e e [] 
-makeDerivations denv e@(EVar _) 
-  = return $ Der RNVar denv e e []
-makeDerivations denv e@(EBin bop e1 e2) 
-  = do d1 <- makeDerivations denv e1
-       d2 <- makeDerivations denv e2 
-       return $ Der RNOp denv e (eBin bop (doutExpr d1) (doutExpr d2)) [d1,d2] 
-makeDerivations denv e@(EIf b e1 e2) 
-  = do dcondition <- makeDerivations denv b 
-       d1 <- makeDerivations denv e1 
-       d2 <- makeDerivations denv e2 
+makeDerivations :: DEnv -> CoreExpr->CoreExpr-> [Der]
+makeDerivations denv e@(EInt _) e1
+  = return $ Der RNConst denv e e e1 []
+makeDerivations denv e@(EBool _) e1
+  = return $ Der RNConst denv e e e1[] 
+makeDerivations denv e@(EVar _) e1
+  = return $ Der RNVar denv e e e1 []
+makeDerivations denv e@(EBin bop e1 e2) e3@(EBin _ e4 e5)
+  = do d1 <- makeDerivations denv e1 e4
+       d2 <- makeDerivations denv e2 e5
+       return $ Der RNOp denv e (eBin bop (doutExpr d1) (doutExpr d2)) e3 [d1,d2]
+makeDerivations denv e@(EBin bop e1 e2) e3
+  = do d1 <- makeDerivations denv e1 e1
+       d2 <- makeDerivations denv e2 e2
+       return $ Der RNOp denv e (eBin bop (doutExpr d1) (doutExpr d2)) e3 [d1,d2] 
+makeDerivations denv e@(EIf b e1 e2) e3@(EIf b2 e4 e5)
+  = do dcondition <- makeDerivations denv b b2
+       d1 <- makeDerivations denv e1 e4
+       d2 <- makeDerivations denv e2 e5
        -- d1 <- makeDerivations (i-1) denv e1
        -- d2 <- makeDerivations (i-1) denv e2 
-       [Der RNIteTrue denv e (doutExpr d1) [dcondition,d1],
-        Der RNIteFalse denv e (doutExpr d2) [dcondition,d2]]  
-makeDerivations denv e@(ELam _ _)
-  = return $ Der RNAbs denv e e [] 
-makeDerivations denv e@(EFix var e1)
-  = do d1 <-makeDerivations denv (substituteCoreExpr (var,(EFix var e1)) e1)
-       return $ Der RNFix denv e (doutExpr d1) [d1] 
-makeDerivations denv e@(EApp e1 e2)
-  = do d1 <- makeDerivations denv e1 
-       makeAppDerivations denv e d1 (doutExpr d1) e1 e2 
-makeDerivations denv e@(ELet x ex e') 
+       [Der RNIteTrue denv e (doutExpr d1) e3 [dcondition,d1],
+        Der RNIteFalse denv e (doutExpr d2) e3 [dcondition,d2]]
+makeDerivations denv e@(EIf b e1 e2) e3
+  = do dcondition <- makeDerivations denv b b
+       d1 <- makeDerivations denv e1 e1
+       d2 <- makeDerivations denv e2 e2
+       -- d1 <- makeDerivations (i-1) denv e1
+       -- d2 <- makeDerivations (i-1) denv e2 
+       [Der RNIteTrue denv e (doutExpr d1) e3 [dcondition,d1],
+        Der RNIteFalse denv e (doutExpr d2) e3 [dcondition,d2]]   
+makeDerivations denv e@(ELam _ _) e1
+  = return $ Der RNAbs denv e e e1 [] 
+makeDerivations denv e@(EFix var e1) e2@(EFix var2 e3)
+  = do d1 <-makeDerivations denv (substituteCoreExpr (var,(EFix var e1)) e1) (substituteCoreExpr (var2,(EFix var2 e3)) e3)
+       return $ Der RNFix denv e (doutExpr d1) e2 [d1]
+makeDerivations denv e@(EFix var e1) e2
+  = do d1 <-makeDerivations denv (substituteCoreExpr (var,(EFix var e1)) e1) (substituteCoreExpr (var,(EFix var e1)) e1)
+       return $ Der RNFix denv e (doutExpr d1) e2 [d1]
+makeDerivations denv e@(EApp e1 e2) e3@(EApp e4 _)
+  = do d1 <- makeDerivations denv e1 e4
+       makeAppDerivations denv e d1 (doutExpr d1) e1 e2 e3
+makeDerivations denv e@(EApp e1 e2) e3
+  = do d1 <- makeDerivations denv e1 e1
+       makeAppDerivations denv e d1 (doutExpr d1) e1 e2 e3
+makeDerivations denv e@(ELet x ex e') e3
   | isFix e 
-  = makeDerivations denv (subst (x, EFix x ex) e')
-makeDerivations denv (ELet x ex e) 
-  = makeDerivations denv (subst (x,ex) e) 
-makeDerivations _ e@ENil 
+  = makeDerivations denv (subst (x, EFix x ex) e') e3
+makeDerivations denv (ELet x ex e) e3
+  = makeDerivations denv (subst (x,ex) e) e3
+makeDerivations _ e@ENil _
   = error ("makeDerivations: undefined on " ++ show e)
 
 
-makeAppDerivations :: DEnv -> CoreExpr -> Der -> CoreExpr -> CoreExpr -> CoreExpr -> [Der]
-makeAppDerivations denv e d1 (ELam x e1') _ e2 
-  = do d2 <- makeDerivations denv e2
-       d3 <- makeDerivations denv (substituteCoreExpr (x, (doutExpr d2)) e1')
-       return $ Der RNAppLam denv e (doutExpr d3) [d1, d2, d3]
-makeAppDerivations _ _ _ e _ e2 
+makeAppDerivations :: DEnv -> CoreExpr -> Der -> CoreExpr -> CoreExpr -> CoreExpr ->CoreExpr ->[Der]
+makeAppDerivations denv e d1 (ELam x e1') _ e2 e3
+  = do d2 <- makeDerivations denv e2 (EVar x)
+       d3 <- makeDerivations denv (substituteCoreExpr (x, (doutExpr d2)) e1') e1'
+       return $ Der RNAppLam denv e (doutExpr d3) e3 [d1, d2, d3]
+makeAppDerivations _ _ _ e _ e2 _
   = error ("makeAppDerivations without Lam: " ++ exprString e ++ "\nTO\n" ++ exprString e2)
 
 

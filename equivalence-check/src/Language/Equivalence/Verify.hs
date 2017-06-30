@@ -24,11 +24,11 @@ import Debug.Trace (trace)
 verify :: Bind -> Bind -> IO Result
 verify (x1, p0) (x2, p1) = do 
   putStrLn ("DERIVATIONS FOR P0 = " ++ show x1 ++ " = ")
-  putStrLn (show $  makeDerivations [] p0)
+  putStrLn (show $  makeDerivations [] p0 p0)
   putStrLn ("DERIVATIONS FOR P1 = " ++ show x2 ++ " = ")
-  putStrLn (show $ makeDerivations [] p1)
+  putStrLn (show $ makeDerivations [] p1 p1)
   putStrLn ("DERIVATIONS FOR P1 APPLIED = " ++ show x1 ++ " = ")
-  putStrLn (show $ makeDerivations [] (EApp p0 (EInt 0)) )
+  putStrLn (show $ makeDerivations [] (EApp p0 (EInt 0)) (EApp p0 (EInt 0)))
   Result (x1, x2) <$> vAux mempty
   where
     vAux :: DersInvs -> IO Bool
