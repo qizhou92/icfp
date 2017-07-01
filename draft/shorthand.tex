@@ -11,6 +11,8 @@
 
 \newcommand{\arityof}[1]{\mathsf{Arity}_{#1}}
 
+\newcommand{\atomics}{\mathsf{Atomics}}
+
 \newcommand{\bodies}[1]{\mathsf{Bodies}_{#1}}
 
 \newcommand{\bodyof}[1]{\mathsf{Body}_{#1}}
@@ -23,7 +25,7 @@
 
 \newcommand{\chcs}[1]{\mathsf{CHCs}[ #1 ]}
 
-\newcommand{\chkindaux}{\textsc{CAux}\xspace}
+\newcommand{\chkindaux}{\textsc{ChkAux}\xspace}
 
 \newcommand{\chkinductive}{\textsc{ChkInd}\xspace}
 
@@ -65,7 +67,7 @@
 
 \newcommand{\dersubtrees}[1]{\mathsf{DerSubTrees}[ #1 ]}
 
-\newcommand{\dertrees}[2]{\mathsf{DerTrees}[ #1, #2 ]}
+\newcommand{\evalders}[2]{\mathsf{EvalDers}[ #1, #2 ]}
 
 \newcommand{\evalrules}{\mathsf{EvalRules}}
 
@@ -81,6 +83,12 @@
 
 \newcommand{\fix}[2]{\cc{fix}\ #1\ #2}
 
+\newcommand{\fixexpr}[1]{ \mathsf{FixExpr}[ #1 ] }
+
+\newcommand{\fixexps}{\mathsf{Exprs}_{\cc{fix}}}
+
+\newcommand{\fixvars}{\mathsf{FixVars}}
+
 \newcommand{\fns}{\mathsf{Fns}}
 
 \newcommand{\formulas}[1]{\mathsf{Forms}[ #1 ]}
@@ -88,8 +96,6 @@
 \newcommand{\freevars}{\mathsf{FreeVars}}
 
 \newcommand{\fresh}{\mathsf{Fresh}}
-
-\newcommand{\hastype}{\vdash}
 
 \newcommand{\head}[1]{\mathsf{hd}[ #1 ]}
 
@@ -130,6 +136,8 @@
 \newcommand{\nonequiv}{\mathsf{NonEquiv}}
 
 \newcommand{\ops}{\mathsf{ops}}
+
+\newcommand{\orgexprs}{\mathsf{Orgs}}
 
 \newcommand{\subtype}{\preceq}
 
@@ -209,9 +217,13 @@
 
 \newcommand{\types}{\mathsf{Types}}
 
+\newcommand{\unfoldings}[1]{\mathsf{Unfoldings}[ #1 ]}
+
+\newcommand{\unfoldreltypes}[2]{\mathsf{UnfoldTypes}[ #1, #2 ]}
+
 \newcommand{\unify}{\mathsf{Unify}}
 
-\newcommand{\unwind}[1]{\textsc{Unwind}[ #1 ]\xspace}
+\newcommand{\unwind}{\textsc{Unwind}\xspace}
 
 \newcommand{\values}{\mathsf{Values}}
 

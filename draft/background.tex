@@ -111,7 +111,7 @@ Let $P$ be fixed for the rest of this section.
   \inference[ APP ]{ %
     e_0 \evalsto \lambda x.\ e_0' & %
     e_1 \evalsto v_1 & %
-    \replace{ e_0' }{ v_1 }{ x } \evalsto v }
+    \replace{ e_0' }{ x }{ v_1 } \evalsto v }
   { e_0\ e_1 \evalsto v } 
   \end{gather*}
   \caption{The natural semantics of $\stlc$.}
@@ -160,32 +160,32 @@ a particular expression has a particular value.
 %
 \begin{defn}
   For $e \in \subexps{P}$, the \emph{derivation trees} of $e$ in $P$,
-  denoted $\dertrees{P}{e}$, is the smallest space such that for each
+  denoted $\evalders{P}{e}$, is the smallest space such that for each
   $r \in \instrules{P}$ with predecessors $\rulepreds{r} = e_0,
   \ldots, e_n \in \subexps{P}$, and derivation trees $D_0 \in
-  \dertrees{P}{e_0}, \ldots, D_n \in \dertrees{P}{e_n}$, it holds that
-  $(D_0, \ldots, D_n, r) \in \dertrees{P}{\rulesucc{r}}$.
+  \evalders{P}{e_0}, \ldots, D_n \in \evalders{P}{e_n}$, it holds that
+  $(D_0, \ldots, D_n, r) \in \evalders{P}{\rulesucc{r}}$.
 \end{defn}
 %
 For each $P \in \stlc$, the derivations of $P$ are denoted as simply
-$\progders{P} = \dertrees{P}{P}$.
+$\progders{P} = \evalders{P}{P}$.
 
 % define evaluation under derivations:
 For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
 such that $\Gamma \judges e \evalsto v$, there is some $D \in
-\dertrees{P}{e}$ that is evidence of evaluation.
+\evalders{P}{e}$ that is evidence of evaluation.
 %
 This fact is denoted $\Gamma \judges_D e \evalsto v$.
 
 % define equivalence of derivations:
-For all $P_0, P_1 \in \stlc$, $D_0 \in \dertrees{P_0}{P_0}$, $D_1 \in
-\dertrees{P_0}{P_0}$, $\Gamma \in \ctxs$, and $v_0, v_1 \in \values$
+For all $P_0, P_1 \in \stlc$, $D_0 \in \evalders{P_0}{P_0}$, $D_1 \in
+\evalders{P_0}{P_0}$, $\Gamma \in \ctxs$, and $v_0, v_1 \in \values$
 such that $\Gamma \judges_{D_0} P_0 \evalsto v_0$ and $\Gamma
 \judges{D_1} P-1 \evalsto v_1$ it holds that $v_0 = v_1$, then $D_0$
 is \emph{equivalent} to $D_1$, denoted $D_0 \equiv D_1$.
 
 % define derivation contexts:
-For each $d \in \dertrees{P_0}{P_0}$ and $d' \in \subders{d}$, the
+For each $d \in \evalders{P_0}{P_0}$ and $d' \in \subders{d}$, the
 position of $d'$ within $d$ is defined by the sequence of rules paired
 with indices of premises in the rules under which $d'$ occurs in $d$.
 %
@@ -193,7 +193,7 @@ The space of derivation contexts of all sub-derivations of $d$ is
 denoted $\derctxs{d} = (\instrules{P} \times \nats)^{*}$.
 %
 The derivation contexts of all derivations of $P$ is denoted
-$\derctxs{P} = \bigunion_{ d \in \dertrees{P} } \derctxs{ d }$.
+$\derctxs{P} = \bigunion_{ d \in \evalders{P} } \derctxs{ d }$.
 %
 For each $\gamma \in \derctxs{d}$, the last instantiated rule applied
 in $d$ to build the sub-derivation at context $\gamma$ is denoted
@@ -225,8 +225,9 @@ We will relax this restriction in future work.
   paper}
 
 % introduce has-type symbol:
-For expression $e \in \expr$ and type $\tau \in \types$, the fact that
-$e$ has type $\tau$ is denoted $e \hastype \tau$.
+For expression $e \in \expr$, typing context $\Gamma : \vars \to
+\types$, and type $\tau \in \types$, the fact that $e$ \emph{has type}
+$\tau$ under $\Gamma$ is denoted $\Gamma \judges e : \tau$.
 %
 The definition of the has-type relation is standard.
 
