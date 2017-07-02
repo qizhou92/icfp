@@ -1,5 +1,3 @@
--- @checkEq add0 add1
-
 add0 x =
   let go0 x =
     if 0 < x then

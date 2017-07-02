@@ -1,0 +1,2 @@
+rec mult x y =
+if y=0 then 0 else x + mult x (y-1)
