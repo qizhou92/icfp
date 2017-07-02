@@ -315,35 +315,36 @@ types.
   \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
   % verify: main procedure
   \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:core-begin}} %
-  { \myproc{$\verifyaux(T \in \unfoldreltypes{ P_0 }{ P_1 })$ %
-      \label{line:core-aux-begin} }{ %
-      % check if the solution is inductive:
-      \Switch{$\chkinductive(T)$ %
-        \label{line:core-chkind} }{ %
-        \lCase{$\isind$}{ %
-          % case: it is. Return that P0, P1 are equivalent.
-          \Return{$\true$} \label{line:core-ret-equiv} %
-        } %
-        \Case{$d_0 \in \progders{ \cc{P}_0 }$, %
-          $d_1 \in \progders{ \cc{P}_1 }$ %
-          \label{line:core-case-cex}}{ %
-          \Switch{$\verifyders(d_0, d_1)$ \label{line:core-vders} }{ %
-            \lCase{$\nonequiv$: \label{line:core-subcase-non-equiv} }{ %
-              \Return{$\false$} \label{line:core-ret-non-equiv} } %
-            \lCase{$T' \in \unfoldreltypes{ P_0 }{ P_1 }$: %
-              \label{line:core-subcase-invs} }{ %
-              \Return{ $\verifyaux(\mergeinvs(T, T'))$ } %
-              \label{line:core-recurse}
-            } %
-          } %
-        } %
-      } %
-    } \label{line:core-aux-end} %
-    \Return{$\verifyaux(\emptyset)$} \label{line:core-base} } %
+  { \myproc{$\verifyaux(\cc{P}_0' \in \unfoldings{ \cc{P}_0 }, %
+      \cc{P}_1' \in \unfoldings{ \cc{P}_1 })$}{ %
+      % try to verify the unfoldings:
+      \Switch{$\verifyunfoldings(\cc{P}_0, \cc{P}_1)$}{
+        % if the verifier returns that the unfoldings aren't equivalent
+        \lCase{$\nonequiv$}{ 
+          % then the top-level returns that the programs aren't
+          % equivalent
+          \Return{$\false$} }
+        % if the verifier returns relational types of the unfoldings:
+        \lCase{$T \in \reltypes{ P_0 }{ P_1 }$}{ %
+          % then check if they're inductive:
+          \Switch{$\chkinductive(T)$}{ 
+            \lCase{$\isind$}{ \Return{$\true$} }
+            \lCase{ %
+              $\cc{P}_0'' \in \unfoldings{ \cc{P}_0 }, %
+              \cc{P}_1'' \in \unfoldings{ \cc{P}_1 }$}{
+              \Return{$\verifyaux(\cc{P}_0'', \cc{P}_1'')$}
+            }
+          }
+        }
+      }
+    }
+    \Return{$\verifyaux(\onestep(\cc{P}_0), \onestep(\cc{P}_1))$ %
+      \label{line:core-base} }
+  }
   %
   \caption{% interface of verify:
     \verify: an equivalence verifier, which uses procedures
-    \chkinductive (\autoref{sec:chk-ind}), \verifyders
+    \chkinductive (\autoref{sec:chk-ind}), \verifyunfoldings
     (\autoref{sec:verify-ders}), and %
     \mergeinvs (\autoref{sec:merge}).  }
   \label{alg:verify}
@@ -352,6 +353,8 @@ types.
 
 % verifier top-level:
 The equivalence verifier \verify is given in \autoref{alg:verify}.
+%
+\BH{update}
 %
 \verify, given $P_0, P_1 \in \stlc$ (\autoref{line:core-begin}),
 defines a procedure $\verifyaux$ that, given $T \in
@@ -378,17 +381,17 @@ Otherwise, \chkinductive returns $d_0 \in \evalders{ P_0 }$ and $d_1
 \in \evalders{ P_1 }$ that do not have derivation relational
 invariants in $T$ (\autoref{line:core-case-cex}).
 %
-\verifyaux then runs a procedure \verifyders on $d_0$ and $d_1$
-(\autoref{line:core-vders}; \verifyders is given in
+\verifyaux then runs a procedure \verifyunfoldings on $d_0$ and $d_1$
+(\autoref{line:core-vders}; \verifyunfoldings is given in
 \autoref{sec:verify-ders}).
 %
-If \verifyders returns the value $\nonequiv$ to denote that $d_0
+If \verifyunfoldings returns the value $\nonequiv$ to denote that $d_0
 \not\equiv d_1$ (\autoref{line:core-subcase-non-equiv}), then
 \verifyaux returns that $P_0 \not\equiv P_1$
 (\autoref{line:core-ret-non-equiv}).
 
 % subcase: finds path-pair invariants:
-Otherwise, \verifyders returns $T' \in \unfoldreltypes{d_0}{d_1}$
+Otherwise, \verifyunfoldings returns $T' \in \unfoldreltypes{d_0}{d_1}$
 (\autoref{line:core-subcase-invs}).
 %
 \verifyaux runs a procedure \mergeinvs on $T$ and $T'$, which
@@ -534,22 +537,22 @@ inductive under $I_E'$ (\autoref{line:tile-isind}).
 % aux fn: subcase: unwind
 Otherwise, \chkindaux runs the procedure $\unwind$...
 
-\subsubsection{Verifying equivalence of derivations}
+\subsubsection{Verifying equivalence of unfoldings}
 \label{sec:verify-ders}
 %
-\verifyders, given $d_0 \in \progders{ P_0 }$ and %
+\verifyunfoldings, given $d_0 \in \progders{ P_0 }$ and %
 $d_1 \in \progders{ P_1 }$, returns either \textbf{(1)} derivation
 relational invariants of the derivation contexts of $d_0$ and $d_1$
 or %
 \textbf{(2)} the value $\nonequiv$ to denote that $d_0 \not\equiv
 d_1$.
 %
-\verifyders reduces the problem of determining $d_0 \equiv d_1$ to
+\verifyunfoldings reduces the problem of determining $d_0 \equiv d_1$ to
 solving a recursion-free system of Constrained Horn Clauses
 (\autoref{sec:chcs}).
 
 % give construction:
-\verifyders constructs a system $\mathcal{S}$, defined as follows.
+\verifyunfoldings constructs a system $\mathcal{S}$, defined as follows.
 % define relational predicates:
 Each relational predicate of $\mathcal{S}$ is an element of $\derctxs{
 d_0 } \times \derctxs{d_1}$.
@@ -635,15 +638,15 @@ empty derivation context of $d_1$: $( [ \epsilon ], [ \epsilon ])$.
 
 % talk about how interpretation for S is translated to derivation
 % relational invariants:
-\verifyders runs the CHC solver \solvechc on $\mathcal{S}$.
+\verifyunfoldings runs the CHC solver \solvechc on $\mathcal{S}$.
 %
 If \solvechc returns that $\mathcal{S}$ has no solution, then
-\verifyders returns $\nonequiv$, to denote that $d_0 \not\equiv d_1$.
+\verifyunfoldings returns $\nonequiv$, to denote that $d_0 \not\equiv d_1$.
 %
 Otherwise, if \solvechc returns some $\sigma \in \solutions{
-  \mathcal{S} }$, then \verifyders returns $I \in
-\unfoldreltypes{P_0}{P_1}$, where for each $\Gamma_0 \in \derctxs{ P_0 }$
-and $\Gamma_1 \in \derctxs{ P_1 }$,
+  \mathcal{S} }$, then \verifyunfoldings returns $I \in
+\unfoldreltypes{P_0}{P_1}$, where for each $\Gamma_0 \in \derctxs{ P_0
+}$ and $\Gamma_1 \in \derctxs{ P_1 }$,
 \[ I(\Gamma_0, \Gamma_1) = %
 \subs{ \sigma(\Gamma_0, \Gamma_1) }{ %
   \symvars{ \headexps( \Gamma_0 ) }, %
