@@ -319,7 +319,7 @@ types.
   { \myproc{$\verifyaux(\cc{P}_0' \in \unfoldings{ \cc{P}_0 }, %
       \cc{P}_1' \in \unfoldings{ \cc{P}_1 })$}{ %
       % try to verify the unfoldings:
-      \Switch{$\verifyunfoldings(\cc{P}_0, \cc{P}_1)$}{
+      \Switch{$\verifybnd(\cc{P}_0, \cc{P}_1)$}{
         % if the verifier returns that the unfoldings aren't equivalent
         \lCase{$\nonequiv$}{ 
           % then the top-level returns that the programs aren't
@@ -345,7 +345,7 @@ types.
   %
   \caption{% interface of verify:
     \verify: an equivalence verifier, which uses procedures
-    \chkinductive (\autoref{sec:chk-ind}), \verifyunfoldings
+    \chkinductive (\autoref{sec:chk-ind}), \verifybnd
     (\autoref{sec:verify-ders}), and %
     \mergeinvs (\autoref{sec:merge}).  }
   \label{alg:verify}
@@ -382,17 +382,17 @@ Otherwise, \chkinductive returns $d_0 \in \evalders{ P_0 }$ and $d_1
 \in \evalders{ P_1 }$ that do not have derivation relational
 invariants in $T$ (\autoref{line:core-case-cex}).
 %
-\verifyaux then runs a procedure \verifyunfoldings on $d_0$ and $d_1$
-(\autoref{line:core-vders}; \verifyunfoldings is given in
+\verifyaux then runs a procedure \verifybnd on $d_0$ and $d_1$
+(\autoref{line:core-vders}; \verifybnd is given in
 \autoref{sec:verify-ders}).
 %
-If \verifyunfoldings returns the value $\nonequiv$ to denote that $d_0
+If \verifybnd returns the value $\nonequiv$ to denote that $d_0
 \not\equiv d_1$ (\autoref{line:core-subcase-non-equiv}), then
 \verifyaux returns that $P_0 \not\equiv P_1$
 (\autoref{line:core-ret-non-equiv}).
 
 % subcase: finds path-pair invariants:
-Otherwise, \verifyunfoldings returns $T' \in \unfoldreltypes{d_0}{d_1}$
+Otherwise, \verifybnd returns $T' \in \unfoldreltypes{d_0}{d_1}$
 (\autoref{line:core-subcase-invs}).
 %
 \verifyaux runs a procedure \mergeinvs on $T$ and $T'$, which
@@ -538,15 +538,15 @@ inductive under $I_E'$ (\autoref{line:tile-isind}).
 % aux fn: subcase: unwind
 Otherwise, \chkindaux runs the procedure $\unwind$...
 
-\subsubsection{Verifying equivalence of unfoldings}
+\subsubsection{Verifying equivalence of bounded expressions}
 \label{sec:verify-ders}
 % give an overview:
-$\verifyunfoldings$, given an unfolding $\cc{P}_0'$ of $\cc{P}_0$ and
+$\verifybnd$, given an unfolding $\cc{P}_0'$ of $\cc{P}_0$ and
 an unfolding $\cc{P}_1'$ of $\cc{P}_1$, either returns proofs that
 $\cc{P}_0'$ and $\cc{P}_1'$ are equivalent, or returns $\nonequiv$ to
 denote that $\cc{P}_0'$ and $\cc{P}_1'$ are not equivalent.
 %
-$\verifyunfoldings$ reduces this problem to solving a CHC system
+$\verifybnd$ reduces this problem to solving a CHC system
 (\autoref{sec:chcs}).
 %
 The relational predicates of the system correspond to contexts and
@@ -557,7 +557,7 @@ establishing valid types of sets of expressions
 (\autoref{fig:reltype-rules}).
 
 % give the construction in detail:
-$\verifyunfoldings$ constructs the following CHC system $\mathcal{C}_{
+$\verifybnd$ constructs the following CHC system $\mathcal{C}_{
   \cc{P}_0', \cc{P}_1' }$.
 % define the space of relational predicates
 Let $E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ be an arbitrary
@@ -597,9 +597,13 @@ are $\bigunion \setformer{ R_E^{\Gamma} \union R_E }{ E \in
 % define clauses
 The clauses of $\mathcal{C}_{ \cc{P}_0', \cc{P}_1' }$ are synthesized
 as follows.
-% define operations over types
-For $E_0, E_1, E' \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$, the
-clauses $\andsub(E_0, E_1, E')$ and $\orsub(E_0, E_1, E')$ constrain
+% define join families of relational predicates:
+For $\mathcal{R}, \mathcal{R}', \mathcal{R}''$,
+%
+\BH{deprecated. Clean up.}
+%
+, the
+clauses $\mathcal{R}\andsub(E_0, E_1, E')$ and $\orsub(E_0, E_1, E')$ constrain
 that the conjunction (and similarly, disjunction) of the relational
 types defined by interpretations of $\symrelpreds(E_0)$ and the
 interpretation of $\symrelpreds(E_1)$ is a subtype of the
@@ -611,71 +615,99 @@ I.e., if $R$
   disjunction). Maybe need to structure relational predicates in
   sequences.}
 %
-\BH{define clauses for subtyping with renaming}
-For collections 
-%
-\BH{define}
+Such clauses are denoted $\mathcal{R} \joinctr \mathcal{R}' \subtype
+\mathcal{R}''$.
+
 %
 of relational predicates $\mathcal{R}$ over typed variables $X$,
 relational predicates $\mathcal{R}'$ over typed variables $X$ and
-variables $x \in X$ and $y \in Y$ with the same type, the clauses
-$\renamesub{ \mathcal{R} }{ \mathcal{R'} }{ x }{ y }$ constrain that
-each interpretation of $\mathcal{R}$ is a subtype of each
-interpretation of $\mathcal{R}'$, with variables that model component
-types of $x$ in $\mathcal{R}$ replaced with variables that model
-corresponding component types of $y$.
+variables $X' \in X^{*}$ and $Y' \in Y^{*}$ with identical
+corresponding types, the clauses $\renamesub{ \mathcal{R} }{
+  \mathcal{R'} }{ X' }{ Y' }$ constrain that each interpretation of
+$\mathcal{R}$ is a subtype of each interpretation of $\mathcal{R}'$,
+with variables that model component types of symbols in $X'$ in
+$\mathcal{R}$ replaced with variables that model corresponding
+component types of symbols in $Y'$.
 %
-Let the \emph{renaming clauses} from $x$ to $y$, denoted
-$\renameclauses{ x }{ y }{ \mathcal{R} }$, be the following clauses.
+Let $\mathcal{R}$ be a collection of relational predicates over $X'
+\union Y'$.
 %
-\BH{define renaming clauses}
+Let the \emph{renaming type} from $X'$ to $Y'$ over $\mathcal{R}$,
+denoted $\renameclauses{ X' }{ Y' }{ \mathcal{R} }$ contain the
+following clauses.
 %
-Then $\renamesub{ \mathcal{R} }{ \mathcal{R}' }{ x }{ y }$ is, for
-relational predicates $\mathcal{R}''$ over $x$ and $y$,
-$\renameclauses{ x }{ y }{ \mathcal{R} } \union \andsub( \mathcal{R},
-\mathcal{R}'', \mathcal{R}')$.
+For all $x \in X'$ and $y \in Y'$, let the fact that $x$ and $y$ occur
+in identical positions in $X'$ and $Y'$ be denoted $x \sim y$.
+%
+For each relational predicate $R \in \mathcal{R}$, there is a clause 
+%
+\[ \bigland \setformer{ \bigland (x, s) = (y, s) }{ %
+  x \sim y, s \in , (x, s), (y, s) \in \vars(R)}
+\]
+%
+Then for relational predicates $\mathcal{R}''$ of $X'$ and $Y'$,
+$\renamesub{ \mathcal{R} }{ \mathcal{R}' }{ x }{ y }$ consists of the
+clauses $\renameclauses{X'}{Y'}{ \mathcal{R}''}$ and $\mathcal{R}
+\joinctr \mathcal{R}'' \subtype \mathcal{R}'$.
+%
+Such clauses are denoted $\replace{ \mathcal{R} }{ X' }{ Y' } \subtype
+\mathcal{R}'$.
+
 % define constraint clauses:
 For relational predicate $R$ over logical variables $X$, %
 relational predicate $R'$ over logical vocabulary $X'$ and constraint
-$\varphi$ over $X \union X'$, the \emph{constraint clause} of $R$,
-$R'$, and $\varphi$, are denoted $\ctrclause{ R }{ R' }{\varphi}$, is
-\[ R(X), \varphi \implies R(X')
-\]
+$\varphi$ over $X \union X'$, the \emph{constraint clauses} of $R$,
+$R'$, and $\varphi$ is defined as follows.
+%
+Let $R_{\varphi}$ be a fresh relational predicate over logical
+vocabulary $X \union X'$.
+%
+Then the constraint clauses consist of
+% constrain the R-varphi relational predicate of 
+$\varphi \entails R(X \concat X')$ and %
+$\mathcal{R} \joinctr [ R ] \subtype \mathcal{R}'$.
+%
+The clauses are denoted $\ctrclause{ \mathcal{R} }{ \varphi }{
+  \mathcal{R}' }$.
 
 % enumerate all of the actual clauses generated:
-\BH{define clauses for subsets of expressions}
+$\verifybnd$ generates clauses that model each of the syntax-directed
+typing rules given in (\autoref{fig:reltype-rules}).
 %
-For all $E_0, E_1, E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ such
-that $E_0 \union E_1 = E$, there are clauses $\andsub(E_0, E_1, E)$.
+For all $E_0 \subseteq \subexps{ P_0 }$ and $E_1 \subseteq \subexps{
+  P_1 }$ such that $E_0$ and $E_1$ contain only atomic expressions,
+$\verifybnd$ generates the following clauses:
 %
-There are also clauses that model each syntax-directed typing rule
-given in (\autoref{fig:reltype-rules}).
-%
-\BH{clause for atomics}
+$\mathcal{R} \joinctr %
+\bigland \setformer{ c = (c, i) }{ c \in \const, i \in I, (c, i) \in E
+} \subtype \mathcal{R}'$.
 
 % clause for op:
-For all $e_0, e_1 \in \subexps{ \cc{P}_0 }$ and $E \subseteq \subexps{
-  \cc{P}_0 } \union \subexps{ \cc{P}_1 }$, there is a clause
-\[ (E \disjunion \elts{ (e_0, i_0), (e_1, i_1) } ), %
-\resvar{ (e_0, i_0) } \oplus \resvar{ (e_1, i_1) } = %
-\resvar{ (e_0 \oplus e_1, i') } \implies %
-\disjadd{ E }{ (e_0 \oplus e_1, i') }
-\]
+For all $e_0, e_1 \in \subexps{ \cc{P}_0 }$ such that $e_0 \oplus e_1
+\in \subexps{ P_0 }$, %
+$E_0 \subseteq \subexps{ P_0 }$, and %
+$E_1 \subseteq \subexps{ P_1 }$.
 %
-\BH{cleanly handle first-order variables}
+$\verifybnd$ generates the clauses
+% subtyping over contexts,
+$\mathcal{R}'_{\Gamma} \subtype \mathcal{R}_{\Gamma}$ and 
+% subtyping over results
+$\mathcal{R} \joinctr \resvar{ (e_0, i_0) } \oplus \resvar{ (e_1, i_1)
+} = \resvar{ (e_0 \oplus e_1, i') } \subtype \mathcal{R}'$.
 %
 Similar clauses are included for all subexpressions of $P_1$ that are
 constructed from binary operations.
 
-%
-\BH{clause for ite}
-%
+% clauses for if-then-else:
 For all $e_0, e_1, e_2 \in \subexps{ P_0' }$ and $E \subseteq
 \subexps{ P_0 } \union \subexps{ P_1 }$, let $\mathcal{R} =
 \symrelpreds(E \disjunion \elts{ e_0, e_1, e_2 })$ and $\mathcal{R}' =
 \symrelpreds(E \disjunion \elts{ \ite{e_0}{e_1}{e_2} })$.
 %
-Then there are relational predicates $R_0$ and $R_1$ and clauses
+Then $\verifybnd$ generates relational predicates $R_0$ and $R_1$ and
+clauses
+% context subtyping,
+$\mathcal{R}'_{\Gamma} \subtype \mathcal{R}_{\Gamma}$,
 % add constraint for case where the guard is true,
 $\ctrclause{ R }{ R_0 }{ \resvar{ (e_0, i) } = \true}$,
 %
@@ -695,50 +727,69 @@ $\renamesub{ \mathcal{R}_1 }{ \mathcal{ R }' }{ \resvar{ (e_2, i_2) }
 Similar clauses are included for all \cc{if}-\cc{then}-\cc{else}
 subexpressions of $P_1$.
 
-\BH{clause for abs}
+% clause for abs
+For all $x \in \vars$, %
+$e \in \subexps{ P_0' }$ such that $\lambda x. e \in
+\subexps{P_0'}$, %
+$E_0 \subseteq \subexps{P_0'}$, and %
+$E_1 \subseteq \subexps{P_1}'$, $\verifybnd$ adds clauses that solve
+for a relational type of $x$, use it to strengthen the context for
+typechecking the $e$.
 %
-For all 
-
+I.e., $\verifybnd$ generates a collection of relational predicates
+$\mathcal{R}_x$ for $x$ grouped with $E_0$ and $E_1$, %
+adds the clauses
+% context for typechecking body is strengthen
+$\mathcal{R}'_{\Gamma} \joinctr \mathcal{R}_x \subtype
+\mathcal{R}_{\Gamma}$, %
+% type of body is type of abstraction, after renaming:
+$\renamesub{ \mathcal{R} }{ \mathcal{R}' }{ x }{ \argnum{e} }$.
+%
 Similar clauses are included for all abstraction subexpressions of
 $P_1$.
 
-\BH{clause for app}
-
+% clause for app
+For all $e_0, e_1 \in \subexps{P_0'}$ such that $e_0\ e_1 \in
+\subexps{P_0'}$, %
+$E_0 \subseteq \subexps{P_0'}$, and %
+$E_1 \in \subexps{P_1'}$, let $E = E_0 \disjunion \elts{ e_0, e_1 }
+\union E_1$, %
+let $E' = E_0 \disjunion \elts{ e_0\ e_1 } \union E_1$, and %
+let $f$ be a fresh variable with the same type as $x$.
+%
+$\verifybnd$ adds the clauses 
+% type of context is subtype of context over components:
+$E_{\Gamma} \subtype E'_{\Gamma}$ and %
+$\replace{ E }{ \firstarg{e_0} }{ f } \subtype \replace{ E }{ e_1 }{ f
+}$.
+%
+\BH{define firstarg symbolic variable per expression}
+%
 Similar clauses are included for all application subexpressions of
 $P_1$.
 
+% define clauses for subsets of expressions
+For all $E_0, E_0', E_0'' \in \antichains{ P_0' }$ and %
+$E_1, E_1', E_1'' \in \antichains{ P_1' }$ such that $E_1 \union E_1'
+= E_1''$, $\verifybnd$ generates clauses $(E_0 \union E_1) \joinctr
+(E_0' \union E_1') \subtype E_0'' \union E_1''$.
+%
+Such clauses ensure that each solution of $\mathcal{C}$ can be used in
+arbitrary applications of rule \textsc{Union}.
+
 \BH{define the query of the system}
 
-% talk about how interpretation for S is translated to derivation
-% relational invariants:
-\verifyunfoldings runs the CHC solver \solvechc on $\mathcal{S}$.
+% walk through the other typing rules that aren't used.
+$\verifybnd$ does generate clauses that model the typing rule
+\textsc{Fix}, because a bounded expression cannot contain a fixpoint
+expression.
 %
-If \solvechc returns that $\mathcal{S}$ has no solution, then
-\verifyunfoldings returns $\nonequiv$, to denote that $d_0 \not\equiv d_1$.
+$\verifybnd$ does not explicitly add clauses that model uses of the
+\textsc{Sub} rule, given that a CHC solution may choose types for any
+set of expressions that satisfy a subtyping relationship.
 %
-Otherwise, if \solvechc returns some $\sigma \in \solutions{
-  \mathcal{S} }$, then \verifyunfoldings returns $I \in
-\unfoldreltypes{P_0}{P_1}$, where for each $\Gamma_0 \in \derctxs{ P_0
-}$ and $\Gamma_1 \in \derctxs{ P_1 }$,
-\[ I(\Gamma_0, \Gamma_1) = %
-\subs{ \sigma(\Gamma_0, \Gamma_1) }{ %
-  \symvars{ \headexps( \Gamma_0 ) }, %
-  \symvars{ \headexps( \Gamma_1 ) } } \]
-
-\subsubsection{Merging Derivation Relational Invariants}
-\label{sec:merge}
-% mergeinvs: give components of invariants 0:
-$\mergeinvs$, given $I_0, I_1 \in \unfoldreltypes{P_0}{P_1}$, returns $I'
-\in \unfoldreltypes{P_0}{P_1}$ such that
-% case: domain is only P0:
-\textbf{(1)} for $C_0 = \domain(I_0) \setminus \domain(I_1)$,
-$\restrict{I'}{C_0} = \restrict{I_0}{C_0}$; 
-% case: domain is only P1:
-\textbf{(2)} for $C_1 = \domain(I_1) \setminus \domain(I_0)$,
-$\restrict{I'}{C_1} = \restrict{I_1}{C_1}$;
-% case: domain is intersection:
-\textbf{(3)} for all $\Gamma \in \domain(I_0) \intersection
-\domain(I_1)$, $I'(\Gamma) = I_0(\Gamma) \lor I_1(\Gamma)$.
+Sets of fixpoint variables are unconstrained, and in particular may be
+interpreted as $\false$.
 
 %%% Local Variables: 
 %%% mode: latex
