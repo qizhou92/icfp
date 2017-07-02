@@ -99,31 +99,32 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
         (e_0 \oplus e_1, i) } } \\
     % rule: expression is an if-then-else:
     \inference[ ITE ]{ %
-      \Gamma, (e_0, i_0) = \true \judges %
-      \elts{ (e_0, i_0), (e_1, i_1) } \disjunion E : %
-      \tau_1 &
-      \Gamma, (e_0, i_0) = \false \judges %
-      \elts{ (e_0, i_0), (e_2, i_2) } \disjunion E : %
-      \tau_2 }{ %
-      \Gamma \judges \disjadd{ \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
-      \tau_1 \lor \tau_2 } \\
+      \Gamma \judges %
+      \elts{ (e_0, i_0), (e_1, i_1), (e_2, i_2) } \disjunion E : %
+      \tau }{ %
+      \Gamma \judges \disjadd{ e \equiv \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
+      ((e_0, i_0) = \true \land %
+      \replace{ \tau }{ \resvar{ (e_1, i_1) } }{ \resvar{(e, i)}
+        }) \lor %
+        ((e_0, i_0) = \false \land %
+        \replace{ \tau }{ \resvar{(e_2, i_2)} }{\resvar{(e, i)}}) } \\
     % rule: multiset contains an expression that is an abstraction
     \inference[ ABS ]{ \Gamma, \tau \judges \disjadd{ (e, i) }{ E } : \tau' &
     }{ %
       \Gamma \judges \disjadd{ (\lambda x.\ e, i') }{ E } : %
       \replace{ \tau \rightarrow \tau' }{ x }{ \alpha_0 } } 
-    % rule: expression is a fixpoint:
-    \inference[ FIX ]{ %
-      \Gamma, \tau \judges \disjadd{ (e, i'') }{ E } : \tau }{ %
-      \Gamma \judges \disjadd{ ( \fix{ f }{ e }, i ) }{ E } : %
-      \replace{ \tau }{ (f, i') }{ ( \fix{ f }{ e }, i ) }
-    } \\
     % rule: expression is an application:
     \inference[ APP ]{ %
       \Gamma \disjadd{ (e_0, i_0) }{ E } : \tau_0 \rightarrow \tau_0' & 
       \Gamma \disjadd{ (e_1, i_1) }{ E } : %
       \replace{ \tau_0 }{ \alpha_0 }{ (e_1, i_1) }
     }{ \Gamma \disjadd{ (e_0\ e_1, i) }{ E } \judges \tau } \\
+    % rule: expression is a fixpoint:
+    \inference[ FIX ]{ %
+      \Gamma, \tau \judges \disjadd{ (e, i'') }{ E } : \tau }{ %
+      \Gamma \judges \disjadd{ ( \fix{ f }{ e }, i ) }{ E } : %
+      \replace{ \tau }{ (f, i') }{ ( \fix{ f }{ e }, i ) }
+    } \\
     % rule: subtyping:
     \inference[ SUB ]{ %
       \Gamma \judges E : \tau & \tau \subtype \tau'
@@ -236,8 +237,8 @@ to relational types.
   \begin{itemize}
   \item 
     % subexpressions of unfoldings:
-    $\mathcal{E} \subseteq \pset{ \subexps{ \unfoldings{P_0} } \union
-      \subexps{\unfoldings{P_1} } }$;
+    $\mathcal{E} \subseteq \pset(\subexps{ \unfoldings{P_0} } \union
+      \subexps{\unfoldings{P_1} })$;
   \item
     % context types:
     $\Gamma : \mathcal{E} \to \reltypes$;
@@ -539,102 +540,174 @@ Otherwise, \chkindaux runs the procedure $\unwind$...
 
 \subsubsection{Verifying equivalence of unfoldings}
 \label{sec:verify-ders}
+% give an overview:
+$\verifyunfoldings$, given an unfolding $\cc{P}_0'$ of $\cc{P}_0$ and
+an unfolding $\cc{P}_1'$ of $\cc{P}_1$, either returns proofs that
+$\cc{P}_0'$ and $\cc{P}_1'$ are equivalent, or returns $\nonequiv$ to
+denote that $\cc{P}_0'$ and $\cc{P}_1'$ are not equivalent.
 %
-\verifyunfoldings, given $d_0 \in \progders{ P_0 }$ and %
-$d_1 \in \progders{ P_1 }$, returns either \textbf{(1)} derivation
-relational invariants of the derivation contexts of $d_0$ and $d_1$
-or %
-\textbf{(2)} the value $\nonequiv$ to denote that $d_0 \not\equiv
-d_1$.
-%
-\verifyunfoldings reduces the problem of determining $d_0 \equiv d_1$ to
-solving a recursion-free system of Constrained Horn Clauses
+$\verifyunfoldings$ reduces this problem to solving a CHC system
 (\autoref{sec:chcs}).
+%
+The relational predicates of the system correspond to contexts and
+types of subexpressions of $\cc{P}_0'$ and $\cc{P}_1'$.
+%
+The clauses of the system correspond to the proof values for
+establishing valid types of sets of expressions
+(\autoref{fig:reltype-rules}).
 
-% give construction:
-\verifyunfoldings constructs a system $\mathcal{S}$, defined as follows.
-% define relational predicates:
-Each relational predicate of $\mathcal{S}$ is an element of $\derctxs{
-d_0 } \times \derctxs{d_1}$.
+% give the construction in detail:
+$\verifyunfoldings$ constructs the following CHC system $\mathcal{C}_{
+  \cc{P}_0', \cc{P}_1' }$.
+% define the space of relational predicates
+Let $E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ be an arbitrary
+anti-chain of $\cc{P}_0'$ and $\cc{P}_1'$.
+% define relational predicates of a set of types:
+For typed symbols $T$, let the set of relational predicates
+$\symrelpreds{T}$ be defined as follows.
+% base case: T is the empty set of types:
+If $T = \emptyset$, then $R_T = \emptyset$.
+% inductive case: T is a non-empty set
+Otherwise, let $R$ be such that for each type $\tau = \tau_0
+\rightarrow \ldots \rightarrow \tau_n \rightarrow \tau'$, $R$ has
+variables corresponding to $\tau_0$, \ldots, $\tau_n$, and $\tau'$.
 %
-Let the \emph{cuts} of $d_0$, denoted $\cuts{d_0} \subseteq \derctxs{
-  d_0 }^{*}$, be the smallest set such that %
-\textbf{(1)} $[ \epsilon ] \in \cuts{ d_0 }$; %
-\textbf{(2)} for all $\gamma_0' \in \derctxs{ d_0 }$, and %
-$\Gamma_0'' \in \derctxs{ d_0 }^{*}$ such that $\gamma_0' \cons
-\Gamma_0'' \in \cuts{ d_0 }$, %
-it holds that $\derexts{ d_0 }(\gamma_0) \concat \Gamma_0'' \in
-\cuts{d_0}$.
+Let $T'$ be collection of typed symbols in which each symbol is a pair
+of a typed symbol $f \in T$ and the position of a higher-order
+argument type in the type of $f$ in $T$.
 %
-The cuts of $d_1$, denoted $\cuts{d_1}$, are defined symmetrically.
-% define relational predicates per tiling:
-The relational predicates of $\mathcal{S}$ are $\cuts{d_0} \times
-\cuts{d_1}$.
-%
-For each $\gamma \in \derctxs{d_0}$, let there be a distinct copy of
-the symbolic variables for the expression of $\gamma$, denoted
-$\symvars{ \gamma }$.
-%
-For each $\Gamma \subseteq \derctxs{d_0}^{*}$, let 
-$\symvars{ \Gamma } = \bigunion_{ \gamma \in \Gamma} \symvars{\gamma}$.
-%
-For each $C_0 \in \cuts{ d_0 }$ and $C_1 \in \cuts{ d_1 }$, relational
-predicate $(C_0, C_1)$ has symbolic variables $\symvars{C_0},
-\symvars{C_1}$.
-%
-In each application of relational predicate $(C_0, C_1)$, the
-predicate is applied to these variables;
-%
-as a result, such variables are not shown explicitly below.
+Then $\symrelpreds{T} = \add{ \symrelpreds{ T' } }{ R }$.
 
-% give clauses for steps of P0:
-The clauses of $\mathcal{S}$ are defined as follows.
+% define type of a context:
+Let $\Gamma : E \times \vars \to \types$ map each $e \in E$ and each
+$x \in \freevars(e)$ to its type in $e$, and let $R_E^{\Gamma} =
+\symrelpreds(\Gamma)$.
 %
-Each evaluation rule applied in $d_0$ corresponds to a clause in
-$\mathcal{S}$.
-% 
-In particular, for each $\gamma_0 \in \derctxs{ d_0 }$ with $\Gamma_0
-= \derexts{ d_0 }( \gamma_0 )$, %
-$\Gamma_0' \in \derctxs{ d_0 }^{*}$ such that $\gamma_0 \cons
-\Gamma_0' \in \cuts{ d_0 }$, and %
-$\Gamma_1 \in \cuts{ d_1 }$, there is a clause %
-\[ (\Gamma_0 \concat C_0, C_1), %
-\symstep{ \prevrule{ d_0 }( \gamma_0 ) }[ %
-\symvars{ \Gamma_0 }, \gamma_0 ] \entails %
-(\gamma_0 \cons C_0, C_1) \]
+Let $T: E \to \types$ map each $e \in E$ to its type under its context
+in $\cc{P}_0$ or $\cc{P}_1$.
+%
+\BH{define all notions of base types in programs correctly}
+%
+Let $R_E = \symrelpreds(\Gamma \union T)$.
+%
+The relational predicates of $\mathcal{C}_{ \cc{P}_0', \cc{P}_1' }$
+are $\bigunion \setformer{ R_E^{\Gamma} \union R_E }{ E \in
+  \antichains{ \cc{P}_0' }{ \cc{P}_1' }}$.
 
-% give clauses for steps of P1:
-Each evaluation rule applied in $d_1$ corresponds to a clause in
-$\mathcal{S}$.
+% define clauses
+The clauses of $\mathcal{C}_{ \cc{P}_0', \cc{P}_1' }$ are synthesized
+as follows.
+% define operations over types
+For $E_0, E_1, E' \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$, the
+clauses $\andsub(E_0, E_1, E')$ and $\orsub(E_0, E_1, E')$ constrain
+that the conjunction (and similarly, disjunction) of the relational
+types defined by interpretations of $\symrelpreds(E_0)$ and the
+interpretation of $\symrelpreds(E_1)$ is a subtype of the
+interpretation of the $\symrelpreds(E')$.
 %
-In particular, for each $C_0 \in \cuts{ d_0 }$, %
-each $\gamma_1 \in \derctxs{ d_1 }$ with $\Gamma_1 = \derexts{d_1}(
-\gamma_1 )$, and %
-$\Gamma_1' \in \derctxs{ d_1 }^{*}$ such that $\gamma_1 \cons
-\Gamma_1' \in \cuts{ d_1 }$, there is a clause
-\[ ( \Gamma_0, \Gamma_1 \concat C_1), %
-\symstep{ \prevrule{ d_1 }( \gamma_1 ) }[ %
-\symvars{ \Gamma_1 }, \gamma_1 ] \entails %
-(C_0, \gamma_1 \cons C_1) 
+I.e., if $R$
+%
+\BH{define clauses for subtype of conjunction (and
+  disjunction). Maybe need to structure relational predicates in
+  sequences.}
+%
+\BH{define clauses for subtyping with renaming}
+For collections 
+%
+\BH{define}
+%
+of relational predicates $\mathcal{R}$ over typed variables $X$,
+relational predicates $\mathcal{R}'$ over typed variables $X$ and
+variables $x \in X$ and $y \in Y$ with the same type, the clauses
+$\renamesub{ \mathcal{R} }{ \mathcal{R'} }{ x }{ y }$ constrain that
+each interpretation of $\mathcal{R}$ is a subtype of each
+interpretation of $\mathcal{R}'$, with variables that model component
+types of $x$ in $\mathcal{R}$ replaced with variables that model
+corresponding component types of $y$.
+%
+Let the \emph{renaming clauses} from $x$ to $y$, denoted
+$\renameclauses{ x }{ y }{ \mathcal{R} }$, be the following clauses.
+%
+\BH{define renaming clauses}
+%
+Then $\renamesub{ \mathcal{R} }{ \mathcal{R}' }{ x }{ y }$ is, for
+relational predicates $\mathcal{R}''$ over $x$ and $y$,
+$\renameclauses{ x }{ y }{ \mathcal{R} } \union \andsub( \mathcal{R},
+\mathcal{R}'', \mathcal{R}')$.
+% define constraint clauses:
+For relational predicate $R$ over logical variables $X$, %
+relational predicate $R'$ over logical vocabulary $X'$ and constraint
+$\varphi$ over $X \union X'$, the \emph{constraint clause} of $R$,
+$R'$, and $\varphi$, are denoted $\ctrclause{ R }{ R' }{\varphi}$, is
+\[ R(X), \varphi \implies R(X')
 \]
 
-% split into P0 and P1 tilings
-For all $C_0, C_0', C_0'' \in \cuts{d_0}$ such that $C_0'$ and $C_0''$
-are a tiling of $C_0$, and %
-each $C_1 \in \cuts{d_1}$, $\mathcal{S}$ contains a clause
-\[ (C_0', C_1), (C_0'', C_1) \entails (C_0, C_1) \]
+% enumerate all of the actual clauses generated:
+\BH{define clauses for subsets of expressions}
 %
-Symmetrically, for each $C_0 \in \cuts{d_0}$ and %
-for all $C_0, C_1', C_1'' \in \cuts{d_1}$ such that $C_1'$ and $C_1''$
-are a tiling of $C_1$, %
-$\mathcal{S}$ contains a clause
-\[ (C_0, C_1'), (C_0, C_1'') \entails (C_0, C_1)
-\]
+For all $E_0, E_1, E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ such
+that $E_0 \union E_1 = E$, there are clauses $\andsub(E_0, E_1, E)$.
+%
+There are also clauses that model each syntax-directed typing rule
+given in (\autoref{fig:reltype-rules}).
+%
+\BH{clause for atomics}
 
-% point out which relational predicate is the query:
-The query relational predicate of $\mathcal{S}$ is, by the above
-construction, the empty derivation context of $d_0$ paired with the
-empty derivation context of $d_1$: $( [ \epsilon ], [ \epsilon ])$.
+% clause for op:
+For all $e_0, e_1 \in \subexps{ \cc{P}_0 }$ and $E \subseteq \subexps{
+  \cc{P}_0 } \union \subexps{ \cc{P}_1 }$, there is a clause
+\[ (E \disjunion \elts{ (e_0, i_0), (e_1, i_1) } ), %
+\resvar{ (e_0, i_0) } \oplus \resvar{ (e_1, i_1) } = %
+\resvar{ (e_0 \oplus e_1, i') } \implies %
+\disjadd{ E }{ (e_0 \oplus e_1, i') }
+\]
+%
+\BH{cleanly handle first-order variables}
+%
+Similar clauses are included for all subexpressions of $P_1$ that are
+constructed from binary operations.
+
+%
+\BH{clause for ite}
+%
+For all $e_0, e_1, e_2 \in \subexps{ P_0' }$ and $E \subseteq
+\subexps{ P_0 } \union \subexps{ P_1 }$, let $\mathcal{R} =
+\symrelpreds(E \disjunion \elts{ e_0, e_1, e_2 })$ and $\mathcal{R}' =
+\symrelpreds(E \disjunion \elts{ \ite{e_0}{e_1}{e_2} })$.
+%
+Then there are relational predicates $R_0$ and $R_1$ and clauses
+% add constraint for case where the guard is true,
+$\ctrclause{ R }{ R_0 }{ \resvar{ (e_0, i) } = \true}$,
+%
+\BH{define R}
+% add constraints that relate this case to final result,
+$\renamesub{ \mathcal{R}_0 }{ \mathcal{ R }' }{ \resvar{ (e_1, i_1) }
+}{ \resvar{(e, i)} }$,
+%
+\BH{define updated sets of relational predicates}
+% add constraint for case where the guard is false,
+$\ctrclause{ R }{ R_1 }{ \resvar{ (e_0, i) } = \false}$, and
+%
+% add constraints that relate this case to final result,
+$\renamesub{ \mathcal{R}_1 }{ \mathcal{ R }' }{ \resvar{ (e_2, i_2) }
+}{ \resvar{ (e, i) } }$.
+%
+Similar clauses are included for all \cc{if}-\cc{then}-\cc{else}
+subexpressions of $P_1$.
+
+\BH{clause for abs}
+%
+For all 
+
+Similar clauses are included for all abstraction subexpressions of
+$P_1$.
+
+\BH{clause for app}
+
+Similar clauses are included for all application subexpressions of
+$P_1$.
+
+\BH{define the query of the system}
 
 % talk about how interpretation for S is translated to derivation
 % relational invariants:
