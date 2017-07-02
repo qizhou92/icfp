@@ -1,0 +1,24 @@
+program1 
+rec mult x y =
+if y=0 then 0 else x + mult x (y-1)
+program2
+rec mult_acc x y a =
+if y=0 then a else mult_acc x (y-1) (a+x)
+query1
+mult x y + a = mult acc x y a
+query2
+mult x y = mult acc x y 0 
+query3
+mult (1 + x) y = y + mult x y 
+query4
+y ≥ 0 ⇒ mult x (1 + y) = x + mult x y
+query5
+mult x y = mult y x 
+query6
+mult (x + y) z = mult x z + mult y z 
+query7
+mult x (y + z) = mult x y + mult x z 
+query8
+mult (mult x y) z = mult x (mult y z) 
+query9
+ 0 ≤ x1 ≤ x2 ∧ 0 ≤ y1 ≤ y2 ⇒ mult x1 y1 ≤ mult x2 y2

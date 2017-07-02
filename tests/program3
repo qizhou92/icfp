@@ -1,0 +1,10 @@
+program1
+rec mc91 x =
+if x > 100 then x - 10 else mc91 (mc91 (x + 11))
+
+program2
+91
+
+query
+
+x ≤ 101 ⇒ mc91 x = 91

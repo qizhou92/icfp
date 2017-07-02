@@ -174,7 +174,9 @@ instance Show Der where
 showDerShort der =  
     unwords (show <$> dpremises der) ++ "\n" 
     ++ "-------"
-    ++ show (drulename der) 
+    ++ show (drulename der)
+    ++ "|- " ++ exprString (dinExpr der) ++ " ~> " ++ exprString (doutExpr der) ++ "annoted:" ++ exprString (annotedExpr der) ++ "\n"  
+
     -- ++ show (denv der) ++ " |- " ++ exprString (dinExpr der) ++ " ~> " ++ exprString (doutExpr der) ++ "\n"  
 
 

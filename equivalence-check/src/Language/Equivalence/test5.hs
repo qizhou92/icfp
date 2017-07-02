@@ -29,7 +29,7 @@ main = do
   let app3 = Types.EApp app2 (Types.EInt 2)
   let app3_1 = Types.EApp app2_1 (Types.EInt 2)
   let dEnv =[(a,(Types.ENil))]
-  let d1 = (makeDerivations dEnv app3) !! 0
-  let d2 = (makeDerivations dEnv app3_1) !! 0
+  let d1 = (makeDerivations dEnv app3 app3) !! 0
+  let d2 = (makeDerivations dEnv app3_1 app3_1) !! 0
   let (node1,number) = translateDT 0 d1
-  verifyPairs d1 d2
+  print d1
