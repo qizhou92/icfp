@@ -21,8 +21,8 @@ main = do
   let coreExpr = Types.EIf xLeZero three three
   let coreExpr2 = Types.EIf xLeZero one three
   let dEnv= [(x,Types.ENil)]
-  let d1 = ((makeDerivations dEnv coreExpr) !! 0)
-  let d2 = ((makeDerivations dEnv coreExpr) !! 1)
+  let d1 = ((makeDerivations dEnv coreExpr coreExpr) !! 0)
+  let d2 = ((makeDerivations dEnv coreExpr coreExpr) !! 1)
   let (node1,number) = translateDT 0 d1
   let (node2,number2) = translateDT number d2
   verifyPairs d1 d2
