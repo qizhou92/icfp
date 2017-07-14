@@ -86,64 +86,62 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
 \begin{figure}
   \centering
   \begin{gather*}
-    % rule: expressions are all atomic (constants or variables):
-    \inference[ ATOMICS ]{ %
-      E \subseteq \atomics %
-    }{ \Gamma \judges E : \Gamma } \\
+    % rule for a constant:
+    \inference[ CONST ]{ %
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \elts{ c } \disjunion E : %
+      \tau \land \resvar{c} = c }
+    % rule for a variable:
+    \inference[ VAR ]{ %
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \elts{ x } \disjunion E : %
+      \tau \land \resvar{x} \equiv x } \\
     % rule: expression is an op:
     \inference[ OP ]{ 
       \Gamma \judges %
-      \elts{ (e_0, i_0), (e_1, i_1) } \disjunion E : \tau }{ %
-      \Gamma \judges \disjadd{ (e_0 \oplus e_1, i) }{ E } : %
-      \replace{ \tau }{ (e_0, i_0) \oplus (e_1, i_1) }{ %
-        (e_0 \oplus e_1, i) } } \\
+      \elts{ e_0, e_1 } \disjunion E : \tau }{ %
+      \Gamma \judges \elts{ e \equiv e_0 \oplus e_1 } \disjunion E : %
+      \tau \land (\resvar{e} = \resvar{e_0} \oplus \resvar{e_1}) } \\
     % rule: expression is an if-then-else:
     \inference[ ITE ]{ %
       \Gamma \judges %
-      \elts{ (e_0, i_0), (e_1, i_1), (e_2, i_2) } \disjunion E : %
-      \tau }{ %
-      \Gamma \judges \disjadd{ e \equiv \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
-      ((e_0, i_0) = \true \land %
-      \replace{ \tau }{ \resvar{ (e_1, i_1) } }{ \resvar{(e, i)}
-        }) \lor %
-        ((e_0, i_0) = \false \land %
-        \replace{ \tau }{ \resvar{(e_2, i_2)} }{\resvar{(e, i)}}) } \\
+      \elts{ e_0, e_1, e_2 } \disjunion E : \tau }{ %
+      \Gamma \judges \disjadd{ %
+        e \equiv \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
+      \tau \land ((\resvar{e_0} = \true \land %
+      \resvar{e} \equiv \resvar{e_1}) \lor %
+      (\resvar{e_0} = \false \land %
+      \resvar{e} \equiv \resvar{e_2})) } \\
     % rule: multiset contains an expression that is an abstraction
-    \inference[ ABS ]{ \Gamma, \tau \judges \disjadd{ (e, i) }{ E } : \tau' &
-    }{ %
-      \Gamma \judges \disjadd{ (\lambda x.\ e, i') }{ E } : %
-      \replace{ \tau \rightarrow \tau' }{ x }{ \alpha_0 } } 
+    \inference[ ABS ]{ \Gamma, \tau \judges %
+      \disjadd{ e' }{ E } : \tau' }{ %
+      \Gamma \judges \disjadd{ e \equiv \lambda x.\ e' }{ E } : %
+      (\tau \rightarrow \tau') \land \param{ e } = x }
     % rule: expression is an application:
     \inference[ APP ]{ %
-      \Gamma \disjadd{ (e_0, i_0) }{ E } : \tau_0 \rightarrow \tau_0' & 
-      \Gamma \disjadd{ (e_1, i_1) }{ E } : %
-      \replace{ \tau_0 }{ \alpha_0 }{ (e_1, i_1) }
-    }{ \Gamma \disjadd{ (e_0\ e_1, i) }{ E } \judges \tau } \\
+      % get type of all component expressions,
+      \Gamma \judges \disjadd{ e_0, e_1 }{ E } : \tau }{ %
+      \Gamma \disjadd{ e \equiv e_0\ e_1 }{ E } \judges %
+      \tau \land \param{ e_0 } = \resvar{ e_1 } \land %
+      \resvar{e} = \resvar{e_0} } \\
     % rule: expression is a fixpoint:
     \inference[ FIX ]{ %
-      \Gamma, \tau \judges \disjadd{ (e, i'') }{ E } : \tau }{ %
-      \Gamma \judges \disjadd{ ( \fix{ f }{ e }, i ) }{ E } : %
-      \replace{ \tau }{ (f, i') }{ ( \fix{ f }{ e }, i ) }
-    } \\
+      \Gamma, \tau \judges \disjadd{ e' }{ E } : \tau }{ %
+      \Gamma \judges \disjadd{ e \equiv \fix{ f }{ e' } }{ E } : %
+      \tau \land \resvar{e} = f } \\
     % rule: subtyping:
     \inference[ SUB ]{ %
       \Gamma \judges E : \tau & \tau \subtype \tau'
     }{ \Gamma \judges E : \tau' } 
-    % rule: split multiset of expressions:
-    \inference[ UNION ]{ 
-      \Gamma \judges E_0 : \tau_0 &
-      \Gamma \judges E_1 : \tau_1 } %
-    { \Gamma \judges E_0 \union E_1 : \tau_0 \land \tau_1 } 
+    % rule: empty set of expressions:
+    \inference[ EMPTY ]{ }{ %
+      \Gamma \judges \emptyset : \Gamma } %
   \end{gather*}
   \caption{A proof system for relational types.}
   \label{fig:reltypes-rules}
 \end{figure}
 %
-\BH{atomics: fix to equate constants to copies in multisets}
-% introduce the has-type relation
-\BH{define the True relational type}
-%
-\BH{define subtyping rules}
+\BH{define subtyping relation}
 %
 Relational types are associated with multisets of program expressions
 to prove that the expressions satisfy relational properties, such as
@@ -157,42 +155,6 @@ For $\Gamma, \tau \in \reltypes$ and $E \multiset{ \expr }$, the fact
 that under $\Gamma$, $E$ has type $\tau$ is denoted $\Gamma \judges E
 : \tau$.
 
-determining if sequences of expressions have
-a relational type.
-%
-In particular, Rule~STEP0 asserts that if 
-%
-\BH{complete}
-Rule~STEP1 asserts that if
-%
-\BH{complete}
-% split 0: rule for splitting invariants over sequences:
-Rule~SPLIT0 asserts that for all $E_0, E_0', E_0'' \in \expr^{*}$ such
-that $E_0'$ and $E_0''$ tile $E_0$ and %
-each $E_1 \in \expr^{*}$, if %
-\textbf{(1)} under $\Gamma \in \relctxs$ restricted to $E_0'$ and
-$E_1$, $(E_0', E_1)$ has type $\tau_0$ and %
-\textbf{(2)} under $\Gamma$ restricted to $E_0''$ and $E_1$, $(E_0',
-E_1)$ has type $\tau_1$, then under $\Gamma$, $(E_0, E_1)$ has type
-as a type the conjunctive unification
-%
-\BH{fix in rules}
-%
-of $\tau_0$ and $\tau_1$.
-% split 1: rule for splitting invariants over sequences:
-Rule~SPLIT1 asserts that for each $E_0 \in \expr^{*}$ and %
-all $E_1, E_1', E_1'' \in \subexps$ such that $E_1'$ and $E_1''$ tile
-$E_1$, if %
-\textbf{(1)} under $\Gamma \in \relctxs$ restricted to $E_0$ and
-$E_1'$, $(E_0, E_1')$ has type $\tau_0$ and %
-\textbf{(2)} under $\Gamma$ restricted to $E_0$ and $E_1''$, $(E_0,
-E_1'')$ has type $\tau_1$, then under $\Gamma$, $(E_0, E_1)$ has as a
-type the conjunctive unification
-%
-\BH{fix in rules}
-%
-of $\tau_0$ and $\tau_1$.
-
 % types as proving equivalence:
 \BH{state main soundness result}
 % 
@@ -205,7 +167,7 @@ arbitrary $\stlc$ programs.
 
 % structures maintained by inference algorithm. Unfoldings:
 \sys attempts to extract a proof that $P_0, P_1 : \tau_{\equiv}$ from
-a map from multisets of \emph{unfoldings} of sub-expressions of $P_0$
+a map from sets of \emph{unfoldings} of sub-expressions of $P_0$
 and $P_1$ to candidate relational types.
 %
 \begin{defn}
