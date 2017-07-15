@@ -6,8 +6,8 @@ In this section, we describe our technical approach in detail.
 In \autoref{sec:rel-types}, we define a type system for proving
 equivalence of programs.
 %
-In \autoref{sec:verifier}, we present an algorithm for inferring such
-types.
+In \autoref{sec:infer-rel-types}, we present an algorithm for
+inferring such types.
 
 \subsection{Equivalence proofs as relational types}
 \label{sec:rel-types}
@@ -89,46 +89,46 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
     % rule for a constant:
     \inference[ CONST ]{ %
       \Gamma \judges E : \tau }{ %
-      \Gamma \judges \elts{ c } \disjunion E : %
+      \Gamma \judges \elts{ c } \union E : %
       \tau \land \resvar{c} = c }
     % rule for a variable:
     \inference[ VAR ]{ %
       \Gamma \judges E : \tau }{ %
-      \Gamma \judges \elts{ x } \disjunion E : %
+      \Gamma \judges \elts{ x } \union E : %
       \tau \land \resvar{x} \equiv x } \\
     % rule: expression is an op:
     \inference[ OP ]{ 
       \Gamma \judges %
-      \elts{ e_0, e_1 } \disjunion E : \tau }{ %
-      \Gamma \judges \elts{ e \equiv e_0 \oplus e_1 } \disjunion E : %
+      \elts{ e_0, e_1 } \union E : \tau }{ %
+      \Gamma \judges \elts{ e \equiv e_0 \oplus e_1 } \union E : %
       \tau \land (\resvar{e} = \resvar{e_0} \oplus \resvar{e_1}) } \\
     % rule: expression is an if-then-else:
     \inference[ ITE ]{ %
       \Gamma \judges %
-      \elts{ e_0, e_1, e_2 } \disjunion E : \tau }{ %
-      \Gamma \judges \disjadd{ %
-        e \equiv \ite{ e_0 }{ e_1 }{ e_2 } }{ E } : %
+      \elts{ e_0, e_1, e_2 } \union E : \tau }{ %
+      \Gamma \judges \add{ %
+        (e \equiv \ite{ e_0 }{ e_1 }{ e_2 }) }{ E } : %
       \tau \land ((\resvar{e_0} = \true \land %
       \resvar{e} \equiv \resvar{e_1}) \lor %
       (\resvar{e_0} = \false \land %
       \resvar{e} \equiv \resvar{e_2})) } \\
-    % rule: multiset contains an expression that is an abstraction
+    % rule: expressions contain an abstraction:
     \inference[ ABS ]{ \Gamma, \tau \judges %
-      \disjadd{ e' }{ E } : \tau' }{ %
-      \Gamma \judges \disjadd{ e \equiv \lambda x.\ e' }{ E } : %
-      (\tau \rightarrow \tau') \land \param{ e } = x }
+      \add{ e' }{ E } : \tau' }{ %
+      \Gamma \judges \add{ (e \equiv \lambda x.\ e') }{ E } : %
+      (\tau \rightarrow \tau') \land \param{ e } \equiv x }
     % rule: expression is an application:
     \inference[ APP ]{ %
       % get type of all component expressions,
-      \Gamma \judges \disjadd{ e_0, e_1 }{ E } : \tau }{ %
-      \Gamma \disjadd{ e \equiv e_0\ e_1 }{ E } \judges %
-      \tau \land \param{ e_0 } = \resvar{ e_1 } \land %
-      \resvar{e} = \resvar{e_0} } \\
+      \Gamma \judges \elts{ e_0, e_1 } \union E : \tau }{ %
+      \Gamma \judges \add{ (e \equiv e_0\ e_1) }{ E } \judges %
+      \tau \land \param{ e_0 } \equiv \resvar{ e_1 } \land %
+      \resvar{e} \equiv \resvar{e_0} } \\
     % rule: expression is a fixpoint:
     \inference[ FIX ]{ %
-      \Gamma, \tau \judges \disjadd{ e' }{ E } : \tau }{ %
-      \Gamma \judges \disjadd{ e \equiv \fix{ f }{ e' } }{ E } : %
-      \tau \land \resvar{e} = f } \\
+      \Gamma, \tau \judges \add{ e' }{ E } : \tau }{ %
+      \Gamma \judges \add{ e \equiv \fix{ f }{ e' } }{ E } : %
+      \tau \land (\resvar{e} \equiv f) } \\
     % rule: subtyping:
     \inference[ SUB ]{ %
       \Gamma \judges E : \tau & \tau \subtype \tau'
@@ -137,23 +137,81 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
     \inference[ EMPTY ]{ }{ %
       \Gamma \judges \emptyset : \Gamma } %
   \end{gather*}
-  \caption{A proof system for relational types.}
+  \caption{A proof system for relational types.
+    %
+    Metavariable $c$ ranges over $\const$, %
+    $x$ ranges over $\vars$, %
+    $f$ ranges over $\vars$, %
+    $e$ ranges over $\expr$, %
+    $\tau$ ranges over $\reltypes$, and %
+    $\Gamma$ ranges over $\ctxs$. }
   \label{fig:reltypes-rules}
 \end{figure}
 %
 \BH{define subtyping relation}
 %
-Relational types are associated with multisets of program expressions
-to prove that the expressions satisfy relational properties, such as
-functional equivalence.
+Relational types are associated with sets of program expressions to
+prove that the expressions satisfy relational properties.
 %
 \autoref{fig:reltypes-rules} contains a set of inference rules that
-define a proof system for establishing that a multiset of expressions
-has a relational type.
+define a proof system for establishing that a set of expressions has a
+relational type.
 %
-For $\Gamma, \tau \in \reltypes$ and $E \multiset{ \expr }$, the fact
+For $\Gamma, \tau \in \reltypes$ and $E \subseteq \expr$, the fact
 that under $\Gamma$, $E$ has type $\tau$ is denoted $\Gamma \judges E
 : \tau$.
+
+\BH{walk through typing rules}
+%
+\BH{fix arbitrary elements}
+% const:
+By Rule~CONST, if $E \subseteq \expr$ have $\tau \in \reltypes$ under
+$\Gamma$, then for $c \in \const$, $\add{E}{c}$ has $\tau$ joined with
+the first-order constraint $\resvar{c} = c$.
+% var:
+By Rule~VAR, if $E$ have $\tau$ under $\Gamma$, then $\add{E}{x}$ has
+$\tau$ joined with the equivalence type $\resvar{x} = x$.
+% operation:
+By Rule~OP, if $\elts{ e_0, e_1 } \union E$ have type $\tau$ under
+$\Gamma$, then $\add{ E }{ e_0 \oplus e_1 }$ have type $\tau$ joined
+with the first-order constraint that $\resvar{e} = \resvar{e_0} \oplus
+\resvar{e_1}$.
+% if-then-else:
+By Rule~ITE, if $\elts{ e_0, e_1, e_2 } \union E$ have type $\tau$
+under $\Gamma$, then $\add { \ite{ e_0 }{ e_1 }{ e_2 } }{ E }$ have
+type $\tau$ joined with the disjunction of \textbf{(1)} the
+conjunction of the first-order constraint $\resvar{e_0} = \true$ and
+the equivalence type $\resvar{e} \equiv \resvar{e_1}$ and %
+\textbf{(2)} the conjunction of the first-order constraint
+$\resvar{e_1} = \false$ and the equivalence type $\resvar{e} \equiv
+\resvar{e_2}$.
+
+% abstraction:
+By Rule~ABS, if $\add{ e' }{ E }$ have type $\tau'$ under context
+$\Gamma$ extended with type $\tau$ (that is potentially defined over
+$x$), then $\add{ \lambda x.\ e' }{ E }$ have type $\tau \rightarrow
+\tau'$ joined with a type equating the parameter type of $\lambda
+x. e'$ with $x$.
+% application:
+By Rule~APP, if $\elts{ e_0, e_1 } \union E$ have type $\tau$ under
+$\Gamma$, then under $\Gamma$, $\add{ e_0\ e_1 }{ E }$ have type
+$\tau$ conjoined with %
+\textbf{(1)} a type equating the parameter symbol of $e_0$ with the
+result symbol of $e_1$ and %
+\textbf{(2)} a type equating the result symbol of $e_0$ with the
+result symbol of $e_0\ e_1$.
+% fixpoint:
+By Rule~FIX, if under $\Gamma$ extended with $\tau$ (which may be
+defined over symbol $f$), $\add{ e' }{ E }$ have type $\tau$, then
+under $\Gamma$, $\add{ \fix{ f }{ e' } }{ E }$ have type $\tau$
+conjoined with a type equating the result of $e$ with $f$.
+
+% non-syntax-guided rules:
+By Rule~EMPTY, under $\Gamma$, the empty set of expressions has type
+$\Gamma$.
+%
+By Rule~SUB, under $\Gamma$, if $E$ have type $\tau$ a subtype of
+$\tau'$, then under $\Gamma$, $E$ have type $\tau'$.
 
 % types as proving equivalence:
 \BH{state main soundness result}
@@ -190,8 +248,10 @@ and $P_1$ to candidate relational types.
 \BH{give examples}
 
 % invariant structure:
-Partial relational invariants are a map from multisets of unfoldings
-to relational types.
+\BH{rename this}
+%
+Partial relational invariants assign sets of subexpressions to
+relational types.
 %
 \begin{defn}
   \label{defn:inferred-invs}
@@ -212,13 +272,13 @@ to relational types.
   be such that 
   \begin{itemize}
   \item 
-    % multiset of programs has the equivalence type:
+    % set of programs has the equivalence type:
     $T( \elts{ P_0, P_1 } ) \entails \tau_{ \equiv }$; 
   \item 
     % type of set is subtype of type of extension with fixpoint
     % symbol
     For all $E \in \mathcal{E}$ and each $f \in \vars$, $T(E) \subtype
-    T(\disjadd{ f }{ E })$.
+    T(\add{ f }{ E })$.
   \item 
     % relational types are consistent under tiling:
     For each $E \in \mathcal{E}$ and $E_0, E_1 \subseteq E$ such that
@@ -226,11 +286,11 @@ to relational types.
     T(E)$.
   \item 
     % relational types are consistent under subtypes:
-    For all $e \in \expr$, $E \subseteq \expr$ such that
-    $\disjadd{e}{E} \in \mathcal{E}$, $\Gamma(\subexps{e} \union E)
-    \judges \subexps{ e } \union E : T( \subexps{e} \union E)$
-    supports that $\Gamma(\disjadd{e}{E}) \judges \disjadd{e}{E} :
-    T(\disjadd{e}{E})$.
+    For all $e \in \expr$, $E \subseteq \expr$ such that $\add{ e }{ E
+    } \in \mathcal{ E }$, $\Gamma(\subexps{e} \union E) \judges
+    \subexps{ e } \union E : T( \subexps{e} \union E)$ supports that
+    $\Gamma(\add{ e }{ E }) \judges \add{ e }{ E } : T(\add{ e }{ E
+    })$.
   \end{itemize}
 \end{defn}
 %
@@ -260,8 +320,8 @@ If $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv P_1$.
 partial equivalence by synthesizing inductive unfolded relational
 types.
 
-\subsection{Verification algorithm}
-\label{sec:verifier}
+\subsection{Inferring relational types}
+\label{sec:infer-rel-types}
 
 \begin{figure}
   \centering
@@ -281,245 +341,111 @@ types.
   { \myproc{$\verifyaux(\cc{P}_0' \in \unfoldings{ \cc{P}_0 }, %
       \cc{P}_1' \in \unfoldings{ \cc{P}_1 })$}{ %
       % try to verify the unfoldings:
-      \Switch{$\verifybnd(\cc{P}_0, \cc{P}_1)$}{
+      \Switch{$\verifybnd(\cc{P}_0', \cc{P}_1')$ \label{line:ver-bnd} }{
         % if the verifier returns that the unfoldings aren't equivalent
         \lCase{$\nonequiv$}{ 
           % then the top-level returns that the programs aren't
           % equivalent
-          \Return{$\false$} }
+          \Return{$\false$} \label{line:ret-non-eq} }
         % if the verifier returns relational types of the unfoldings:
-        \lCase{$T \in \reltypes{ P_0 }{ P_1 }$}{ %
+        \Case{$T \in \subexptypes{ \cc{P}_0' }{ \cc{P}_1' }$ %
+          \label{line:subexp-types} }{ %
           % then check if they're inductive:
-          \Switch{$\chkinductive(T)$}{ 
-            \lCase{$\isind$}{ \Return{$\true$} }
+          \Switch{$\chkinductive(T)$ \label{line:chk-ind} }{ 
+            \lCase{$\isind$}{ \Return{$\true$} \label{line:ret-eq} }
             \lCase{ %
               $\cc{P}_0'' \in \unfoldings{ \cc{P}_0 }, %
               \cc{P}_1'' \in \unfoldings{ \cc{P}_1 }$}{
-              \Return{$\verifyaux(\cc{P}_0'', \cc{P}_1'')$}
+              \Return{$\verifyaux(\cc{P}_0'', \cc{P}_1'')$ %
+                \label{line:ret-rec} }
             }
           }
         }
       }
     }
-    \Return{$\verifyaux(\onestep(\cc{P}_0), \onestep(\cc{P}_1))$ %
+    \Return{$\verifyaux(\folded(\cc{P}_0), \folded(\cc{P}_1))$ %
       \label{line:core-base} }
   }
   %
   \caption{% interface of verify:
     \verify: an equivalence verifier, which uses procedures
-    \chkinductive (\autoref{sec:chk-ind}), \verifybnd
-    (\autoref{sec:verify-ders}), and %
-    \mergeinvs (\autoref{sec:merge}).  }
-  \label{alg:verify}
+    \verifybnd (\autoref{sec:verify-ders}) and %
+    \chkinductive (\autoref{sec:chk-ind}).  }
+  \label{alg:infer}
 \end{algorithm}
 \end{figure}
 
 % verifier top-level:
-The equivalence verifier \verify is given in \autoref{alg:verify}.
-%
-\BH{update}
+The equivalence verifier \verify is given in \autoref{alg:infer}.
 %
 \verify, given $P_0, P_1 \in \stlc$ (\autoref{line:core-begin}),
-defines a procedure $\verifyaux$ that, given $T \in
-\unfoldreltypes{P_0}{P_1}$, attempts to determine if $P_0 \equiv P_1$ by
-finding inductive derivation relational invariants built from $T$
+defines a procedure $\verifyaux$ that, given $\cc{P}_0' \in
+\unfoldings{ \cc{P}_0 }$ and $\cc{P}_1' \in \unfoldings{ \cc{P}_1 }$,
+attempts to determine if $P_0 \equiv P_1$ by typed subexpressions of
+an unfolding 
+%
+\BH{fix}
+%
+of $\cc{P}_0'$ and $\cc{P}_1'$, or determines that $\cc{P}_0
+\not\equiv \cc{P}_1$
 (\autoref{line:core-aux-begin}---\autoref{line:core-aux-end}).
 %
-\verify calls \verifyaux on the empty map of derivation relational
-invariants and returns the result (\autoref{line:core-base}).
+\verify calls \verifyaux on the complete folding of $\cc{P}_0$ and
+$\cc{P}_1$ and returns the result (\autoref{line:core-base}).
 
 % verify auxiliary procedure:
-\verifyaux, given $T \in \unfoldreltypes{P_0}{P_1}$, runs procedure
-\chkinductive on $T$ (\autoref{line:core-chkind};
+\verifyaux, given $\cc{P}_0 \in \unfoldings{\cc{P}_0}$ and $\cc{P}_1
+\in \unfoldings{ \cc{P}_1 }$, runs procedure \verifybnd on $\cc{P}_0'$
+and $\cc{P}_1'$ (\autoref{line:ver-bnd}).
 %
-\chkinductive is given in \autoref{sec:chk-ind}).
-%
-If \chkinductive determines that some restriction of $T$ are
-inductive, then \chkinductive returns the value $\isind$, and
-\verifyaux returns that $P_0 \equiv P_1$
-(\autoref{line:core-ret-equiv}).
-
-% case: no inductive restriction found:
-Otherwise, \chkinductive returns $d_0 \in \evalders{ P_0 }$ and $d_1
-\in \evalders{ P_1 }$ that do not have derivation relational
-invariants in $T$ (\autoref{line:core-case-cex}).
-%
-\verifyaux then runs a procedure \verifybnd on $d_0$ and $d_1$
-(\autoref{line:core-vders}; \verifybnd is given in
-\autoref{sec:verify-ders}).
-%
-If \verifybnd returns the value $\nonequiv$ to denote that $d_0
-\not\equiv d_1$ (\autoref{line:core-subcase-non-equiv}), then
-\verifyaux returns that $P_0 \not\equiv P_1$
-(\autoref{line:core-ret-non-equiv}).
-
-% subcase: finds path-pair invariants:
-Otherwise, \verifybnd returns $T' \in \unfoldreltypes{d_0}{d_1}$
-(\autoref{line:core-subcase-invs}).
-%
-\verifyaux runs a procedure \mergeinvs on $T$ and $T'$, which
-generates derivation relational invariants of all pairs of derivations
-with relational invariants in $T$ or $T'$;
-%
-\mergeinvs is given in \autoref{sec:merge}.
-%
-\verifyaux recurses on the generated invariants and returns the result
-(\autoref{line:core-recurse}).
-
-\subsubsection{Determining inductiveness of unfolded relational types}
-\label{sec:chk-ind}
-% algorithm for checking inductiveness:
-\begin{algorithm}[t]
-  % Declare IO markers.
-  \SetKwInOut{Input}{Input}
-  % 
-  \SetKwInOut{Output}{Output}
-  % Declare sub-program (procedure) markers.
-  \SetKwProg{myproc}{Procedure}{}{}
-  % Inputs: a program
-  \Input{$T \in \unfoldreltypes{ P_0 }{ P_1 }$.}
-  % Output: decision for safety
-  \Output{$\isind$ to denote that some restriction of $T$ is
-    inductive, or $d_0 \in \progders{P_0}$ and %
-    $d_1 \in \progders{P_1}$ that evaluate sub-expressions without
-    types in $T$.}
-  % verify: main procedure
-  \myproc{$\mathcal{E} \subseteq T \in \unfoldreltypes{ P_0 }{ P_1 }$ %
-    \label{line:chkind-begin} } %
-  { \myproc{ 
-      % given obligation sets of unfolded expressions,
-      $\chkindaux(E$, %
-      % and a map from sets of fixpoint expressions to relational
-      % types,
-      $F : \mathcal{E} \to \reltypes)$ %
-      \label{line:chkind-aux-begin} } %
-    { % if all of the expressions are atomic,
-      \lIf{$E \subseteq \atomics$}{ %
-        % then whatever invariants that we have are inductive:
-        \Return{$\isind$} \label{line:ret-isind} }
-      % if E contains a fixpoint symbol, 
-      \lIf{$f \in \fixvars, E$}{ %
-        % then return E grouped with the unfolding of f
-        \Return{ $\replace{ E }{ f }{ \fix{ f }{ \fixexpr{ f } } }$ 
-        } }  %
-      % for each expression that is a fixpoint, 
-      \ForEach{$\fix{ f }{ e } \in E$}{ 
-        % if the maintained type for the core expressions is stronger,
-        \lIf{$T'(\orgexprs(E)) \entails T(E)$}{
-          % then return that this part is inductive
-          \Return{$\isind$} } 
-        \lElse{ 
-          % otherwise, strengthen the maintained invariants
-          $T' \assign \upd{ T' }{ \orgexprs(E) }{ T(E) }$ } }
-      % for each tiling of E,
-      \ForEach{$E_0 \union E_1 = E$}{ 
-        % if the results are both inductive,
-        \lIf{$\chkindaux(E_0, T') = %
-          \chkindaux( E_1, T' ) = %
-          \isind$}{
-          % then this set is inductive:
-          \Return{$\isind$}
-        } }
-      % otherwise,
-      \Return{$\unwind(E, T')$}
-    } }
-  \Return{$\chkindaux(\elts{ P_0, P_1 }, \lambda x.\ \true)$} %
-  \label{line:chkind-base} 
-  % 
-\caption{ % interface of chkinductive:
-  \chkinductive: determines the inductiveness of derivation
-  relational invariants. }
-\label{alg:chk-ind}
-\end{algorithm}
-%
-\BH{define map from each fixpoint variable to its expression}
+If \verifybnd returns $\nonequiv$, then \verify returns that $\cc{P}_0
+\not\equiv \cc{P}_1$ (\autoref{line:ret-non-eq}).
 
 %
-The algorithm \chkinductive for checking the inductiveness of
-derivation relational invariants is given in
-\autoref{alg:chk-ind}.
+Otherwise, if \verifybnd returns $T \in \subexptypes{ \cc{P}_0' }{
+  \cc{P}_1' }$,
 %
-\chkinductive, given $P_0, P_1 \in \stlc$ and $I \in
-\unfoldreltypes{P_0}{P_1}$ (\autoref{line:chkind-begin}), defines a
-procedure \chkindaux that, given $\Gamma_0 \in \derctxs{P_0}^{*}$,
-$\Gamma_1 \in \derctxs{P_1}^{*}$, and $I: \subexpseqs \to
-\symrels{P_0}{P_1}$, returns either %
-\textbf{(1)} $\isind$ to denote that if $I_{\Gamma}$ restricted to
-extensions of $\Gamma$ is inductive under $I_E$
+\BH{define sub-expression types}
 %
-\BH{define}
+then \verify runs procedure \verifyaux on $T$
+(\autoref{line:subexp-types}), then \verifybnd runs procedure
+\chkinductive on $T$ (\autoref{line:chk-ind}).
 %
-or
-%
-\BH{update, clarify}
-%
-\textbf{(2)} derivations of $P_0$ and $P_1$ whose contexts do not have
-relational invariants in $I$
-(\autoref{line:chkind-aux-begin}---\autoref{line:chkind-aux-end}).
-%
-If case \textbf{(1)} holds, we say that $(\Gamma_0, \Gamma_1)$ is
-inductive in $D$ under $I$.
-%
-\chkinductive calls \chkindaux on the empty derivation contexts of
-$P_0$ and $P_1$ and a map from each element in $\subexpseqs$ to
-$\true$, and returns the result (\autoref{line:chkind-base}).
+If \chkinductive returns $\isind$, then \verify returns that $\cc{P}_0
+\equiv \cc{P}_1$ (\autoref{line:ret-eq}).
+% subcase: invariants are not inductive:
+Otherwise, if \chkinductive returns $\cc{P}_0'' \in \unfoldings{
+  \cc{P}_0 }$ and $\cc{P}_1'' \in \unfoldings{ \cc{P}_1 }$, then
+\verifyaux runs \verifyaux on $\cc{P}_0''$ and $\cc{P}_1''$ and
+returns the result (\autoref{line:ret-rec}).
 
-% aux function: contexts have no invariant:
-\chkindaux collects the pair $E$ of sequences of expressions of the
-derivation contexts in $\Gamma_0$ and $\Gamma_1$
-(\autoref{line:chkind-bind-exps}), and then determines if $(\Gamma_0,
-\Gamma_1)$ has relational invariants defined in $D$.
+% overview the rest of the section
+\autoref{sec:type-unfoldings} gives an implementation of
+\autoref{sec:type-unfoldings};
 %
-If not, then \chkindaux returns a sequence of derivations of all
-expressions in $E$ (\autoref{line:chkind-counters}).
+\autoref{sec:chk-ind} gives an implementation of \chkinductive.
 
-% aux function: subcase: invariants are entailed by invariants in I:
-Otherwise, \chkindaux collects the relational invariants $\varphi_E$
-bound to $E$ in $I_E$ (\autoref{line:bind-exp-invs}), %
-collects the symbolic relation $\varphi_{\Gamma}$ bound to $\Gamma_0$
-and $\Gamma_1$ in $I_{\Gamma}$ (\autoref{line:bind-der-invs}), and %
-determines if $\varphi_E$ entails $\varphi_{\Gamma}$.
-%
-If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
-inductive in $I_{\Gamma}$ under $I_E$ (\autoref{line:ret-isind}).
-
-% aux fn: subcase: some tiling is inductive
-Otherwise, \chkindaux constructs relational invariants $I_E'$ that
-strengthen $I_E$ at $E$ with $\varphi_{\Gamma}$
-(\autoref{line:str-invs}).
-%
-\chkindaux determines if either there is some tiling of $\Gamma_0$
-such that each tile paired with $\Gamma_1$ is inductive in
-$I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind0}), or there is
-some tiling of $\Gamma_1$ such that $\Gamma_0$ paired with each tile
-is inductive in $I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind1}).
-%
-If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
-inductive under $I_E'$ (\autoref{line:tile-isind}).
-
-% aux fn: subcase: unwind
-Otherwise, \chkindaux runs the procedure $\unwind$...
-
-\subsubsection{Verifying equivalence of bounded expressions}
-\label{sec:verify-ders}
+\subsubsection{Typing subexpressions of unfoldings}
+\label{sec:type-unfoldings}
 % give an overview:
-$\verifybnd$, given an unfolding $\cc{P}_0'$ of $\cc{P}_0$ and
-an unfolding $\cc{P}_1'$ of $\cc{P}_1$, either returns proofs that
-$\cc{P}_0'$ and $\cc{P}_1'$ are equivalent, or returns $\nonequiv$ to
-denote that $\cc{P}_0'$ and $\cc{P}_1'$ are not equivalent.
+\verifybnd, given $\cc{P}_0' \in \unfoldings{ \cc{P}_0 }$ and
+$\cc{P}_1' \in \unfoldings{ \cc{P}_1 }$, either returns types of the
+subexpressions of $\cc{P}_0'$ and $\cc{P}_1'$ or returns $\nonequiv$
+to denote that $\cc{P}_0' \not\equiv \cc{P}_1'$.
 %
 $\verifybnd$ reduces this problem to solving a CHC system
 (\autoref{sec:chcs}).
 %
-The relational predicates of the system correspond to contexts and
-types of subexpressions of $\cc{P}_0'$ and $\cc{P}_1'$.
+Each solution of the system defines types and contexts of
+subexpressions of $\cc{P}_0'$ and $\cc{P}_1'$.
 %
-The clauses of the system correspond to the proof values for
-establishing valid types of sets of expressions
-(\autoref{fig:reltype-rules}).
+The clauses of the system correspond to rules for establishing types
+of expressions (\autoref{fig:reltypes-rules}).
 
 % give the construction in detail:
-$\verifybnd$ constructs the following CHC system $\mathcal{C}_{
+\BH{update}
+%
+\verifybnd constructs the following CHC system $\mathcal{C}_{
   \cc{P}_0', \cc{P}_1' }$.
 % define the space of relational predicates
 Let $E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ be an arbitrary
@@ -663,8 +589,8 @@ constructed from binary operations.
 % clauses for if-then-else:
 For all $e_0, e_1, e_2 \in \subexps{ P_0' }$ and $E \subseteq
 \subexps{ P_0 } \union \subexps{ P_1 }$, let $\mathcal{R} =
-\symrelpreds(E \disjunion \elts{ e_0, e_1, e_2 })$ and $\mathcal{R}' =
-\symrelpreds(E \disjunion \elts{ \ite{e_0}{e_1}{e_2} })$.
+\symrelpreds(E \union \elts{ e_0, e_1, e_2 })$ and $\mathcal{R}' =
+\symrelpreds(E \union \elts{ \ite{e_0}{e_1}{e_2} })$.
 %
 Then $\verifybnd$ generates relational predicates $R_0$ and $R_1$ and
 clauses
@@ -714,9 +640,9 @@ $P_1$.
 For all $e_0, e_1 \in \subexps{P_0'}$ such that $e_0\ e_1 \in
 \subexps{P_0'}$, %
 $E_0 \subseteq \subexps{P_0'}$, and %
-$E_1 \in \subexps{P_1'}$, let $E = E_0 \disjunion \elts{ e_0, e_1 }
+$E_1 \in \subexps{P_1'}$, let $E = E_0 \union \elts{ e_0, e_1 }
 \union E_1$, %
-let $E' = E_0 \disjunion \elts{ e_0\ e_1 } \union E_1$, and %
+let $E' = E_0 \union \elts{ e_0\ e_1 } \union E_1$, and %
 let $f$ be a fresh variable with the same type as $x$.
 %
 $\verifybnd$ adds the clauses 
@@ -735,14 +661,11 @@ For all $E_0, E_0', E_0'' \in \antichains{ P_0' }$ and %
 $E_1, E_1', E_1'' \in \antichains{ P_1' }$ such that $E_1 \union E_1'
 = E_1''$, $\verifybnd$ generates clauses $(E_0 \union E_1) \joinctr
 (E_0' \union E_1') \subtype E_0'' \union E_1''$.
-%
-Such clauses ensure that each solution of $\mathcal{C}$ can be used in
-arbitrary applications of rule \textsc{Union}.
 
 \BH{define the query of the system}
 
 % walk through the other typing rules that aren't used.
-$\verifybnd$ does generate clauses that model the typing rule
+$\verifybnd$ does not generate clauses that model the typing rule
 \textsc{Fix}, because a bounded expression cannot contain a fixpoint
 expression.
 %
@@ -752,6 +675,141 @@ set of expressions that satisfy a subtyping relationship.
 %
 Sets of fixpoint variables are unconstrained, and in particular may be
 interpreted as $\false$.
+
+\subsubsection{Determining inductiveness of unfolded relational types}
+\label{sec:chk-ind}
+% algorithm for checking inductiveness:
+\begin{algorithm}[t]
+  % Declare IO markers.
+  \SetKwInOut{Input}{Input}
+  % 
+  \SetKwInOut{Output}{Output}
+  % Declare sub-program (procedure) markers.
+  \SetKwProg{myproc}{Procedure}{}{}
+  % Inputs: a program
+  \Input{$T \in \unfoldreltypes{ P_0 }{ P_1 }$.}
+  % Output: decision for safety
+  \Output{$\isind$ to denote that some restriction of $T$ is
+    inductive, or $d_0 \in \progders{P_0}$ and %
+    $d_1 \in \progders{P_1}$ that evaluate sub-expressions without
+    types in $T$.}
+  % verify: main procedure
+  \myproc{$\mathcal{E} \subseteq T \in \unfoldreltypes{ P_0 }{ P_1 }$ %
+    \label{line:chkind-begin} } %
+  { \myproc{ 
+      % given obligation sets of unfolded expressions,
+      $\chkindaux(E$, %
+      % and a map from sets of fixpoint expressions to relational
+      % types,
+      $F : \mathcal{E} \to \reltypes)$ %
+      \label{line:chkind-aux-begin} } %
+    { % if all of the expressions are atomic,
+      \lIf{$E \subseteq \atomics$}{ %
+        % then whatever invariants that we have are inductive:
+        \Return{$\isind$} \label{line:ret-isind} }
+      % if E contains a fixpoint symbol, 
+      \lIf{$f \in \fixvars, E$}{ %
+        % then return E grouped with the unfolding of f
+        \Return{ $\replace{ E }{ f }{ \fix{ f }{ \fixexpr{ f } } }$ 
+        } }  %
+      % for each expression that is a fixpoint, 
+      \ForEach{$\fix{ f }{ e } \in E$}{ 
+        % if the maintained type for the core expressions is stronger,
+        \lIf{$T'(\orgexprs(E)) \entails T(E)$}{
+          % then return that this part is inductive
+          \Return{$\isind$} } 
+        \lElse{ 
+          % otherwise, strengthen the maintained invariants
+          $T' \assign \upd{ T' }{ \orgexprs(E) }{ T(E) }$ } }
+      % for each tiling of E,
+      \ForEach{$E_0 \union E_1 = E$}{ 
+        % if the results are both inductive,
+        \lIf{$\chkindaux(E_0, T') = %
+          \chkindaux( E_1, T' ) = %
+          \isind$}{
+          % then this set is inductive:
+          \Return{$\isind$}
+        } }
+      % otherwise,
+      \Return{$\unwind(E, T')$}
+    } }
+  \Return{$\chkindaux(\elts{ P_0, P_1 }, \lambda x.\ \true)$} %
+  \label{line:chkind-base} 
+  % 
+\caption{ % interface of chkinductive:
+  \chkinductive: determines the inductiveness of derivation
+  relational invariants. }
+\label{alg:chk-ind}
+\end{algorithm}
+%
+\BH{define map from each fixpoint variable to its expression}
+
+%
+The algorithm \chkinductive for checking the inductiveness of
+derivation relational invariants is given in
+\autoref{alg:chk-ind}.
+%
+\chkinductive, given $P_0, P_1 \in \stlc$ and $I \in
+\unfoldreltypes{P_0}{P_1}$ (\autoref{line:chkind-begin}), defines a
+procedure \chkindaux that, given $\Gamma_0 \in \derctxs{P_0}^{*}$,
+$\Gamma_1 \in \derctxs{P_1}^{*}$, and $I: \subexpseqs \to
+\symrels{P_0}{P_1}$, returns either %
+\textbf{(1)} $\isind$ to denote that if $I_{\Gamma}$ restricted to
+extensions of $\Gamma$ is inductive under $I_E$
+%
+\BH{define}
+%
+or
+%
+\BH{update, clarify}
+%
+\textbf{(2)} derivations of $P_0$ and $P_1$ whose contexts do not have
+relational invariants in $I$
+(\autoref{line:chkind-aux-begin}---\autoref{line:chkind-aux-end}).
+%
+If case \textbf{(1)} holds, we say that $(\Gamma_0, \Gamma_1)$ is
+inductive in $D$ under $I$.
+%
+\chkinductive calls \chkindaux on the empty derivation contexts of
+$P_0$ and $P_1$ and a map from each element in $\subexpseqs$ to
+$\true$, and returns the result (\autoref{line:chkind-base}).
+
+% aux function: contexts have no invariant:
+\chkindaux collects the pair $E$ of sequences of expressions of the
+derivation contexts in $\Gamma_0$ and $\Gamma_1$
+(\autoref{line:chkind-bind-exps}), and then determines if $(\Gamma_0,
+\Gamma_1)$ has relational invariants defined in $D$.
+%
+If not, then \chkindaux returns a sequence of derivations of all
+expressions in $E$ (\autoref{line:chkind-counters}).
+
+% aux function: subcase: invariants are entailed by invariants in I:
+Otherwise, \chkindaux collects the relational invariants $\varphi_E$
+bound to $E$ in $I_E$ (\autoref{line:bind-exp-invs}), %
+collects the symbolic relation $\varphi_{\Gamma}$ bound to $\Gamma_0$
+and $\Gamma_1$ in $I_{\Gamma}$ (\autoref{line:bind-der-invs}), and %
+determines if $\varphi_E$ entails $\varphi_{\Gamma}$.
+%
+If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
+inductive in $I_{\Gamma}$ under $I_E$ (\autoref{line:ret-isind}).
+
+% aux fn: subcase: some tiling is inductive
+Otherwise, \chkindaux constructs relational invariants $I_E'$ that
+strengthen $I_E$ at $E$ with $\varphi_{\Gamma}$
+(\autoref{line:str-invs}).
+%
+\chkindaux determines if either there is some tiling of $\Gamma_0$
+such that each tile paired with $\Gamma_1$ is inductive in
+$I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind0}), or there is
+some tiling of $\Gamma_1$ such that $\Gamma_0$ paired with each tile
+is inductive in $I_{\Gamma}$ under $I_E'$ (\autoref{line:tile-isind1}).
+%
+If so, then \chkindaux returns that $\Gamma_0$ and $\Gamma_1$ are
+inductive under $I_E'$ (\autoref{line:tile-isind}).
+
+% aux fn: subcase: unwind
+Otherwise, \chkindaux runs the procedure $\unwind$...
+
 
 %%% Local Variables: 
 %%% mode: latex
