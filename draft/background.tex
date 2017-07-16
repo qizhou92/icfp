@@ -22,23 +22,23 @@ We then define partial equivalence of STLC programs
       | &\ \ite{ e }{ e }{ e } \\
       % or an abstraction,
       | &\ \lambda x.\ e \\
-      % or a fixpoint,
-      | &\ \fix{ f }{ e } \\
       % or an application,
-      | &\ e\ e 
+      | &\ e\ e \\
+      % or a fixpoint,
+      | &\ \fix{ f }{ e } 
     \end{align*}
     \caption{The space of program expressions, $\expr$.
       %
-      Metavariable $e$ ranges over $\expr$.} %
+      Metavariable $e$ ranges over $\expr$, %
+      $c$ ranges over $\const$, %
+      $x$ ranges over $\vars$, and %
+      $f$ ranges over $\fixvars$. } %
     \label{fig:exprs}
   \end{minipage}
   %
   \begin{minipage}{0.48\linewidth}
     \begin{align*} %
-      \tau \rightarrow &\ \base\ %
-      |\ \tau \to \tau \\
-      \base \rightarrow &\ \bools\ %
-      |\ \ints
+      \tau \rightarrow &\ \bools\ |\ \ints\ |\ \tau \to \tau 
     \end{align*}
     \caption{The space of types, $\types$.
       % 
@@ -54,11 +54,14 @@ simply-typed $\lambda$-calculus expressions, $\expr$.
 For the remainder of this paper, metavariable $e$ ranges over
 $\expr$, %
 $c$ ranges over constants, %
-$\oplus$ ranges over binary operators, and $x$ and $f$ range over
-program variables.
+$\oplus$ ranges over binary operators from the combination of Boolean
+and linear integer arithmetic, %
+$x$ ranges over program variables, and %
+$f$ ranges over fixpoint variables.
 %
 An expression is a Boolean or integer constant, %
-a variable (drawn from space of variables $\vars$), %
+a variable (drawn from the space of variables $\vars$), %
+a fixpoint variable (drawn from the space of fixpoint $\fixvars$), %
 an application of an fixed operator to a pair of expressions, %
 an \cc{if}-\cc{then}-\cc{else} expression, %
 a $\lambda$-abstraction, %
@@ -73,8 +76,8 @@ such that $\freevars(e) = \emptyset$.
 %
 The space of STLC programs is denoted $\stlc$.
 %
-For $P \in \stlc$, the set of all subexpressions of $P$ is denoted
-$\subexps(P)$.
+For $P \in \stlc$, the subexpressions of $P$ are denoted
+$\subexps{ P }$.
 %
 Let $P$ be fixed for the rest of this section.
 
@@ -122,107 +125,27 @@ A value is a Boolean, an integer, or a $\lambda$ abstraction;
 %
 the space of values is denoted $\values$.
 %
-The semantics of $\stlc$ is defined by a natural semantics that
-relates expressions to values, given in \autoref{fig:nat-sem}.
-%
-The space of rules used to define the $\stlc$ semantics is denoted
-$\evalrules$.
-%
 For $e \in \expr$ and $v \in \values$, the fact that $e$
-\emph{evaluates} to $v$ under an empty context is denoted $e \evalsto
-v$.
+\emph{evaluates} to $v$ is denoted $e \evalsto v$.
+% 
+The evaluation relation is defined by a natural semantics, given in
+\autoref{fig:nat-sem}.
 
-% define instantiated rules:
-Each evaluation rules defines evaluations of a given expression in a
-program in terms of evaluations of other expressions that occur in the
-program.
+% define base types:
+\paragraph{Base types}
 %
-For each $r \in \evalrules$ and $P \in \stlc$, an instantiation of $r$
-in $P$ is $r$ paired with a successor expression for which it defines
-an evaluation, and a sequence of predecessor expressions whose
-evaluations determine the evaluation of the successor expression.
+A base type is defines a basic structure of values.
 %
-The number predecessor expressions that may occur in an instantiation
-of $r$ (i.e., $r$'s predecessor arity) is determined by $r$;
-%
-the arity is immediate from the definition of $r$, and we do not give
-the arities explicitly.
-%
-The space of instantiations of $\evalrules$ on subexpressions of $P$
-is denoted $\instrules{P}$.
-%
-For each $r \in \instrules{P}$, the sequence of predecessor
-expressions of $r$ is denoted $\rulepreds{r} \in \subexps{P}$.
+I.e., a value's base type defines the structure of values on which it
+is parameterized, and th e
 
-% define derivations:
-A derivation is a tree that defines rules applied in order prove that
-a particular expression has a particular value.
 %
-\begin{defn}
-  For $e \in \subexps{P}$, the \emph{derivation trees} of $e$ in $P$,
-  denoted $\evalders{P}{e}$, is the smallest space such that for each
-  $r \in \instrules{P}$ with predecessors $\rulepreds{r} = e_0,
-  \ldots, e_n \in \subexps{P}$, and derivation trees $D_0 \in
-  \evalders{P}{e_0}, \ldots, D_n \in \evalders{P}{e_n}$, it holds that
-  $(D_0, \ldots, D_n, r) \in \evalders{P}{\rulesucc{r}}$.
-\end{defn}
-%
-For each $P \in \stlc$, the derivations of $P$ are denoted as simply
-$\progders{P} = \evalders{P}{P}$.
-
-% define evaluation under derivations:
-For each $e \in \subexps{P}$, $\Gamma \in \ctxs$, and $v \in \values$
-such that $\Gamma \judges e \evalsto v$, there is some $D \in
-\evalders{P}{e}$ that is evidence of evaluation.
-%
-This fact is denoted $\Gamma \judges_D e \evalsto v$.
-
-% define equivalence of derivations:
-For all $P_0, P_1 \in \stlc$, $D_0 \in \evalders{P_0}{P_0}$, $D_1 \in
-\evalders{P_0}{P_0}$, $\Gamma \in \ctxs$, and $v_0, v_1 \in \values$
-such that $\Gamma \judges_{D_0} P_0 \evalsto v_0$ and $\Gamma
-\judges{D_1} P-1 \evalsto v_1$ it holds that $v_0 = v_1$, then $D_0$
-is \emph{equivalent} to $D_1$, denoted $D_0 \equiv D_1$.
-
-% define derivation contexts:
-For each $d \in \evalders{P_0}{P_0}$ and $d' \in \subders{d}$, the
-position of $d'$ within $d$ is defined by the sequence of rules paired
-with indices of premises in the rules under which $d'$ occurs in $d$.
-%
-The space of derivation contexts of all sub-derivations of $d$ is
-denoted $\derctxs{d} = (\instrules{P} \times \nats)^{*}$.
-%
-The derivation contexts of all derivations of $P$ is denoted
-$\derctxs{P} = \bigunion_{ d \in \evalders{P} } \derctxs{ d }$.
-%
-For each $\gamma \in \derctxs{d}$, the last instantiated rule applied
-in $d$ to build the sub-derivation at context $\gamma$ is denoted
-$\prevrule{ \gamma } \in \instrules{P}$.
-%
-For $r \in \instrules{ P }$, the contexts formed by extending $\gamma$
-with each pair of $r$ with an index of a predecessor of $r$ are
-denoted $\rulexts(\gamma, r) \in \derctxs{d}^{*}$.
-%
-The extensions of $\gamma$ in $d$, ordered by index of predecessor
-from which their first item is constructed, is denoted $\derexts{ d
-}(\gamma) \in \derctxs{ d }^{*}$.
-
-\paragraph{Typing}
-%
-Each expression has a type that describe the spaces of values that it
-takes as input and the spaces of values to which it evaluates.
+Each expression $e$ has a type that describe the spaces of values that
+it takes as input and the spaces of values to which it evaluates.
 %
 The space of types is given in \autoref{fig:types}.
 %
 A type is either a base type or a function from a type to a type.
-%
-The definition of types in \autoref{fig:types} thus does not include
-higher-order expressions.
-%
-We will relax this restriction in future work.
-%
-\BH{It's probably reasonable to relax this assumption before a first
-  paper}
 
 % introduce has-type symbol:
 For expression $e \in \expr$, typing context $\Gamma : \vars \to
@@ -234,13 +157,14 @@ The definition of the has-type relation is standard.
 % standard defns for logic:
 \paragraph{Logic}
 %
-\sys uses formal logic to model the semantics of programs.
+\sys infers types that related possible evaluations of expressions
+using formulas in formal logic.
 %
 The quantifier-free fragment of the theory of linear arithmetic is
 denoted $\lia$.
 %
 For each space of logical variables $X$, the space of $\lia$ formulas
-over $X$ is denoted $\formulas{X}$.
+over $X$ is denoted $\formulas{ X }$.
 %
 For each formula $\varphi \in \formulas{X}$, the set of variables that
 occur in $\varphi$ (i.e., the \emph{vocabulary} of $\varphi$) is
@@ -278,38 +202,14 @@ proposed that often determine the satisfiability of formulas that
 arise from practical verification problems
 efficiently~\cite{demoura08}.
 %
-\sys assumes access to a decision procedure for \lia, denoted \issat.
-
-\paragraph{Symbolic encoding of semantics}
-%
-The semantics of $\stlc$ is represented symbolically using \lia
-formulas.
-%
-For $e \in \expr$, let $\symvars{e}$ denote a disjoint copy of
-$\freevars(e)$, extended with one symbol $\alpha_i$ for each of the
-$i$ parameters in the type of $e$, and a symbol $\nu_e$ that
-models the result of fully applying $e$. 
-%
-For expressions $E \subseteq \expr$, let $\symvars{E} = \bigunion_{e
-  \in E} \symvars{e}$.
-
-% rule constraint:
-For each $r \in \instrules{ P }$, there is a formula $\psi \in
-\formulas{ \symvars{ \rulepreds{r} }, \symvars{ \rulesucc{r} } }$ that
-satisfy the following condition.
-%
-Let $\Gamma_0, \ldots, \Gamma_n \in \ctxs$, $A_0, \ldots, A_n, A \in
-\values^{*}$, and $\nu_0, \ldots, \nu_n, \nu \in \values$ be such that
-for each $0 \leq i \leq n$, $\Gamma_i \judges e_i\ A_i \evalsto
-\nu_i$, and $\Gamma \judges e\ A \evalsto \nu$.
-%
-Then $\Gamma_0, A_0, \nu_0, \ldots, \Gamma_n, A_n, \nu_n, \Gamma, A,
-\nu \sats \psi$.
-%
-In such a case, $\psi$ is denoted $\symstep{ r }$.
+\sys assumes access to a procedure that, given \lia formulas
+$\varphi_0$ and $\varphi_1$, decides if $\varphi_0 \entails
+\varphi_1$.
 
 \subsection{Partial equivalence of STLC programs}
 \label{sec:peq}
+%
+\BH{generalize all of this to be in terms of $k$-safety properties}
 %
 If STLC programs $P_0$ and $P_1$, applied to the same input, evaluate
 to the same value, then $P_0$ and $P_1$ are partially equivalent.

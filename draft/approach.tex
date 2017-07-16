@@ -433,7 +433,7 @@ $\cc{P}_1' \in \unfoldings{ \cc{P}_1 }$, either returns types of the
 subexpressions of $\cc{P}_0'$ and $\cc{P}_1'$ or returns $\nonequiv$
 to denote that $\cc{P}_0' \not\equiv \cc{P}_1'$.
 %
-$\verifybnd$ reduces this problem to solving a CHC system
+\verifybnd reduces this problem to solving a CHC system
 (\autoref{sec:chcs}).
 %
 Each solution of the system defines types and contexts of
@@ -445,34 +445,34 @@ of expressions (\autoref{fig:reltypes-rules}).
 % give the construction in detail:
 \BH{update}
 %
-\verifybnd constructs the following CHC system $\mathcal{C}_{
+\verifybnd generates the following CHC system $\mathcal{C}_{
   \cc{P}_0', \cc{P}_1' }$.
 % define the space of relational predicates
-Let $E \in \antichains{ \cc{P}_0' }{ \cc{P}_1' }$ be an arbitrary
-anti-chain of $\cc{P}_0'$ and $\cc{P}_1'$.
+Let $E \subseteq \subexps{ \cc{P}_0' } \union \subexps{ \cc{P}_1' }$.
 % define relational predicates of a set of types:
 For typed symbols $T$, let the set of relational predicates
-$\symrelpreds{T}$ be defined as follows.
+$\symrelpreds{ T }$ be defined as follows.
 % base case: T is the empty set of types:
 If $T = \emptyset$, then $R_T = \emptyset$.
 % inductive case: T is a non-empty set
-Otherwise, let $R$ be such that for each type $\tau = \tau_0
-\rightarrow \ldots \rightarrow \tau_n \rightarrow \tau'$, $R$ has
-variables corresponding to $\tau_0$, \ldots, $\tau_n$, and $\tau'$.
+Otherwise, let $R$ be such that for all $\tau_0, \ldots, \tau_n, \tau'
+\in \reftypes$ such that $\tau = \tau_0 \rightarrow \ldots \rightarrow
+\tau_n \rightarrow \tau'$, $R$ has variables corresponding to
+$\tau_0$, \ldots, $\tau_n$, and $\tau'$.
 %
 Let $T'$ be collection of typed symbols in which each symbol is a pair
 of a typed symbol $f \in T$ and the position of a higher-order
 argument type in the type of $f$ in $T$.
 %
-Then $\symrelpreds{T} = \add{ \symrelpreds{ T' } }{ R }$.
+Then $\symrelpreds{ T } = \add{ \symrelpreds{ T' } }{ R }$.
 
 % define type of a context:
 Let $\Gamma : E \times \vars \to \types$ map each $e \in E$ and each
 $x \in \freevars(e)$ to its type in $e$, and let $R_E^{\Gamma} =
-\symrelpreds(\Gamma)$.
+\symrelpreds( \Gamma )$.
 %
-Let $T: E \to \types$ map each $e \in E$ to its type under its context
-in $\cc{P}_0$ or $\cc{P}_1$.
+Let $T : E \to \types$ map each $e \in E$ to its type under its
+context in $\cc{P}_0$ or $\cc{P}_1$.
 %
 \BH{define all notions of base types in programs correctly}
 %
@@ -483,18 +483,20 @@ are $\bigunion \setformer{ R_E^{\Gamma} \union R_E }{ E \in
   \antichains{ \cc{P}_0' }{ \cc{P}_1' }}$.
 
 % define clauses
-The clauses of $\mathcal{C}_{ \cc{P}_0', \cc{P}_1' }$ are synthesized
-as follows.
-% define join families of relational predicates:
+The clauses of $\mathcal{C}_{ \cc{P}_0', \cc{P}_1' }$ are defined as
+follows.
+%
+\BH{define clauses for each relational type}
+
+% define join of relational predicates:
 For $\mathcal{R}, \mathcal{R}', \mathcal{R}''$,
 %
-\BH{deprecated. Clean up.}
+\BH{patch}
 %
-, the
-clauses $\mathcal{R}\andsub(E_0, E_1, E')$ and $\orsub(E_0, E_1, E')$ constrain
-that the conjunction (and similarly, disjunction) of the relational
-types defined by interpretations of $\symrelpreds(E_0)$ and the
-interpretation of $\symrelpreds(E_1)$ is a subtype of the
+, the clauses $\mathcal{R}\andsub(E_0, E_1, E')$ and $\orsub(E_0, E_1,
+E')$ constrain that the conjunction (and similarly, disjunction) of
+the relational types defined by interpretations of $\symrelpreds(E_0)$
+and the interpretations of $\symrelpreds(E_1)$ is a subtype of the
 interpretation of the $\symrelpreds(E')$.
 %
 I.e., if $R$
@@ -506,82 +508,37 @@ I.e., if $R$
 Such clauses are denoted $\mathcal{R} \joinctr \mathcal{R}' \subtype
 \mathcal{R}''$.
 
-%
-of relational predicates $\mathcal{R}$ over typed variables $X$,
-relational predicates $\mathcal{R}'$ over typed variables $X$ and
-variables $X' \in X^{*}$ and $Y' \in Y^{*}$ with identical
-corresponding types, the clauses $\renamesub{ \mathcal{R} }{
-  \mathcal{R'} }{ X' }{ Y' }$ constrain that each interpretation of
-$\mathcal{R}$ is a subtype of each interpretation of $\mathcal{R}'$,
-with variables that model component types of symbols in $X'$ in
-$\mathcal{R}$ replaced with variables that model corresponding
-component types of symbols in $Y'$.
-%
-Let $\mathcal{R}$ be a collection of relational predicates over $X'
-\union Y'$.
-%
-Let the \emph{renaming type} from $X'$ to $Y'$ over $\mathcal{R}$,
-denoted $\renameclauses{ X' }{ Y' }{ \mathcal{R} }$ contain the
-following clauses.
-%
-For all $x \in X'$ and $y \in Y'$, let the fact that $x$ and $y$ occur
-in identical positions in $X'$ and $Y'$ be denoted $x \sim y$.
-%
-For each relational predicate $R \in \mathcal{R}$, there is a clause 
-%
-\[ \bigland \setformer{ \bigland (x, s) = (y, s) }{ %
-  x \sim y, s \in , (x, s), (y, s) \in \vars(R)}
-\]
-%
-Then for relational predicates $\mathcal{R}''$ of $X'$ and $Y'$,
-$\renamesub{ \mathcal{R} }{ \mathcal{R}' }{ x }{ y }$ consists of the
-clauses $\renameclauses{X'}{Y'}{ \mathcal{R}''}$ and $\mathcal{R}
-\joinctr \mathcal{R}'' \subtype \mathcal{R}'$.
-%
-Such clauses are denoted $\replace{ \mathcal{R} }{ X' }{ Y' } \subtype
-\mathcal{R}'$.
+\BH{remove indices}
 
-% define constraint clauses:
-For relational predicate $R$ over logical variables $X$, %
-relational predicate $R'$ over logical vocabulary $X'$ and constraint
-$\varphi$ over $X \union X'$, the \emph{constraint clauses} of $R$,
-$R'$, and $\varphi$ is defined as follows.
-%
-Let $R_{\varphi}$ be a fresh relational predicate over logical
-vocabulary $X \union X'$.
-%
-Then the constraint clauses consist of
-% constrain the R-varphi relational predicate of 
-$\varphi \entails R(X \concat X')$ and %
-$\mathcal{R} \joinctr [ R ] \subtype \mathcal{R}'$.
-%
-The clauses are denoted $\ctrclause{ \mathcal{R} }{ \varphi }{
-  \mathcal{R}' }$.
-
-% enumerate all of the actual clauses generated:
-$\verifybnd$ generates clauses that model each of the syntax-directed
+% enumerate clauses per form of expression:
+\verifybnd generates clauses that model each of the syntax-directed
 typing rules given in (\autoref{fig:reltype-rules}).
-%
+% sets of atomic expressions:
 For all $E_0 \subseteq \subexps{ P_0 }$ and $E_1 \subseteq \subexps{
   P_1 }$ such that $E_0$ and $E_1$ contain only atomic expressions,
-$\verifybnd$ generates the following clauses:
+\verifybnd generates the following clauses:
 %
 $\mathcal{R} \joinctr %
 \bigland \setformer{ c = (c, i) }{ c \in \const, i \in I, (c, i) \in E
 } \subtype \mathcal{R}'$.
 
-% clause for op:
-For all $e_0, e_1 \in \subexps{ \cc{P}_0 }$ such that $e_0 \oplus e_1
+% clauses for op:
+Let $e_0, e_1 \in \subexps{ \cc{P}_0 }$ such that $e_0 \oplus e_1
 \in \subexps{ P_0 }$, %
 $E_0 \subseteq \subexps{ P_0 }$, and %
 $E_1 \subseteq \subexps{ P_1 }$.
 %
-$\verifybnd$ generates the clauses
-% subtyping over contexts,
-$\mathcal{R}'_{\Gamma} \subtype \mathcal{R}_{\Gamma}$ and 
-% subtyping over results
-$\mathcal{R} \joinctr \resvar{ (e_0, i_0) } \oplus \resvar{ (e_1, i_1)
-} = \resvar{ (e_0 \oplus e_1, i') } \subtype \mathcal{R}'$.
+\verifybnd generates the clauses
+\begin{align*}
+  % constrain contexts,
+  \mathcal{R}'_{\Gamma} & \subtype \mathcal{R}_{\Gamma} &
+  % subtyping of expression types:
+  \mathcal{R}, %
+  \resvar{e_0 \oplus e_1} = \resvar{e_0} \oplus \resvar{e_1} &
+  \subtype \mathcal{R}'
+\end{align*}
+%
+\BH{define subtyping constraint syntax over ops}
 %
 Similar clauses are included for all subexpressions of $P_1$ that are
 constructed from binary operations.
@@ -589,17 +546,28 @@ constructed from binary operations.
 % clauses for if-then-else:
 For all $e_0, e_1, e_2 \in \subexps{ P_0' }$ and $E \subseteq
 \subexps{ P_0 } \union \subexps{ P_1 }$, let $\mathcal{R} =
-\symrelpreds(E \union \elts{ e_0, e_1, e_2 })$ and $\mathcal{R}' =
-\symrelpreds(E \union \elts{ \ite{e_0}{e_1}{e_2} })$.
+\symrelpreds(\elts{ e_0, e_1, e_2 } \union E)$ and $\mathcal{R}' =
+\symrelpreds(\elts{ \ite{ e_0 }{ e_1 }{ e_2 } } \union E)$.
 %
-Then $\verifybnd$ generates relational predicates $R_0$ and $R_1$ and
+Then \verifybnd generates relational predicates $R_0$ and $R_1$ and
 clauses
-% context subtyping,
-$\mathcal{R}'_{\Gamma} \subtype \mathcal{R}_{\Gamma}$,
-% add constraint for case where the guard is true,
-$\ctrclause{ R }{ R_0 }{ \resvar{ (e_0, i) } = \true}$,
 %
-\BH{define R}
+\BH{fix this defn}
+\begin{align*}
+  % context subtyping,
+  \mathcal{R}'_{\Gamma} & \subtype \mathcal{R}_{\Gamma} &
+  % copy the then expression to the whole expression:
+  \mathcal{R}, \resvar{e_0} = \true & \subtype \mathcal{R}_T &
+  % case where guard is true: define the copy predicates:
+  \resvar{ e_1 } \equiv \resvar{ e } & \subtype \mathcal{COPY}_T &
+  % copy value from the then expression to the whole expression:
+  \mathcal{R}_T \joinctr \mathcal{COPY}_T & \subtype \mathcal{R}' &
+  % assume that 
+  \mathcal{R}_T, \resvar{ e_0 } = \true & \subtype \mathcal{R}'
+  % case where guard is false:
+\end{align*}
+%
+\BH{renamesub: remove use}
 % add constraints that relate this case to final result,
 $\renamesub{ \mathcal{R}_0 }{ \mathcal{ R }' }{ \resvar{ (e_1, i_1) }
 }{ \resvar{(e, i)} }$,
@@ -620,11 +588,11 @@ For all $x \in \vars$, %
 $e \in \subexps{ P_0' }$ such that $\lambda x. e \in
 \subexps{P_0'}$, %
 $E_0 \subseteq \subexps{P_0'}$, and %
-$E_1 \subseteq \subexps{P_1}'$, $\verifybnd$ adds clauses that solve
+$E_1 \subseteq \subexps{P_1}'$, \verifybnd adds clauses that solve
 for a relational type of $x$, use it to strengthen the context for
 typechecking the $e$.
 %
-I.e., $\verifybnd$ generates a collection of relational predicates
+I.e., \verifybnd generates a collection of relational predicates
 $\mathcal{R}_x$ for $x$ grouped with $E_0$ and $E_1$, %
 adds the clauses
 % context for typechecking body is strengthen
@@ -645,7 +613,7 @@ $E_1 \in \subexps{P_1'}$, let $E = E_0 \union \elts{ e_0, e_1 }
 let $E' = E_0 \union \elts{ e_0\ e_1 } \union E_1$, and %
 let $f$ be a fresh variable with the same type as $x$.
 %
-$\verifybnd$ adds the clauses 
+\verifybnd adds the clauses 
 % type of context is subtype of context over components:
 $E_{\Gamma} \subtype E'_{\Gamma}$ and %
 $\replace{ E }{ \firstarg{e_0} }{ f } \subtype \replace{ E }{ e_1 }{ f
@@ -659,17 +627,17 @@ $P_1$.
 % define clauses for subsets of expressions
 For all $E_0, E_0', E_0'' \in \antichains{ P_0' }$ and %
 $E_1, E_1', E_1'' \in \antichains{ P_1' }$ such that $E_1 \union E_1'
-= E_1''$, $\verifybnd$ generates clauses $(E_0 \union E_1) \joinctr
+= E_1''$, \verifybnd generates clauses $(E_0 \union E_1) \joinctr
 (E_0' \union E_1') \subtype E_0'' \union E_1''$.
 
 \BH{define the query of the system}
 
 % walk through the other typing rules that aren't used.
-$\verifybnd$ does not generate clauses that model the typing rule
-\textsc{Fix}, because a bounded expression cannot contain a fixpoint
+\verifybnd does not generate clauses that model the typing rule
+\textsc{Fix}, because an unfolding cannot contain a fixpoint
 expression.
 %
-$\verifybnd$ does not explicitly add clauses that model uses of the
+\verifybnd does not explicitly add clauses that model uses of the
 \textsc{Sub} rule, given that a CHC solution may choose types for any
 set of expressions that satisfy a subtyping relationship.
 %
