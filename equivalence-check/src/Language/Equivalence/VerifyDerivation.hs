@@ -26,10 +26,6 @@ data DerivationNode = DerivationNode [Var] HyperEdge Int
 instance Show DerivationNode where
   show = derivationNode_short_print
 
-data PrimitiveType =  PrimitiveType [PrimitiveType]
-                    | PrimitiveBool
-                    | PrimitiveInteger
-
 -- need translate the coreExpr
 derivationNode_short_print :: DerivationNode -> String
 derivationNode_short_print (DerivationNode list (HyperEdge smtExpr successors) value) = do
