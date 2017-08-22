@@ -8,6 +8,9 @@ import qualified Language.Equivalence.Types as Types
 import Language.Equivalence.VerifyDerivation
 import Language.Equivalence.Derivations
 
+plus :: Int -> Int -> Int
+plus a b = a
+
 main = do
   let zero = Types.EInt 0
   let one = Types.EInt 1

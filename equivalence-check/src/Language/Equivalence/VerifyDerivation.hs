@@ -1,6 +1,7 @@
 module Language.Equivalence.VerifyDerivation where
 import Language.Equivalence.CHC
 import Language.Equivalence.Expr
+import Language.Equivalence.TypeInference
 import qualified Data.Set as Set
 import qualified Data.List as List
 import Data.List.Split
@@ -35,23 +36,25 @@ derivationNode_short_print (DerivationNode list (HyperEdge smtExpr successors) v
   let string4 = string3 ++ "\n------------------------------------------------\n"
   string4 ++ (unlines (map derivationNode_short_print successors) )
 
-translateDT ::  Int -> Der -> (DerivationNode,Int)
-translateDT uniqueId (Der ruleName expr successors) = case ruleName of
-  RNConst -> translateRNConst uniqueId (Der ruleName expr successors)
-  RNVar -> translateVar uniqueId (Der ruleName expr successors)
-  RNOp -> translateRNOp uniqueId (Der ruleName expr successors)
-  RNIteTrue -> translateRNIteTrue uniqueId (Der ruleName expr successors)
-  RNIteFalse -> translateRNIteFalse uniqueId (Der ruleName expr successors)
-  RNFix -> translateRNFix uniqueId (Der ruleName expr successors)
-  RNApp -> translateRNApp uniqueId (Der ruleName expr successors)  
+type TranslateEnv = [(Var, Type)]
 
-translateVar :: Int -> Der -> (DerivationNode,Int)
+translateDT :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
+translateDT env uniqueId (Der ruleName expr successors) = case ruleName of
+  RNConst -> translateRNConst env uniqueId (Der ruleName expr successors)
+  RNVar -> translateVar env uniqueId (Der ruleName expr successors)
+  RNOp -> translateRNOp env uniqueId (Der ruleName expr successors)
+  RNIteTrue -> translateRNIteTrue env uniqueId (Der ruleName expr successors)
+  RNIteFalse -> translateRNIteFalse env uniqueId (Der ruleName expr successors)
+  RNFix -> translateRNFix env uniqueId (Der ruleName expr successors)
+  RNApp -> translateRNApp env uniqueId (Der ruleName expr successors)  
+
+translateVar :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateVar = undefined
 
-translateRNConst :: Int -> Der -> (DerivationNode,Int)
+translateRNConst ::TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateRNConst = undefined
 
-translateRNOp :: Int -> Der -> (DerivationNode,Int)
+translateRNOp :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateRNOp = undefined
 
 getBinaryExpr :: DerivationNode -> DerivationNode -> Types.CoreExpr -> Expr
@@ -68,13 +71,13 @@ getBinaryExpr (DerivationNode varList1 _ _) (DerivationNode varList2 _ _) (Types
   Types.Or -> MkOr [(ExprVar (last varList1)), (ExprVar (last varList2))]
   _ -> MkEmpty
 
-translateRNIteTrue :: Int -> Der -> (DerivationNode,Int)
+translateRNIteTrue :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateRNIteTrue = undefined
 
-translateRNIteFalse :: Int -> Der -> (DerivationNode,Int)
+translateRNIteFalse :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateRNIteFalse = undefined
 
-translateRNApp :: Int -> Der -> (DerivationNode,Int)
+translateRNApp :: TranslateEnv -> Int -> Der -> (DerivationNode,Int)
 translateRNApp = undefined
 
 bindingArgs :: Types.CoreExpr -> Int -> Int -> Expr

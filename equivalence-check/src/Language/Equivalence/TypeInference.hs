@@ -88,60 +88,78 @@ freshTVar = do
   put (s+1)
   return (TVar ("newTypeVariable" ++ (show s)))
 
-ti :: TypeEnv -> CoreExpr -> HM (Subst, Type)
-ti _ (EInt  _) = return (Map.empty , TInt)
-ti _ (EBool _) = return (Map.empty , TInt)
+data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type) 
+
+ti :: TypeEnv -> CoreExpr -> HM TypeResult
+ti _ expr@(EInt  _) = return (TypeResult (Map.empty) TInt (Map.insert expr TInt Map.empty))
+ti _ expr@(EBool _) = return (TypeResult (Map.empty) TBool (Map.insert expr TBool Map.empty))
 ti _ (ENil ) = throwError "Cannot analysis ENil type"
-ti (TypeEnv env) (EVar x) = 
+ti (TypeEnv env) expr@(EVar x) = 
   case (Map.lookup (EVar x) env) of
      Nothing -> throwError ("Unbounded Varaiablie: " ++ (show x))
      Just s  -> do
        t <- instantiate s
-       return (Map.empty, t) 
+       return (TypeResult (Map.empty) t (Map.insert expr t Map.empty))
 
-ti tEnv (EBin op expr1 expr2) = do
-  (s1,t1) <- (ti tEnv expr1)
-  (s2,t2) <- (ti tEnv expr2)
+ti tEnv expr@(EBin op expr1 expr2) = do
+  TypeResult s1 t1 m1 <- (ti tEnv expr1)
+  TypeResult s2 t2 m2 <- (ti tEnv expr2)
   tv <- freshTVar
   opType <- (getOp op)
   s3 <- mgu (TArr t1 (TArr t2 tv)) opType
-  return ((andSubSet (andSubSet s1 s2) s3),(apply s3 tv))
+  let m3 = Map.union m1 m2
+  let tnew = apply s3 tv
+  let m4 = Map.insert expr tnew m3
+  return (TypeResult (andSubSet (andSubSet s1 s2) s3) tnew m4)
 
-ti tEnv (EIf expr1 expr2 expr3) = do
-  (s1,t1) <- (ti tEnv expr1)
-  (s2,t2) <- (ti tEnv expr2)
-  (s3,t3) <- (ti tEnv expr3)
+ti tEnv expr@(EIf expr1 expr2 expr3) = do
+  TypeResult s1 t1 m1 <- (ti tEnv expr1)
+  TypeResult s2 t2 m2 <- (ti tEnv expr2)
+  TypeResult s3 t3 m3 <- (ti tEnv expr3)
   s4 <- mgu t1 TBool
   s5 <- mgu t2 t3
-  return (andSubSet s5 (andSubSet s4 (andSubSet s3 (andSubSet s2 s1))), (apply s5 t2)) 
+  let m4 = (Map.union m1 (Map.union m2 m3))
+  let tnew = apply s5 t2
+  let m5 = Map.insert expr tnew m4
+  let newSubSet = (andSubSet (andSubSet (andSubSet (andSubSet s5 s4) s3) s2) s1)
+  return (TypeResult newSubSet tnew m5)
 
-ti (TypeEnv env) (ELet var1 expr1 expr2) = do
-  (s1 ,t1) <- ti (TypeEnv env) expr1
+ti (TypeEnv env) expr@(ELet var1 expr1 expr2) = do
+  TypeResult s1 t1 m1 <- ti (TypeEnv env) expr1
   let (TypeEnv env') = apply s1 (TypeEnv env)
   let t'  = generalize (TypeEnv env') t1
-  (s2, t2) <- ti  (TypeEnv (Map.insert (EVar var1) t' env')) expr2
-  return (andSubSet s1 s2, t2)
+  TypeResult s2 t2 m2 <- ti  (TypeEnv (Map.insert (EVar var1) t' env')) expr2
+  let m3 = Map.union m1 m2
+  let m4 = Map.insert expr t2 m3
+  return (TypeResult (andSubSet s1 s2) t2 m4) 
 
-ti (TypeEnv env) (EApp expr1 expr2) = do
+ti (TypeEnv env) expr@(EApp expr1 expr2) = do
   tv <- freshTVar
-  (s1,t1) <- ti (TypeEnv env) expr1
-  (s2,t2) <- ti (apply s1 (TypeEnv env)) expr2
+  TypeResult s1 t1 m1 <- ti (TypeEnv env) expr1
+  TypeResult s2 t2 m2 <- ti (apply s1 (TypeEnv env)) expr2
   s3 <- mgu (apply s2 t1) (TArr t2 tv)
-  return (andSubSet s3 (andSubSet s2 s1), apply s3 tv)
+  let m3 = Map.union m1 m2
+  let tnew = apply s3 tv
+  let m4 = Map.insert expr tnew m3
+  return (TypeResult (andSubSet (andSubSet s3 s2) s1) tnew m4)
 
-ti (TypeEnv env) (ELam var1 expr1) = do
+ti (TypeEnv env) expr@(ELam var1 expr1) = do
   tv <- freshTVar
   let env' = Map.insert (EVar var1) (Forall [] tv) env
-  (s1,t1) <- ti (TypeEnv env') expr1
-  return (s1, apply s1 (TArr tv t1))
+  TypeResult s1 t1 m1 <- ti (TypeEnv env') expr1
+  let tnew = apply s1 (TArr tv t1)
+  let m2 = Map.insert expr tnew m1
+  return (TypeResult s1 tnew m2)
 
 -- not sure the rule for fix is correct
-ti (TypeEnv env) (EFix var1 expr1) = do 
+ti (TypeEnv env) expr@(EFix var1 expr1) = do 
   tv <- freshTVar
   let env' = Map.insert (EVar var1) (Forall [] tv) env
-  (s1,t1) <- ti (TypeEnv env') expr1
+  TypeResult s1 t1 m1 <- ti (TypeEnv env') expr1
   s2 <- mgu tv t1
-  return (andSubSet s1 s2, apply s2 tv)
+  let tnew = apply s2 tv
+  let m2 = Map.insert expr tnew m1
+  return (TypeResult (andSubSet s1 s2) tnew m2)
 
 
  
