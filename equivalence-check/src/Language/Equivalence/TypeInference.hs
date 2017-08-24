@@ -88,7 +88,8 @@ freshTVar = do
   put (s+1)
   return (TVar ("newTypeVariable" ++ (show s)))
 
-data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type) 
+data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type)
+  deriving(Show)
 
 ti :: TypeEnv -> CoreExpr -> HM TypeResult
 ti _ expr@(EInt  _) = return (TypeResult (Map.empty) TInt (Map.insert expr TInt Map.empty))
@@ -183,11 +184,9 @@ getPairFresh = do
   t2 <- freshTVar
   return (t1,t2)
 
-main = do 
-  let r =(evalState (runExceptT getPairFresh) 0)
+infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
+infereType expr = do
+  let r = (evalState (runExceptT (ti (TypeEnv Map.empty) expr)) 0)
   case r of
-    Left err -> print err
-    Right res -> print res
-inferType :: CoreExpr -> Type
-inferType = undefined
-
+    Left err -> Left err
+    Right (TypeResult subset t mapResult) -> Right (Map.map (apply subset) mapResult)

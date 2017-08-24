@@ -59,7 +59,7 @@ data Der     = Der {drulename :: RuleName,
 
 type DEnv    = [(Var, CoreExpr)]
 
-data RuleName = RNConst | RNVar | RNOp | RNIteTrue | RNIteFalse | RNFix | RNApp| RASymbolic | RAAssume 
+data RuleName = RNConst | RNVar | RNOp | RNIteTrue | RNIteFalse | RNFix | RNApp| RNLam | RASymbolic | RAAssume 
      deriving (Show, Eq)
 
 
