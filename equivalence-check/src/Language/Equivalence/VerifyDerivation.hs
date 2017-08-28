@@ -70,7 +70,7 @@ getFreeVarList uniqueId typeEnv expr = do
   concat (map (freeVarToArguments uniqueId typeEnv) freeVarList)
 
 setEqualVar :: Var -> Var -> Expr 
-setEqualVar var1 var2 = MkEq (ExprVar var1) (ExprVar var1)
+setEqualVar var1 var2 = MkEq (ExprVar var1) (ExprVar var2)
 
 translateDT :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
 translateDT typeEnv uniqueId der@(Der ruleName _ _) = case ruleName of
@@ -215,6 +215,20 @@ translateRNApp typeEnv uniqueId der@(Der _ expr list) = do
   let newHyperEdge = HyperEdge smtExpr [dt1,dt2]
   ((DerivationNode (currentFreeVar ++ appOutputs) newHyperEdge nextId2),nextId2+1)
 
+translateRNFix :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
+translateRNFix typeEnv uniqueId der@(Der _ expr list) = do
+  let insideFix = list !! 0
+  let (dt1@(DerivationNode _ _ id1),nextId) = translateDT typeEnv uniqueId insideFix
+  let freeVarlist1 = getFreeVarList id1 typeEnv expr
+  let freeVarlist2 = getFreeVarList nextId typeEnv expr
+  let output1 = outputToArguments id1 typeEnv expr
+  let output2 = outputToArguments nextId typeEnv expr
+  let setFreeEqual = zipWith setEqualVar freeVarlist1 freeVarlist2
+  let setOutputEqaul = zipWith setEqualVar output1 output2
+  let smtExpr = MkAnd (setFreeEqual++setOutputEqaul)
+  let newHyperEdge = HyperEdge smtExpr [dt1]
+  ((DerivationNode (freeVarlist2 ++ output2) newHyperEdge nextId),nextId+1)
+
 translateRNLam :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
 translateRNLam typeEnv uniqueId der@(Der _ expr@(Types.ELam var expr1) list) = do
   let insideLam@(Der _ expr2 _) = list !! 0
@@ -242,56 +256,20 @@ translateRNLam typeEnv uniqueId der@(Der _ expr@(Types.ELam var expr1) list) = d
       ((DerivationNode (freeVars2 ++ lamOutputs) newHyperEdge nextId),nextId+1)
 
 
-
-
-translateRNFix :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNFix = undefined
-
-bindingArgs :: Types.CoreExpr -> Int -> Int -> Expr
-bindingArgs (Types.ELam (Types.Var name) _) uniqueId1 uniqueId2 = do
-  let expr1 = (ExprVar (Var (name++"!"++show(uniqueId2)) (Types.getVarSort (Types.Var name))))
-  let expr2 = (ExprVar (Var ("output!"++show(uniqueId1)++"@1") (Types.getVarSort (Types.Var name))))
-  MkEq expr1 expr2
-
-outputEquals :: Types.CoreExpr -> Int -> Int -> [Expr]
-outputEquals doutExpr uniqueId1 uniqueId2 = do
-  let sortList = Types.getSort doutExpr
-  getEqualExpr uniqueId1 uniqueId2 1 sortList
-
-freeVariablesEqual :: DEnv -> Int -> Int -> [Types.Var] -> [Expr]
-freeVariablesEqual denv uniqueId1 uniqueId2 notEqualList = do
-  let freeVarList = map (\(x,y) -> x) denv
-  let sameVarList = filter (\x -> not (elem x notEqualList)) freeVarList
-  map (freeVariableEqual uniqueId1 uniqueId2) sameVarList
-
-
-freeVariableEqual :: Int -> Int -> Types.Var ->  Expr
-freeVariableEqual uniqueId1 uniqueId2 (Types.Var name)=
- MkEq (ExprVar (Var (name++"!"++(show uniqueId1)) (Types.getVarSort (Types.Var name)))) (ExprVar (Var (name++"!"++(show uniqueId2)) (Types.getVarSort (Types.Var name))))
-
-typeVarToSMTVar :: Int -> Types.Var -> Var
-typeVarToSMTVar uniqueId (Types.Var name) = Var (name++"!"++(show uniqueId)) (Types.getVarSort (Types.Var name))
-
----- buld var list according to corresponding sort list
-getVarList :: Int ->Int -> [Sort] -> [Var]
-getVarList uniqueId index sortList = case sortList of
- x:xs -> (Var ("output!"++show(uniqueId)++"@"++show(index)) x):(getVarList uniqueId (index+1) xs)
- [] -> []
-
-getEqualExpr :: Int -> Int ->Int -> [Sort] -> [Expr]
-getEqualExpr uniqueId1 uniqueId2 index sortList = case sortList of
- x:xs -> do
-     let expr1 = (ExprVar (Var ("output!"++show(uniqueId1)++"@"++show(index)) x))
-     let expr2 = (ExprVar (Var ("output!"++show(uniqueId2)++"@"++show(index)) x))
-     let eqExpr = MkEq expr1 expr2
-     eqExpr:(getEqualExpr uniqueId1 uniqueId2 (index+1) xs)
- [] -> []
-
-
 verifyPairs :: Der -> Der -> IO (Bool,(Map.Map Function Expr))
-verifyPairs tree1 tree2 = do
-  let (node1,number) = translateDT 0 tree1
-  let (node2,number2) = translateDT number tree2
+verifyPairs tree1@(Der _ expr1 _ ) tree2@(Der _ expr2 _) = do
+  let type1 = infereType expr1
+  let type2 = infereType expr2
+  case type1 of
+    Left err -> return (False, Map.empty)
+    Right typeMap1 -> case type2 of
+                       Left err2 ->return (False, Map.empty)
+                       Right typeMap2 -> verifyPairsWithType tree1 tree2 typeMap1 typeMap2
+
+verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map Function Expr))
+verifyPairsWithType tree1 tree2 typeMap1 typeMap2 = do 
+  let (node1,number) = translateDT typeMap1 0 tree1
+  let (node2,number2) = translateDT typeMap2 number tree2
   let pairSet = PairRelatingSet [node1] [node2]
   let startSet =Set.insert pairSet (Set.empty)
   let varList1 = collectDerivationNodeVar node1

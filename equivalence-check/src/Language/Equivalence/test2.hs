@@ -10,6 +10,7 @@ import qualified Data.Map as Map
 import Control.Monad.Except
 import Control.Monad.State
 import Language.Equivalence.TypeInference
+import Language.Equivalence.VerifyDerivation
 
 
 main = do
@@ -22,7 +23,12 @@ main = do
   let sum1 = Types.EBin Types.Plus (Types.EVar x) four
   let sum2 = Types.EBin Types.Plus two three
   let coreExpr = Types.ELam x sum1
-  let r = infereType coreExpr
-  case r of
+  let firstOne@(Der _ expr _) = (makeDerivations coreExpr) !! 0
+  let type1 = infereType expr
+  print coreExpr
+  case type1 of
     Left err -> print err
-    Right res -> print res
+    Right typeMap1 -> do
+                        let testResult = translateDT typeMap1 0 firstOne
+                        print testResult
+  

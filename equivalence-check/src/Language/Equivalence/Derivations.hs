@@ -89,8 +89,9 @@ makeDerivations e@(EIf b e1 e2)
        d2 <- makeDerivations e2
        [Der RNIteTrue e [dcondition,d1],
         Der RNIteFalse e [dcondition,d2]] 
-makeDerivations (ELam _ e1)
-  = makeDerivations e1
+makeDerivations e@(ELam _ e1)
+  = do d1 <- makeDerivations e1
+       return $ Der RNLam e [d1]
 makeDerivations e@(EFix var e1)
   = do d1 <-makeDerivations (substituteCoreExpr (var,(EFix var e1)) e1)
        return $ Der RNFix e [d1]
