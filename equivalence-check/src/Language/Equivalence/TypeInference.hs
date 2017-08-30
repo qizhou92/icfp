@@ -54,8 +54,8 @@ type HM a = ExceptT String (State Int) a
 mgu :: Type -> Type -> HM Subst
 
 mgu (TArr t1 t2) (TArr t3 t4) = do s1 <- mgu t1 t3
-                                   s2 <- mgu t2 t4
-                                   return (andSubSet s1 s2)
+                                   s2 <- mgu (apply s1 t2) (apply s1 t4)
+                                   return (andSubSet s2 s1)
 
 mgu (TVar a) t = varAsgn (TVar a) t
 mgu t (TVar a) = varAsgn (TVar a) t 

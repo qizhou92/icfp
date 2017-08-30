@@ -267,21 +267,38 @@ verifyPairs tree1@(Der _ expr1 _ ) tree2@(Der _ expr2 _) = do
                        Right typeMap2 -> verifyPairsWithType tree1 tree2 typeMap1 typeMap2
 
 verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map Function Expr))
-verifyPairsWithType tree1 tree2 typeMap1 typeMap2 = do 
-  let (node1,number) = translateDT typeMap1 0 tree1
+verifyPairsWithType tree1@(Der _ expr _) tree2 typeMap1 typeMap2 = do 
+  let (node1@(DerivationNode varList _ _),number) = translateDT typeMap1 0 tree1
   let (node2,number2) = translateDT typeMap2 number tree2
   let pairSet = PairRelatingSet [node1] [node2]
   let startSet =Set.insert pairSet (Set.empty)
   let varList1 = collectDerivationNodeVar node1
   let varList2 = collectDerivationNodeVar node2
-  let query = generateQuery node1 node2
+  let t1 = Map.findWithDefault TInt expr typeMap1
+  let index = (length varList) - (getOutputLength t1) 
+  let query = generateQuery index node1 node2
   let emptyCHC = CHC [] [] (varList1++varList2) query
   let theCHC = getAllRulesOfCHC startSet Set.empty emptyCHC
   (result,theMap) <- chc_execute theCHC
   return (result,theMap)
 
-generateQuery :: DerivationNode ->DerivationNode -> Expr
-generateQuery = undefined
+getOutputLength :: Type -> Int
+getOutputLength TInt = 1
+getOutputLength TBool = 1
+getOutputLength (TArr t1 t2) = length (typeToSortList t2)
+getOutputLength (TVar _) = 1
+
+generateQuery :: Int -> DerivationNode ->DerivationNode -> Expr
+generateQuery index node1@(DerivationNode varList1 _ _) node2@(DerivationNode varList2 _ _) = do
+  let (arguments1, outputs1) = splitAt index varList1 
+  let (arguments2, outputs2) = splitAt index varList2
+  let basePairSet = PairRelatingSet [node1] [node2]
+  let predicate = getFunctionExpr basePairSet
+  let argumentsEqual = (zipWith setEqualVar arguments1 arguments2)
+  let outputEqual = MkAnd (zipWith setEqualVar outputs1 outputs2)
+  let outputNotEqual = MkNot outputEqual
+  if (length argumentsEqual) > 0  then (MkAnd [predicate, (MkAnd argumentsEqual) ,outputNotEqual])
+     else (MkAnd [predicate, outputNotEqual])
 
 generateArgSmtExpr :: Int -> Int -> (Types.Var , Types.CoreExpr) -> Expr
 generateArgSmtExpr uniqueId1 uniqueId2 ((Types.Var name),_) = do
