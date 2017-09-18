@@ -1,7 +1,8 @@
 module Language.Equivalence.Derivations where
 
 import Language.Equivalence.Types
-
+import qualified Data.Set as Set
+import Control.Monad.State
 
 
 predecessors :: CoreExpr -> [CoreExpr]
@@ -37,17 +38,6 @@ data Derivations
        , dsold     :: [Der] -- | Old derivations not yet unwinded 
        }
 
-unwind :: Derivations -> (Derivations, Der)
-unwind (DS dd (d:ds) old) = (DS dd ds (old++[d]), d)
-unwind (DS dd [] (o:os))  = unwind (DS dd (unwindDer o) os)
-unwind (DS dd [] [])      = (DS dd [] [], dd)
-
-initDerivations :: CoreExpr -> Derivations
-initDerivations e = DS dd ds [] 
-  where 
-    ds = makeDerivations e
-    dd = if null ds then Der RAAssume e [] else head ds 
-
 
 -------------------------------------------------------------------------------
 ------- | Derivations ---------------------------------------------------------
@@ -55,55 +45,76 @@ initDerivations e = DS dd ds []
 
 data Der     = Der {drulename :: RuleName, 
                     coreExpr  :: CoreExpr,
-                    dpremises :: [Der]} 
+                    dpremises :: [Der],
+                    idNumber :: Int
+                    } 
 
 type DEnv    = [(Var, CoreExpr)]
 
-data RuleName = RNConst | RNVar | RNOp | RNIteTrue | RNIteFalse | RNFix | RNApp| RNLam | RASymbolic | RAAssume 
+data RuleName = RNConst | RNVar | RNOp | RNIte | RNFix | RNApp| RNLam | RASym
      deriving (Show, Eq)
 
+data UnwindResult = UnwindResult (Set.Set CoreExpr) Int
+     deriving (Eq, Show,Ord)
 
--- Unwind picks a symbolic choice and evaluates it 
-unwindDer :: Der -> [Der]
-unwindDer der 
-  | drulename der == RASymbolic
-  = makeDerivations (coreExpr der)
-  | otherwise
-  = do dds <- mapM unwindDer (dpremises der)
-       return $ der {dpremises = dds}
 
-makeDerivations ::CoreExpr-> [Der]
-makeDerivations e@(EInt _)
-  = return $ Der RNConst e []
-makeDerivations e@(EBool _)
-  = return $ Der RNConst e [] 
-makeDerivations e@(EVar _)
-  = return $ Der RNVar e []
-makeDerivations e@(EBin _ e1 e2)
-  = do d1 <- makeDerivations e1 
-       d2 <- makeDerivations e2
-       return $ Der RNOp e [d1,d2] 
-makeDerivations e@(EIf b e1 e2)
-  = do dcondition <- makeDerivations b
-       d1 <- makeDerivations e1
-       d2 <- makeDerivations e2
-       [Der RNIteTrue e [dcondition,d1],
-        Der RNIteFalse e [dcondition,d2]] 
-makeDerivations e@(ELam _ e1)
-  = do d1 <- makeDerivations e1
-       return $ Der RNLam e [d1]
-makeDerivations e@(EFix var e1)
-  = do d1 <-makeDerivations (substituteCoreExpr (var,(EFix var e1)) e1)
-       return $ Der RNFix e [d1]
-makeDerivations e@(EApp e1 e2)
-  = do d1 <- makeDerivations e1
-       d2 <- makeDerivations e2
-       return $ Der RNApp e [d1,d2] 
-makeDerivations e@(ELet x ex e')
-  | isFix e 
-  = makeDerivations (subst (x, EFix x ex) e')
-makeDerivations (ELet x ex e)
-  = makeDerivations (subst (x,ex) e)
+type UnwindState a = (State UnwindResult) a
+-- Unwind picks a symbolic choice and evaluates it
+
+getNewId :: UnwindState Int
+getNewId = do
+  (UnwindResult fixExprs newId) <- get
+  put (UnwindResult fixExprs (newId+1))
+  return newId
+
+unwindDer :: Der -> UnwindState Der
+unwindDer der@(Der RASym expr1 _ idNumber) = do
+  theDer <- makeDerivations expr1
+  return theDer
+unwindDer der@(Der rule expr list idNumber) = do
+  list1 <- mapM unwindDer list
+  return (Der rule expr list1 idNumber)
+
+makeDerivations :: CoreExpr->UnwindState Der
+makeDerivations e@(EInt _) = do
+  idNumber <- getNewId
+  return (Der RNConst e [] idNumber)
+makeDerivations e@(EBool _) = do
+  idNumber <- getNewId
+  return (Der RNConst e [] idNumber)
+makeDerivations e@(EVar _) = do
+  idNumber <- getNewId
+  return (Der RNConst e [] idNumber)
+makeDerivations e@(EBin _ e1 e2) = do
+  idNumber <- getNewId
+  d1 <- makeDerivations e1 
+  d2 <- makeDerivations e2
+  return (Der RNOp e [d1,d2] idNumber) 
+makeDerivations e@(EIf b e1 e2) = do
+  idNumber <- getNewId
+  condition <- makeDerivations b
+  d1 <- makeDerivations e1
+  d2 <- makeDerivations e2
+  return (Der RNIte e [condition,d1,d2] idNumber)
+makeDerivations e@(ELam _ e1) = do
+  idNumber <- getNewId
+  d1 <- makeDerivations e1
+  return (Der RNLam e [d1] idNumber)
+makeDerivations e@(EFix var e1) = do
+  idNumber <- getNewId
+  (UnwindResult fixExprs newId) <- get
+  if (Set.member e fixExprs) then (return (Der RASym e [] idNumber))
+    else do
+           d1 <- makeDerivations (substituteCoreExpr (var,e) e1)
+           put (UnwindResult (Set.insert e fixExprs) newId)
+           return (Der RNFix e [d1] idNumber)
+makeDerivations e@(EApp e1 e2) = do
+  idNumber <- getNewId
+  d1 <- makeDerivations e1
+  d2 <- makeDerivations e2
+  return (Der RNApp e [d1,d2] idNumber) 
+makeDerivations e@(ELet _ _ _)
+  = error ("makeDerivations: undefined on " ++ show e)
 makeDerivations e@ENil
   = error ("makeDerivations: undefined on " ++ show e)
 

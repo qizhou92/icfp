@@ -5,7 +5,6 @@ import Language.Equivalence.TypeInference
 import qualified Data.Set as Set
 import qualified Data.List as List
 import Data.List.Split
-import Language.Equivalence.Verify
 import Language.Equivalence.Derivations
 import qualified Language.Equivalence.Types as Types
 import System.Process
@@ -72,61 +71,60 @@ getFreeVarList uniqueId typeEnv expr = do
 setEqualVar :: Var -> Var -> Expr 
 setEqualVar var1 var2 = MkEq (ExprVar var1) (ExprVar var2)
 
-translateDT :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateDT typeEnv uniqueId der@(Der ruleName _ _) = case ruleName of
-  RNConst -> translateRNConst typeEnv uniqueId der
-  RNVar -> translateVar typeEnv uniqueId der
-  RNOp -> translateRNOp typeEnv uniqueId der
-  RNIteTrue -> translateRNIteTrue typeEnv uniqueId der
-  RNIteFalse -> translateRNIteFalse typeEnv uniqueId der
-  RNFix -> translateRNFix typeEnv uniqueId der
-  RNApp -> translateRNApp typeEnv uniqueId der
-  RNLam -> translateRNLam typeEnv uniqueId der
-translateVar :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateVar typeEnv uniqueId der@(Der _ expr _) = do
+translateDT :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateDT typeEnv der@(Der ruleName _ _ _) = case ruleName of
+  RNConst -> translateRNConst typeEnv der
+  RNVar -> translateVar typeEnv der
+  RNOp -> translateRNOp typeEnv der
+  RNIte -> translateRNIte typeEnv der
+  RNFix -> translateRNFix typeEnv der
+  RNApp -> translateRNApp typeEnv der
+  RNLam -> translateRNLam typeEnv der
+  RASym -> translateRASym typeEnv der
+translateVar :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateVar typeEnv der@(Der _ expr _ uniqueId) = do
   let freeVarsList = getFreeVarList uniqueId typeEnv expr
   let outputList = outputToArguments uniqueId typeEnv expr
   let expr = MkAnd (zipWith setEqualVar freeVarsList outputList)
   let hyperEdge = HyperEdge expr []
-  let dt = DerivationNode (freeVarsList ++ outputList) hyperEdge uniqueId
-  (dt,uniqueId+1)
+  DerivationNode (freeVarsList ++ outputList) hyperEdge uniqueId
 
-translateRNConst ::(Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNConst _ uniqueId der@(Der _ expr _) = case expr of
+translateRNConst ::(Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNConst _ der@(Der _ expr _ uniqueId) = case expr of
   Types.EInt value -> do
                 let smtVar = Var ("output@1!"++show(uniqueId)) IntegerSort
                 let smtExpr = MkEq (ExprVar smtVar) (ExprConstant (ConstantInt value))
                 let newHyperEdge = HyperEdge smtExpr []
-                ((DerivationNode [smtVar] newHyperEdge uniqueId),uniqueId+1)
+                (DerivationNode [smtVar] newHyperEdge uniqueId)
   Types.EBool value -> do
                 let smtVar = Var ("output@1!"++show(uniqueId)) BoolSort
                 let smtExpr = MkEq (ExprVar smtVar) (ExprConstant (ConstantBool value))
                 let newHyperEdge = HyperEdge smtExpr []
-                ((DerivationNode [smtVar] newHyperEdge uniqueId),uniqueId+1)
+                (DerivationNode [smtVar] newHyperEdge uniqueId)
 
-translateRNOp :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNOp typeEnv uniqueId der@(Der _ expr list) = do
-  let firstDer@(Der _ expr1 _) = list !! 0
-  let secondDer@(Der _ expr2 _) = list !! 1
-  let (dt1@(DerivationNode _ _ id1),nextId) = translateDT typeEnv uniqueId firstDer
-  let (dt2@(DerivationNode _ _ id2),nextId2) = translateDT typeEnv nextId secondDer
+translateRNOp :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNOp typeEnv der@(Der _ expr list uniqueId) = do
+  let firstDer@(Der _ expr1 _ _) = list !! 0
+  let secondDer@(Der _ expr2 _ _) = list !! 1
+  let dt1@(DerivationNode _ _ id1) = translateDT typeEnv firstDer
+  let dt2@(DerivationNode _ _ id2) = translateDT typeEnv secondDer
   let op1FreeVariables = Types.freeVars expr1
   let op2FreeVariables = Types.freeVars expr2
   let allFreeVariables = Set.union op1FreeVariables op2FreeVariables
   let firstEqualFreeVariables =Set.toList (Set.intersection op1FreeVariables allFreeVariables)
   let secondEqualFreeVariables =Set.toList (Set.intersection op2FreeVariables allFreeVariables)
   let op1FreeVariables1 = concat (map (freeVarToArguments id1 typeEnv)  firstEqualFreeVariables)
-  let op1FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) firstEqualFreeVariables)
+  let op1FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) firstEqualFreeVariables)
   let op2FreeVariables1 = concat (map (freeVarToArguments id2 typeEnv) secondEqualFreeVariables)
-  let op2FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) secondEqualFreeVariables)
-  let currentFreeVar = concat (map (freeVarToArguments nextId2 typeEnv) (Set.toList allFreeVariables))
+  let op2FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) secondEqualFreeVariables)
+  let currentFreeVar = concat (map (freeVarToArguments uniqueId typeEnv) (Set.toList allFreeVariables))
   let allFreeVariablesEqaul = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op2FreeVariables1 op2FreeVariables2)
-  let allOutput = (outputToArguments nextId2 typeEnv expr) 
+  let allOutput = (outputToArguments uniqueId typeEnv expr) 
   let outputExpr = ExprVar (allOutput !! 0)
   let setEqualResult = MkEq outputExpr (getBinaryExpr dt1 dt2 expr)
   let theWholeSmtExpr = MkAnd (setEqualResult:allFreeVariablesEqaul)
   let newHyperEdge = HyperEdge theWholeSmtExpr [dt1,dt2]
-  ((DerivationNode (currentFreeVar ++ allOutput) newHyperEdge nextId2),nextId2+1)
+  (DerivationNode (currentFreeVar ++ allOutput) newHyperEdge uniqueId)
 
 getBinaryExpr :: DerivationNode -> DerivationNode -> Types.CoreExpr -> Expr
 getBinaryExpr (DerivationNode varList1 _ _) (DerivationNode varList2 _ _) (Types.EBin binOp _ _) = case binOp of
@@ -142,104 +140,91 @@ getBinaryExpr (DerivationNode varList1 _ _) (DerivationNode varList2 _ _) (Types
   Types.Or -> MkOr [(ExprVar (last varList1)), (ExprVar (last varList2))]
   _ -> MkEmpty
 
-translateRNIteTrue :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNIteTrue typeEnv uniqueId der@(Der _ expr list) = do
-  let condition@(Der _ expr1 _) = list !! 0
-  let trueBranch@(Der _ expr2 _) = list !! 1
-  let (dt1@(DerivationNode varList _ id1),nextId) = translateDT typeEnv uniqueId condition
-  let (dt2@(DerivationNode _ _ id2),nextId2) = translateDT typeEnv nextId trueBranch
+translateRNIte :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNIte typeEnv der@(Der _ expr list uniqueId) = do
+  let condition@(Der _ expr1 _ _) = list !! 0
+  let trueBranch@(Der _ expr2 _ _) = list !! 1
+  let falseBranch@(Der _ expr3 _ _) = list !! 2
+  let dt1@(DerivationNode varList _ id1) = translateDT typeEnv condition
+  let dt2@(DerivationNode _ _ id2) = translateDT typeEnv trueBranch
+  let dt3@(DerivationNode _ _ id3) = translateDT typeEnv falseBranch
   let op1FreeVariables = Types.freeVars expr1
   let op2FreeVariables = Types.freeVars expr2
-  let allFreeVariables = Set.union op1FreeVariables op2FreeVariables
+  let op3FreeVariables = Types.freeVars expr3
+  let allFreeVariables = (Set.union (Set.union op1FreeVariables op2FreeVariables) op3FreeVariables)
   let firstEqualFreeVariables =Set.toList (Set.intersection op1FreeVariables allFreeVariables)
   let secondEqualFreeVariables =Set.toList (Set.intersection op2FreeVariables allFreeVariables)
+  let thirdEqualFreeVariables =Set.toList (Set.intersection op3FreeVariables allFreeVariables)
   let op1FreeVariables1 = concat (map (freeVarToArguments id1 typeEnv)  firstEqualFreeVariables)
-  let op1FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) firstEqualFreeVariables)
+  let op1FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) firstEqualFreeVariables)
   let op2FreeVariables1 = concat (map (freeVarToArguments id2 typeEnv) secondEqualFreeVariables)
-  let op2FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) secondEqualFreeVariables)
-  let currentFreeVar = concat (map (freeVarToArguments nextId2 typeEnv) (Set.toList allFreeVariables))
-  let allFreeVariablesEqaul = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op2FreeVariables1 op2FreeVariables2)
-  let output1 = outputToArguments id2 typeEnv expr2
-  let output2 = outputToArguments nextId2 typeEnv expr
-  let outputSetEqual = (zipWith setEqualVar output1 output2)
-  let smtExpr = MkAnd ((ExprVar (last varList)):(allFreeVariablesEqaul++outputSetEqual))
-  let newHyperEdge = HyperEdge smtExpr [dt1,dt2]
-  ((DerivationNode (currentFreeVar ++ output2) newHyperEdge nextId2),nextId2+1)
+  let op2FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) secondEqualFreeVariables)
+  let op3FreeVariables1 = concat (map (freeVarToArguments id3 typeEnv) thirdEqualFreeVariables)
+  let op3FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) thirdEqualFreeVariables)
+  let currentFreeVar = concat (map (freeVarToArguments uniqueId typeEnv) (Set.toList allFreeVariables))
+  let allFreeVariablesEqaul1 = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op2FreeVariables1 op2FreeVariables2)
+  let allFreeVariablesEqaul2 = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op3FreeVariables1 op3FreeVariables2)
+  let trueOutput = outputToArguments id2 typeEnv expr2
+  let falseOutput = outputToArguments id3 typeEnv expr3
+  let output = outputToArguments uniqueId typeEnv expr
+  let outputSetEqual1 = (zipWith setEqualVar trueOutput output)
+  let outputSetEqual2 = (zipWith setEqualVar falseOutput output)
+  let smtExpr1 = MkAnd ((ExprVar (last varList)):(allFreeVariablesEqaul1++outputSetEqual1))
+  let smtExpr2 = MkAnd ( (MkNot (ExprVar (last varList))) :(allFreeVariablesEqaul2++outputSetEqual2))
+  let smtExpr = MkOr [smtExpr1,smtExpr2]
+  let newHyperEdge = HyperEdge smtExpr [dt1,dt2,dt3]
+  (DerivationNode (currentFreeVar ++ output) newHyperEdge uniqueId)
 
-translateRNIteFalse :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNIteFalse typeEnv uniqueId der@(Der _ expr list) = do
-  let condition@(Der _ expr1 _) = list !! 0
-  let falseBranch@(Der _ expr2 _) = list !! 1
-  let (dt1@(DerivationNode varList _ id1),nextId) = translateDT typeEnv uniqueId condition
-  let (dt2@(DerivationNode _ _ id2),nextId2) = translateDT typeEnv nextId falseBranch
+translateRNApp :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNApp typeEnv der@(Der _ expr list uniqueId) = do
+  let abstraction@(Der _ expr1 _ _) = list !! 0
+  let arguments@(Der _ expr2 _ _) = list !! 1
+  let dt1@(DerivationNode _ _ id1) = translateDT typeEnv abstraction
+  let dt2@(DerivationNode _ _ id2) = translateDT typeEnv arguments
   let op1FreeVariables = Types.freeVars expr1
   let op2FreeVariables = Types.freeVars expr2
   let allFreeVariables = Set.union op1FreeVariables op2FreeVariables
   let firstEqualFreeVariables =Set.toList (Set.intersection op1FreeVariables allFreeVariables)
   let secondEqualFreeVariables =Set.toList (Set.intersection op2FreeVariables allFreeVariables)
   let op1FreeVariables1 = concat (map (freeVarToArguments id1 typeEnv)  firstEqualFreeVariables)
-  let op1FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) firstEqualFreeVariables)
+  let op1FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) firstEqualFreeVariables)
   let op2FreeVariables1 = concat (map (freeVarToArguments id2 typeEnv) secondEqualFreeVariables)
-  let op2FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) secondEqualFreeVariables)
-  let currentFreeVar = concat (map (freeVarToArguments nextId2 typeEnv) (Set.toList allFreeVariables))
-  let allFreeVariablesEqaul = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op2FreeVariables1 op2FreeVariables2)
-  let output1 = outputToArguments id2 typeEnv expr2
-  let output2 = outputToArguments nextId2 typeEnv expr
-  let outputSetEqual = (zipWith setEqualVar output1 output2)
-  let smtExpr = MkAnd ( (MkNot (ExprVar (last varList))) :(allFreeVariablesEqaul++outputSetEqual))
-  let newHyperEdge = HyperEdge smtExpr [dt1,dt2]
-  ((DerivationNode (currentFreeVar ++ output2) newHyperEdge nextId2),nextId2+1)
-
-translateRNApp :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNApp typeEnv uniqueId der@(Der _ expr list) = do
-  let abstraction@(Der _ expr1 _) = list !! 0
-  let arguments@(Der _ expr2 _) = list !! 1
-  let (dt1@(DerivationNode _ _ id1),nextId) = translateDT typeEnv uniqueId abstraction
-  let (dt2@(DerivationNode _ _ id2),nextId2) = translateDT typeEnv nextId arguments
-  let op1FreeVariables = Types.freeVars expr1
-  let op2FreeVariables = Types.freeVars expr2
-  let allFreeVariables = Set.union op1FreeVariables op2FreeVariables
-  let firstEqualFreeVariables =Set.toList (Set.intersection op1FreeVariables allFreeVariables)
-  let secondEqualFreeVariables =Set.toList (Set.intersection op2FreeVariables allFreeVariables)
-  let op1FreeVariables1 = concat (map (freeVarToArguments id1 typeEnv)  firstEqualFreeVariables)
-  let op1FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) firstEqualFreeVariables)
-  let op2FreeVariables1 = concat (map (freeVarToArguments id2 typeEnv) secondEqualFreeVariables)
-  let op2FreeVariables2 = concat (map (freeVarToArguments nextId2 typeEnv) secondEqualFreeVariables)
-  let currentFreeVar = concat (map (freeVarToArguments nextId2 typeEnv) (Set.toList allFreeVariables))
+  let op2FreeVariables2 = concat (map (freeVarToArguments uniqueId typeEnv) secondEqualFreeVariables)
+  let currentFreeVar = concat (map (freeVarToArguments uniqueId typeEnv) (Set.toList allFreeVariables))
   let allFreeVariablesEqaul = (zipWith setEqualVar op1FreeVariables1 op1FreeVariables2) ++ (zipWith setEqualVar op2FreeVariables1 op2FreeVariables2)
   let abstractionOutputs = outputToArguments id1 typeEnv expr1
   let argumentsOutputs = outputToArguments id2 typeEnv expr2
-  let appOutputs = outputToArguments nextId2 typeEnv expr
+  let appOutputs = outputToArguments uniqueId typeEnv expr
   let setEqualOfArgumentsAndOutput = zipWith setEqualVar abstractionOutputs (argumentsOutputs++appOutputs)
   let smtExpr = MkAnd (allFreeVariablesEqaul ++ setEqualOfArgumentsAndOutput)
   let newHyperEdge = HyperEdge smtExpr [dt1,dt2]
-  ((DerivationNode (currentFreeVar ++ appOutputs) newHyperEdge nextId2),nextId2+1)
+  (DerivationNode (currentFreeVar ++ appOutputs) newHyperEdge uniqueId)
 
-translateRNFix :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNFix typeEnv uniqueId der@(Der _ expr list) = do
+translateRNFix :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNFix typeEnv der@(Der _ expr list uniqueId) = do
   let insideFix = list !! 0
-  let (dt1@(DerivationNode _ _ id1),nextId) = translateDT typeEnv uniqueId insideFix
+  let dt1@(DerivationNode _ _ id1) = translateDT typeEnv insideFix
   let freeVarlist1 = getFreeVarList id1 typeEnv expr
-  let freeVarlist2 = getFreeVarList nextId typeEnv expr
+  let freeVarlist2 = getFreeVarList uniqueId typeEnv expr
   let output1 = outputToArguments id1 typeEnv expr
-  let output2 = outputToArguments nextId typeEnv expr
+  let output2 = outputToArguments uniqueId typeEnv expr
   let setFreeEqual = zipWith setEqualVar freeVarlist1 freeVarlist2
   let setOutputEqaul = zipWith setEqualVar output1 output2
   let smtExpr = MkAnd (setFreeEqual++setOutputEqaul)
   let newHyperEdge = HyperEdge smtExpr [dt1]
-  ((DerivationNode (freeVarlist2 ++ output2) newHyperEdge nextId),nextId+1)
+  (DerivationNode (freeVarlist2 ++ output2) newHyperEdge uniqueId)
 
-translateRNLam :: (Map.Map Types.CoreExpr Type) -> Int -> Der -> (DerivationNode,Int)
-translateRNLam typeEnv uniqueId der@(Der _ expr@(Types.ELam var expr1) list) = do
-  let insideLam@(Der _ expr2 _) = list !! 0
-  let (dt1@(DerivationNode _ _ id1),nextId) = translateDT typeEnv uniqueId insideLam
+translateRNLam :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode
+translateRNLam typeEnv der@(Der _ expr@(Types.ELam var expr1) list uniqueId) = do
+  let insideLam@(Der _ expr2 _ _) = list !! 0
+  let dt1@(DerivationNode _ _ id1) = translateDT typeEnv insideLam
   let insideLam = Types.freeVars expr1
   let withoutLam =Set.toList (Set.filter (/= var) insideLam)
   let freeVars1 = concat (map (freeVarToArguments id1 typeEnv) withoutLam)
-  let freeVars2 = concat (map (freeVarToArguments nextId typeEnv) withoutLam)
+  let freeVars2 = concat (map (freeVarToArguments uniqueId typeEnv) withoutLam)
   let (TArr t1 t2) = Map.findWithDefault (TArr TInt TInt) expr typeEnv
   let insidLamOutputs = outputToArguments id1 typeEnv expr1
-  let lamOutputs = outputToArguments nextId typeEnv expr
+  let lamOutputs = outputToArguments uniqueId typeEnv expr
   let dropFirstPart = drop ((length lamOutputs) - (length insidLamOutputs)) lamOutputs
   let setOutputEqual = zipWith setEqualVar insidLamOutputs dropFirstPart
   let freeVarsEqual = zipWith setEqualVar freeVars1 freeVars2
@@ -249,15 +234,22 @@ translateRNLam typeEnv uniqueId der@(Der _ expr@(Types.ELam var expr1) list) = d
       let setVarEqual = zipWith setEqualVar thisVar firstPartEqual
       let smtExpr = MkAnd (freeVarsEqual ++ setVarEqual ++ setOutputEqual)
       let newHyperEdge = HyperEdge smtExpr [dt1]
-      ((DerivationNode (freeVars2 ++ lamOutputs) newHyperEdge nextId),nextId+1)
+      (DerivationNode (freeVars2 ++ lamOutputs) newHyperEdge uniqueId)
     else do
       let smtExpr = MkAnd (freeVarsEqual ++ setOutputEqual)
       let newHyperEdge = HyperEdge smtExpr [dt1]
-      ((DerivationNode (freeVars2 ++ lamOutputs) newHyperEdge nextId),nextId+1)
+      (DerivationNode (freeVars2 ++ lamOutputs) newHyperEdge uniqueId)
 
+translateRASym :: (Map.Map Types.CoreExpr Type) -> Der -> DerivationNode 
+translateRASym typeEnv der@(Der _ expr _ uniqueId) = do
+  let freeVarlist = getFreeVarList uniqueId typeEnv expr
+  let output = outputToArguments uniqueId typeEnv expr
+  let smtExpr = ExprConstant (ConstantBool False)
+  let newHyperEdge = HyperEdge smtExpr []
+  (DerivationNode (freeVarlist ++ output) newHyperEdge uniqueId)
 
 verifyPairs :: Der -> Der -> IO (Bool,(Map.Map Function Expr))
-verifyPairs tree1@(Der _ expr1 _ ) tree2@(Der _ expr2 _) = do
+verifyPairs tree1@(Der _ expr1 _ _) tree2@(Der _ expr2 _ _) = do
   let type1 = infereType expr1
   let type2 = infereType expr2
   case type1 of
@@ -267,9 +259,9 @@ verifyPairs tree1@(Der _ expr1 _ ) tree2@(Der _ expr2 _) = do
                        Right typeMap2 -> verifyPairsWithType tree1 tree2 typeMap1 typeMap2
 
 verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map Function Expr))
-verifyPairsWithType tree1@(Der _ expr _) tree2 typeMap1 typeMap2 = do 
-  let (node1@(DerivationNode varList _ _),number) = translateDT typeMap1 0 tree1
-  let (node2,number2) = translateDT typeMap2 number tree2
+verifyPairsWithType tree1@(Der _ expr _ _) tree2 typeMap1 typeMap2 = do 
+  let node1@(DerivationNode varList _ _) = translateDT typeMap1 tree1
+  let node2 = translateDT typeMap2 tree2
   let pairSet = PairRelatingSet [node1] [node2]
   let startSet =Set.insert pairSet (Set.empty)
   let varList1 = collectDerivationNodeVar node1
