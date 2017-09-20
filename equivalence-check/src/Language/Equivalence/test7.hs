@@ -3,7 +3,6 @@ import Language.Equivalence.CHC
 import Language.Equivalence.Expr
 import qualified Data.Set as Set
 import qualified Data.List as List
-import Language.Equivalence.Verify
 import qualified Language.Equivalence.Types as Types
 import Language.Equivalence.Derivations
 import qualified Data.Map as Map
@@ -31,8 +30,7 @@ main = do
   let lambadaF2 = Types.ELam f app2
   let coreExpr1 = Types.EApp lambadaF1 lambada1
   let coreExpr2 = Types.EApp lambadaF2 lambada2
-  let firstOne = (makeDerivations coreExpr1) !! 0
-  let secondOne = (makeDerivations coreExpr2) !! 0
-  result <- verifyPairs firstOne secondOne
-  print result
+  let (der1,state1) = runState (makeDerivations coreExpr1) (UnwindResult Set.empty 0)
+  let (der2,state2) = runState (makeDerivations coreExpr2) state1
+  verifyPairs der1 der2
   

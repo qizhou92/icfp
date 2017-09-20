@@ -48,11 +48,12 @@ data Der     = Der {drulename :: RuleName,
                     dpremises :: [Der],
                     idNumber :: Int
                     } 
+      deriving(Eq,Ord)
 
 type DEnv    = [(Var, CoreExpr)]
 
 data RuleName = RNConst | RNVar | RNOp | RNIte | RNFix | RNApp| RNLam | RASym
-     deriving (Show, Eq)
+     deriving (Show, Eq,Ord)
 
 data UnwindResult = UnwindResult (Set.Set CoreExpr) Int
      deriving (Eq, Show,Ord)
@@ -84,7 +85,7 @@ makeDerivations e@(EBool _) = do
   return (Der RNConst e [] idNumber)
 makeDerivations e@(EVar _) = do
   idNumber <- getNewId
-  return (Der RNConst e [] idNumber)
+  return (Der RNVar e [] idNumber)
 makeDerivations e@(EBin _ e1 e2) = do
   idNumber <- getNewId
   d1 <- makeDerivations e1 
@@ -155,7 +156,7 @@ showDerShort der =
     unwords (show <$> dpremises der) ++ "\n" 
     ++ "-------"
     ++ show (drulename der)
-    ++ "|- " ++ exprString (coreExpr der)  ++ "\n"  
+    ++ "|- " ++ exprString (coreExpr der)  ++ "id:" ++ show(idNumber der) ++ "\n"  
 
     -- ++ show (denv der) ++ " |- " ++ exprString (dinExpr der) ++ " ~> " ++ exprString (doutExpr der) ++ "\n"  
 

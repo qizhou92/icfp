@@ -248,7 +248,7 @@ translateRASym typeEnv der@(Der _ expr _ uniqueId) = do
   let newHyperEdge = HyperEdge smtExpr []
   (DerivationNode (freeVarlist ++ output) newHyperEdge uniqueId)
 
-verifyPairs :: Der -> Der -> IO (Bool,(Map.Map Function Expr))
+verifyPairs :: Der -> Der -> IO (Bool,(Map.Map String Expr))
 verifyPairs tree1@(Der _ expr1 _ _) tree2@(Der _ expr2 _ _) = do
   let type1 = infereType expr1
   let type2 = infereType expr2
@@ -258,7 +258,7 @@ verifyPairs tree1@(Der _ expr1 _ _) tree2@(Der _ expr2 _ _) = do
                        Left err2 ->return (False, Map.empty)
                        Right typeMap2 -> verifyPairsWithType tree1 tree2 typeMap1 typeMap2
 
-verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map Function Expr))
+verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map String Expr))
 verifyPairsWithType tree1@(Der _ expr _ _) tree2 typeMap1 typeMap2 = do 
   let node1@(DerivationNode varList _ _) = translateDT typeMap1 tree1
   let node2 = translateDT typeMap2 tree2
@@ -272,7 +272,10 @@ verifyPairsWithType tree1@(Der _ expr _ _) tree2 typeMap1 typeMap2 = do
   let emptyCHC = CHC [] [] (varList1++varList2) query
   let theCHC = getAllRulesOfCHC startSet Set.empty emptyCHC
   (result,theMap) <- chc_execute theCHC
-  return (result,theMap)
+  return (result, (Map.mapKeys fromFunctionToString theMap))
+
+fromFunctionToString :: Function -> String
+fromFunctionToString (Function name _) = name
 
 getOutputLength :: Type -> Int
 getOutputLength TInt = 1
