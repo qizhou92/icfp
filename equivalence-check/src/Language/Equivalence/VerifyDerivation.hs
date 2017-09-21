@@ -262,7 +262,7 @@ verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map T
 verifyPairsWithType tree1@(Der _ expr _ _) tree2 typeMap1 typeMap2 = do 
   let node1@(DerivationNode varList _ _) = translateDT typeMap1 tree1
   let node2 = translateDT typeMap2 tree2
-  let pairSet = PairRelatingSet [node1] [node2]
+  let pairSet = Location [node1 , node2] 
   let startSet =Set.insert pairSet (Set.empty)
   let varList1 = collectDerivationNodeVar node1
   let varList2 = collectDerivationNodeVar node2
@@ -287,7 +287,7 @@ generateQuery :: Int -> DerivationNode ->DerivationNode -> Expr
 generateQuery index node1@(DerivationNode varList1 _ _) node2@(DerivationNode varList2 _ _) = do
   let (arguments1, outputs1) = splitAt index varList1 
   let (arguments2, outputs2) = splitAt index varList2
-  let basePairSet = PairRelatingSet [node1] [node2]
+  let basePairSet = Location [node1,node2]
   let predicate = getFunctionExpr basePairSet
   let argumentsEqual = (zipWith setEqualVar arguments1 arguments2)
   let outputEqual = MkAnd (zipWith setEqualVar outputs1 outputs2)
@@ -295,186 +295,89 @@ generateQuery index node1@(DerivationNode varList1 _ _) node2@(DerivationNode va
   if (length argumentsEqual) > 0  then (MkAnd [predicate, (MkAnd argumentsEqual) ,outputNotEqual])
      else (MkAnd [predicate, outputNotEqual])
 
-generateArgSmtExpr :: Int -> Int -> (Types.Var , Types.CoreExpr) -> Expr
-generateArgSmtExpr uniqueId1 uniqueId2 ((Types.Var name),_) = do
-   let expr1 = (ExprVar (Var (name++"!"++show(uniqueId1)) IntegerSort))
-   let expr2 = (ExprVar (Var (name++"!"++show(uniqueId2)) IntegerSort))
-   MkEq expr1 expr2
-
 
 collectDerivationNodeVar :: DerivationNode -> [Var]
 collectDerivationNodeVar (DerivationNode varList (HyperEdge _ successors) theId) =
   varList ++ concat (map collectDerivationNodeVar successors)
 
-getSortList :: [Var] -> [Sort]
-getSortList list = case list of
-  (Var _ sort):xs -> sort : getSortList xs
-  _ -> []
 getDerivatonNodeSortList :: DerivationNode -> [Sort]
-getDerivatonNodeSortList (DerivationNode varList _ _)=getSortList varList
+getDerivatonNodeSortList (DerivationNode varList _ _)=map (\x@(Var _ sort) -> sort) varList
 
 getStringName :: DerivationNode -> String -> String
 getStringName (DerivationNode list _ uniqueId) oldName = 
   (show uniqueId) ++ "!" ++ oldName
 
-getFunction:: PairRelatingSet -> Function
-getFunction (PairRelatingSet list1 list2) = do
-  let sortList = (concat (map getDerivatonNodeSortList list1)) ++ (concat (map getDerivatonNodeSortList list2))
-  let uniqueName ="R"++(foldr getStringName "" list1) ++ (foldr getStringName "" list2)
+getFunction:: Location -> Function
+getFunction (Location list) = do
+  let sortList = (concat (map getDerivatonNodeSortList list))
+  let uniqueName ="R"++(foldr getStringName "" list)
   Function uniqueName sortList
 
-getArgList :: [Var] -> [Parameter]
-getArgList list = case list of
-  x:xs -> (ParameterVar x) : getArgList xs
-  _ -> []
-
 getDerivatonNodeArgList :: DerivationNode -> [Parameter]
-getDerivatonNodeArgList (DerivationNode varList _ _)= getArgList varList
+getDerivatonNodeArgList (DerivationNode varList _ _)= map (\x -> ParameterVar x ) varList
 
-getFunctionExpr :: PairRelatingSet -> Expr
-getFunctionExpr (PairRelatingSet list1 list2) = do 
-  let function = getFunction  (PairRelatingSet list1 list2)
-  let args = (concat (map getDerivatonNodeArgList list1)) ++ (concat (map getDerivatonNodeArgList list2))
+getFunctionExpr :: Location -> Expr
+getFunctionExpr location@(Location list) = do 
+  let function = getFunction location
+  let args = (concat (map getDerivatonNodeArgList list))
   ApplyFunction function args
 
-data PairRelatingSet = PairRelatingSet [DerivationNode] [DerivationNode]
+data Location = Location [DerivationNode]
  deriving(Show,Eq,Ord)
 
-getAllRulesOfCHC :: (Set.Set PairRelatingSet) -> (Set.Set PairRelatingSet) -> CHC -> CHC
-getAllRulesOfCHC pairRelatingSet doneSet theCHC
- |null pairRelatingSet = theCHC
+getAllRulesOfCHC :: (Set.Set Location) -> (Set.Set Location) -> CHC -> CHC
+getAllRulesOfCHC locationSet doneSet theCHC
+ |null locationSet = theCHC
  |otherwise = do
-               let singlePairRelatingSet = (Set.elemAt 0 pairRelatingSet)
-               let newPairRelatingSet = (Set.deleteAt 0 pairRelatingSet)
-               let newDoneSet = (Set.insert singlePairRelatingSet doneSet)
-               let chcWithRegister = register_predicate (getFunction singlePairRelatingSet) theCHC
-               let (newCHC,newPredicates) = updateCHC  singlePairRelatingSet chcWithRegister
-               let newPairSet = getNewPairRelatingSet newDoneSet newPairRelatingSet newPredicates
-               getAllRulesOfCHC newPairSet newDoneSet newCHC
+               let location = (Set.elemAt 0 locationSet)
+               let newLocationSet1 = (Set.deleteAt 0 locationSet)
+               let newDoneSet = (Set.insert location doneSet)
+               let chcWithRegister = register_predicate (getFunction location) theCHC
+               let (newCHC,possibleNewLocations) = updateCHC  location chcWithRegister
+               let newLocations = filter (\x -> Set.notMember x doneSet) possibleNewLocations
+               let newLocationSet2 = foldr Set.insert newLocationSet1 newLocations 
+               getAllRulesOfCHC newLocationSet2 newDoneSet newCHC
 
-getNewPairRelatingSet :: (Set.Set PairRelatingSet)->(Set.Set PairRelatingSet)->[PairRelatingSet]->(Set.Set PairRelatingSet)
-getNewPairRelatingSet doneSet sets list = case list of
- x:xs -> if (Set.member x doneSet) then (getNewPairRelatingSet doneSet sets xs)
-            else (Set.insert x (getNewPairRelatingSet doneSet sets xs))
- _ -> sets
-
-updateCHC :: PairRelatingSet -> CHC -> (CHC,[PairRelatingSet])
-updateCHC oldPredicate oldCHC = do
-  let stepRuleList = getAllStepRules oldPredicate
-  let splitRuleList = getSplitRules oldPredicate
-  let newCHC1 = foldr updateStepRule oldCHC stepRuleList
-  let newCHC2 = foldr updateSplitRule newCHC1 splitRuleList
-  let newPrediactList = (map getStepPredicates stepRuleList) ++ (concat (map getSplitPredicates splitRuleList))
-  (newCHC2,newPrediactList)
-  -- (concat (map getSplitPredicates splitRuleList))
+updateCHC :: Location -> CHC -> (CHC,[Location])
+updateCHC location@(Location list) oldCHC = do
+  let stepRuleList = map (getStepRule location) [1 .. (length list)]
+  let splitRuleList = getSplitRules location
+  let newCHC1 = foldr (\(rule,location) chc -> add_rule rule chc) oldCHC stepRuleList
+  let newCHC2 = foldr (\(rule,location) chc -> add_rule rule chc) newCHC1 splitRuleList
+  let newLocations = (map (\(rule,location) -> location) stepRuleList) ++ (concat (map (\(rule,location) -> location) splitRuleList))
+  (newCHC2,newLocations)
 
 
-getStepPredicates :: (Rule,PairRelatingSet) -> PairRelatingSet
-getStepPredicates (_,newPredicate) = newPredicate
+getSplitRules :: Location -> [(Rule,[Location])]
+getSplitRules location@(Location locations) = do
+  if length(locations) < 2 then []
+    else do 
+          let pairsOfLocations = splitLocation locations
+          let newRulesAndLocations = map (getSplitRuleForThisPair location) pairsOfLocations 
+          newRulesAndLocations
 
-updateStepRule :: (Rule,PairRelatingSet) -> CHC -> CHC
-updateStepRule (r1,_) oldCHC = add_rule r1 oldCHC
+getSplitRuleForThisPair :: Location -> ([DerivationNode],[DerivationNode]) -> (Rule,[Location])
+getSplitRuleForThisPair oldLocation (location1,location2) = do
+ let newPairLocations = [(Location location1),(Location location2)]
+ let rule = getRule MkEmpty newPairLocations oldLocation
+ (rule,newPairLocations)
 
-getSplitPredicates :: (Rule,[PairRelatingSet]) -> [PairRelatingSet]
-getSplitPredicates (_,list) = list
-
-updateSplitRule :: (Rule,[PairRelatingSet]) -> CHC -> CHC
-updateSplitRule (r1,_) oldCHC= add_rule r1 oldCHC
-
-
-getSplitRules :: PairRelatingSet -> [(Rule,[PairRelatingSet])]
-getSplitRules (PairRelatingSet oldLeft oldRight) = do
-  let leftSplit = splitRelationSet oldLeft
-  let rightSplit = splitRelationSet oldRight
-  let leftNewRule = map (getPairOfNewRelationSetLeft (PairRelatingSet oldLeft oldRight)) leftSplit 
-  let rightNewRule = map (getPairOfNewRelationSetRight (PairRelatingSet oldLeft oldRight))rightSplit
-  leftNewRule ++ rightNewRule
-
-getPairOfNewRelationSetLeft :: PairRelatingSet -> ([DerivationNode],[DerivationNode]) -> (Rule,[PairRelatingSet])
-getPairOfNewRelationSetLeft (PairRelatingSet oldLeft oldRight) (newLeft1,newLeft2) = do
- let newPairRelatings = [(PairRelatingSet newLeft1 oldRight) , (PairRelatingSet newLeft2 oldRight)]
- let rule = getRule MkEmpty newPairRelatings (PairRelatingSet oldLeft oldRight)
- (rule,newPairRelatings)
-
-getPairOfNewRelationSetRight :: PairRelatingSet -> ([DerivationNode],[DerivationNode]) ->(Rule, [PairRelatingSet])
-getPairOfNewRelationSetRight (PairRelatingSet oldLeft oldRight) (newRight1,newRight2) = do
- let newPairRelatings = [(PairRelatingSet oldLeft newRight1) , (PairRelatingSet oldLeft newRight2)]
- let rule = getRule MkEmpty newPairRelatings (PairRelatingSet oldLeft oldRight)
- (rule,newPairRelatings)
-
-splitRelationSet :: [DerivationNode] -> [([DerivationNode],[DerivationNode])]
-splitRelationSet  list = eliminateEmptyPair (easySplit ((length list) -1) list)
-
-easySplit :: Int -> [DerivationNode] -> [([DerivationNode],[DerivationNode])]
-easySplit index list =
-  if index > 0 then (splitAt index list):(easySplit (index-1) list)
-    else []
-
-eliminateEmptyPair :: [([DerivationNode],[DerivationNode])] -> [([DerivationNode],[DerivationNode])]
-eliminateEmptyPair = filter (\(x1, x2) -> not (null x1) && not (null x2))
-
-getSplitPair :: [DerivationNode] -> [DerivationNode] -> ([DerivationNode],[DerivationNode])
-getSplitPair list sublist = ( (list List.\\ sublist) , sublist )
+--split might need to change for non-order split
+splitLocation :: [DerivationNode] -> [([DerivationNode],[DerivationNode])]
+splitLocation location = map  ( (\x y -> splitAt y x) location) [1 .. ((length location)-1)]
 
 
-getPowerSet :: [DerivationNode] -> [ [DerivationNode] ]
-getPowerSet theList = case theList of
-  x:xs -> do
-           let list = getPowerSet xs
-           (map (x: ) list) ++ list
-  _ -> [ [] ] 
+getStepRule :: Location -> Int -> (Rule,Location)
+getStepRule oldLocation@(Location list) index= do
+  let prefix = take (index - 1) list
+  let suffix = drop index list
+  let (DerivationNode _ (HyperEdge smtExpr successors) _) = list !! index
+  let newLocation = Location (prefix ++ successors ++ suffix)
+  let newRule = getRule smtExpr [newLocation] oldLocation
+  (newRule , newLocation)
 
-getAllStepRules :: PairRelatingSet -> [ (Rule,PairRelatingSet) ] 
-getAllStepRules (PairRelatingSet left right) = do
- let list1 = getFirstRules left
- let list2 = getFirstRules right
- let firstResult = map (getRulesAndPairRelatingSetLeft (PairRelatingSet left right)) list1
- let secondResult = map (getRulesAndPairRelatingSetRight (PairRelatingSet left right)) list2
- firstResult ++ secondResult
 
-getRulesAndPairRelatingSetLeft :: PairRelatingSet -> (Expr,[DerivationNode]) -> (Rule,PairRelatingSet)
-getRulesAndPairRelatingSetLeft (PairRelatingSet oldLeft oldRight) (expr1,newRelationSet) = do
-  let newPairRelatingSet = (PairRelatingSet newRelationSet oldRight)
-  let newRule = getRule expr1  [newPairRelatingSet] (PairRelatingSet oldLeft oldRight)
-  (newRule,newPairRelatingSet)
-
-getRulesAndPairRelatingSetRight :: PairRelatingSet -> (Expr,[DerivationNode]) -> (Rule,PairRelatingSet)
-getRulesAndPairRelatingSetRight (PairRelatingSet oldLeft oldRight) (expr1,newRelationSet) = do
-  let newPairRelatingSet = (PairRelatingSet oldLeft newRelationSet)
-  let newRule = getRule expr1 [newPairRelatingSet] (PairRelatingSet oldLeft oldRight)
-  (newRule,newPairRelatingSet)
-
-getRule :: Expr -> [PairRelatingSet] -> PairRelatingSet -> Rule
+getRule :: Expr -> [Location] -> Location -> Rule
 getRule expr bodyPredicaes headPredicate = do
- let listOfPredicatesExpr = map getFunctionExpr (eliminateNullPredicate bodyPredicaes)
+ let listOfPredicatesExpr = map getFunctionExpr (filter (\x@(Location list) -> length(list) > 0) bodyPredicaes)
  Rule (MkAnd (expr:listOfPredicatesExpr)) (getFunctionExpr headPredicate) 
-
-eliminateNullPredicate :: [PairRelatingSet] -> [PairRelatingSet]
-eliminateNullPredicate list = case list of
-  (PairRelatingSet x1 x2):xs -> if ((List.null x1) && (List.null x2)) then (eliminateNullPredicate xs)
-                                   else (PairRelatingSet x1 x2):(eliminateNullPredicate xs)
-  _ -> []
-
-getAllRules :: Int -> [DerivationNode] -> [(Expr,[DerivationNode])]
-getAllRules index list
-  | index < length list = (getSuccessors index list) : (getAllRules (index+1) list)
-  | otherwise = []
-
-getFirstRules :: [DerivationNode] -> [(Expr,[DerivationNode])]
-getFirstRules list = case list of
-  x:xs -> do 
-           let (smtExpr,newList) = (getSuccessors 0 list)
-           if (((length newList) > 2) && ((length list) /= 1)) then []
-             else [(smtExpr,newList)] 
-  _ -> []
-
-getSuccessors :: Int -> [DerivationNode] ->(Expr ,[DerivationNode])
-getSuccessors index list = do
-  let DerivationNode _ (HyperEdge expr successors) _= list !! index
-  let (x1,x2) = splitAt index list
-  (expr,(x1 ++ (successors ++ (tail x2))))
-
-getIdList :: String -> [Int]
-getIdList name = do
-  let list = drop 1 name
-  map read (splitOn "!" list)

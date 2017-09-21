@@ -11,7 +11,11 @@ import Control.Monad.State
 data CheckIndResult = CheckIndState (Map.Map [Der] Bool)
 type CheckIndState a = StateT CheckIndResult IO a
 
-checkInd ::  (Map.Map String Expr) ->(Set.Set [Der])-> [Der] ->CheckIndState Bool
+checkInductive :: (Map.Map String Expr) -> [Der] -> IO Bool
+checkInductive  invariants location =
+  evalStateT (checkInd invariants (Set.empty) location ) (CheckIndState  Map.empty)
+
+checkInd ::  (Map.Map String Expr) ->(Set.Set [Der])-> [Der] -> CheckIndState Bool
 checkInd invariants visited theDers = do
   (CheckIndState definedSet) <- get
   if Map.member theDers definedSet then return (Map.findWithDefault False theDers definedSet)
@@ -89,7 +93,7 @@ splitLocation location = map  ( (\x y -> splitAt y x) location) [1 .. ((length l
  
 checkByUnwind :: (Map.Map String Expr) -> [Der] ->(Set.Set [Der])->CheckIndState Bool
 checkByUnwind invariants location visited = do
- if (isRNSymbloc location) then False
+ if (isRNSymbolic location) then return False
    else do
          let allUnwindLocation = map (unwindByIndex location) [1 .. (length location)]
          let newVisited = Set.insert location visited
@@ -98,9 +102,9 @@ checkByUnwind invariants location visited = do
          if length(list) == length(result) then return False
            else return True
 
-isRNSymbloc :: [Der] -> Bool
-isRNSymbloc (Der RASymb):[] = True
-isRNSymbloc _ =False
+isRNSymbolic :: [Der] -> Bool
+isRNSymbolic [(Der RASym _ _ _)] = True
+isRNSymbolic _ = False
 
 unwindByIndex :: [Der] -> Int -> [Der]
 unwindByIndex location index= do
