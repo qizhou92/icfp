@@ -12,8 +12,9 @@ data CheckIndResult = CheckIndState (Map.Map [Der] Bool)
 type CheckIndState a = StateT CheckIndResult IO a
 
 checkInductive :: (Map.Map String Expr) -> [Der] -> IO Bool
-checkInductive  invariants location =
-  evalStateT (checkInd invariants (Set.empty) location ) (CheckIndState  Map.empty)
+checkInductive  invariants location = do
+  let initialMap = Map.insert [] True Map.empty
+  evalStateT (checkInd invariants (Set.empty) location ) (CheckIndState  initialMap)
 
 checkInd ::  (Map.Map String Expr) ->(Set.Set [Der])-> [Der] -> CheckIndState Bool
 checkInd invariants visited theDers = do
@@ -110,7 +111,7 @@ unwindByIndex :: [Der] -> Int -> [Der]
 unwindByIndex location index= do
   let prefix = take (index - 1) location
   let suffix = drop index location
-  let (Der _ _ successor _) = location !! index
+  let (Der _ _ successor _) = location !! (index - 1)
   prefix ++ successor ++ suffix
 
 

@@ -253,17 +253,23 @@ verifyPairs tree1@(Der _ expr1 _ _) tree2@(Der _ expr2 _ _) = do
   let type1 = infereType expr1
   let type2 = infereType expr2
   case type1 of
-    Left err -> return (False, Map.empty)
+    Left err -> do
+                  print err 
+                  return (False, Map.empty)
     Right typeMap1 -> case type2 of
-                       Left err2 ->return (False, Map.empty)
+                       Left err2 -> do
+                                     print err2
+                                     return (False, Map.empty)
                        Right typeMap2 -> verifyPairsWithType tree1 tree2 typeMap1 typeMap2
 
 verifyPairsWithType :: Der -> Der -> (Map.Map Types.CoreExpr Type) -> (Map.Map Types.CoreExpr Type) -> IO (Bool,(Map.Map String Expr))
 verifyPairsWithType tree1@(Der _ expr _ _) tree2 typeMap1 typeMap2 = do 
   let node1@(DerivationNode varList _ _) = translateDT typeMap1 tree1
+  print node1
   let node2 = translateDT typeMap2 tree2
-  let pairSet = Location [node1 , node2] 
-  let startSet =Set.insert pairSet (Set.empty)
+  print node2
+  let startLocation = Location [node1] [node2] 
+  let startSet =Set.insert startLocation (Set.empty)
   let varList1 = collectDerivationNodeVar node1
   let varList2 = collectDerivationNodeVar node2
   let t1 = Map.findWithDefault TInt expr typeMap1
@@ -287,7 +293,7 @@ generateQuery :: Int -> DerivationNode ->DerivationNode -> Expr
 generateQuery index node1@(DerivationNode varList1 _ _) node2@(DerivationNode varList2 _ _) = do
   let (arguments1, outputs1) = splitAt index varList1 
   let (arguments2, outputs2) = splitAt index varList2
-  let basePairSet = Location [node1,node2]
+  let basePairSet = Location [node1] [node2]
   let predicate = getFunctionExpr basePairSet
   let argumentsEqual = (zipWith setEqualVar arguments1 arguments2)
   let outputEqual = MkAnd (zipWith setEqualVar outputs1 outputs2)
@@ -308,21 +314,21 @@ getStringName (DerivationNode list _ uniqueId) oldName =
   (show uniqueId) ++ "!" ++ oldName
 
 getFunction:: Location -> Function
-getFunction (Location list) = do
-  let sortList = (concat (map getDerivatonNodeSortList list))
-  let uniqueName ="R"++(foldr getStringName "" list)
+getFunction (Location list1 list2) = do
+  let sortList = (concat (map getDerivatonNodeSortList (list1++list2)))
+  let uniqueName ="R"++(foldr getStringName "" (list1 ++ list2))
   Function uniqueName sortList
 
 getDerivatonNodeArgList :: DerivationNode -> [Parameter]
 getDerivatonNodeArgList (DerivationNode varList _ _)= map (\x -> ParameterVar x ) varList
 
 getFunctionExpr :: Location -> Expr
-getFunctionExpr location@(Location list) = do 
+getFunctionExpr location@(Location list1 list2) = do 
   let function = getFunction location
-  let args = (concat (map getDerivatonNodeArgList list))
+  let args = (concat (map getDerivatonNodeArgList (list1 ++ list2) ))
   ApplyFunction function args
 
-data Location = Location [DerivationNode]
+data Location = Location [DerivationNode] [DerivationNode]
  deriving(Show,Eq,Ord)
 
 getAllRulesOfCHC :: (Set.Set Location) -> (Set.Set Location) -> CHC -> CHC
@@ -339,45 +345,59 @@ getAllRulesOfCHC locationSet doneSet theCHC
                getAllRulesOfCHC newLocationSet2 newDoneSet newCHC
 
 updateCHC :: Location -> CHC -> (CHC,[Location])
-updateCHC location@(Location list) oldCHC = do
-  let stepRuleList = map (getStepRule location) [1 .. (length list)]
+updateCHC location oldCHC = do
+  let stepRuleList = getStepRule location
   let splitRuleList = getSplitRules location
   let newCHC1 = foldr (\(rule,location) chc -> add_rule rule chc) oldCHC stepRuleList
   let newCHC2 = foldr (\(rule,location) chc -> add_rule rule chc) newCHC1 splitRuleList
-  let newLocations = (map (\(rule,location) -> location) stepRuleList) ++ (concat (map (\(rule,location) -> location) splitRuleList))
+  let newLocations = (map (\(rule,location) -> location) stepRuleList)++ (concat (map (\(rule,location) -> location) splitRuleList))
   (newCHC2,newLocations)
 
 
-getSplitRules :: Location -> [(Rule,[Location])]
-getSplitRules location@(Location locations) = do
-  if length(locations) < 2 then []
-    else do 
-          let pairsOfLocations = splitLocation locations
-          let newRulesAndLocations = map (getSplitRuleForThisPair location) pairsOfLocations 
-          newRulesAndLocations
+getSplitRules2 :: Location -> [(Rule,[Location])]
+getSplitRules2 location@(Location list1 list2) = undefined
 
-getSplitRuleForThisPair :: Location -> ([DerivationNode],[DerivationNode]) -> (Rule,[Location])
-getSplitRuleForThisPair oldLocation (location1,location2) = do
- let newPairLocations = [(Location location1),(Location location2)]
- let rule = getRule MkEmpty newPairLocations oldLocation
- (rule,newPairLocations)
+getSplitRules :: Location -> [(Rule,[Location])]
+getSplitRules location@(Location list1 list2) = do
+  let splitLeft = splitLocation list1
+  let splitRight = splitLocation list2
+  let newLeftLocations = map (\(x,y) -> [(Location x list2),(Location y list2)]) splitLeft
+  let newRightLocations = map (\(x,y) -> [(Location list1 x),(Location list1 y)]) splitRight
+  map (\x ->( (getRule MkEmpty x location), x) ) (newLeftLocations ++ newRightLocations)
+
 
 --split might need to change for non-order split
 splitLocation :: [DerivationNode] -> [([DerivationNode],[DerivationNode])]
 splitLocation location = map  ( (\x y -> splitAt y x) location) [1 .. ((length location)-1)]
 
 
-getStepRule :: Location -> Int -> (Rule,Location)
-getStepRule oldLocation@(Location list) index= do
-  let prefix = take (index - 1) list
-  let suffix = drop index list
-  let (DerivationNode _ (HyperEdge smtExpr successors) _) = list !! index
-  let newLocation = Location (prefix ++ successors ++ suffix)
-  let newRule = getRule smtExpr [newLocation] oldLocation
-  (newRule , newLocation)
+getStepRule :: Location -> [(Rule,Location)]
+getStepRule location@(Location [] []) = []
+getStepRule location@(Location [x] []) = do
+ let (DerivationNode _ (HyperEdge smtExpr successors) _) = x
+ let newLocation = Location successors []
+ let newRule = getRule smtExpr [newLocation] location
+ [(newRule , newLocation)]
+
+getStepRule location@(Location [] [x]) = do
+ let (DerivationNode _ (HyperEdge smtExpr successors) _) = x
+ let newLocation = Location [] successors
+ let newRule = getRule smtExpr [newLocation] location
+ [(newRule , newLocation)]
+
+getStepRule location@(Location [x1] [x2]) = do
+ let (DerivationNode _ (HyperEdge smtExpr1 successors1) _) = x1
+ let newLocation1 = Location successors1 [x2]
+ let newRule1 = getRule smtExpr1 [newLocation1] location
+ let (DerivationNode _ (HyperEdge smtExpr2 successors2) _) = x2
+ let newLocation2 = Location [x1] successors2
+ let newRule2 = getRule smtExpr2 [newLocation2] location
+ [(newRule1 , newLocation1) , (newRule2 , newLocation2)]
+
+getStepRule _ = []
 
 
 getRule :: Expr -> [Location] -> Location -> Rule
 getRule expr bodyPredicaes headPredicate = do
- let listOfPredicatesExpr = map getFunctionExpr (filter (\x@(Location list) -> length(list) > 0) bodyPredicaes)
+ let listOfPredicatesExpr = map getFunctionExpr (filter (\x@(Location list1 list2) -> length(list1 ++ list2) > 0) bodyPredicaes)
  Rule (MkAnd (expr:listOfPredicatesExpr)) (getFunctionExpr headPredicate) 

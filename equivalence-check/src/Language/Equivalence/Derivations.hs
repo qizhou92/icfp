@@ -106,8 +106,8 @@ makeDerivations e@(EFix var e1) = do
   (UnwindResult fixExprs newId) <- get
   if (Set.member e fixExprs) then (return (Der RASym e [] idNumber))
     else do
-           d1 <- makeDerivations (substituteCoreExpr (var,e) e1)
            put (UnwindResult (Set.insert e fixExprs) newId)
+           d1 <- makeDerivations (substituteCoreExpr (var,e) e1)
            return (Der RNFix e [d1] idNumber)
 makeDerivations e@(EApp e1 e2) = do
   idNumber <- getNewId
