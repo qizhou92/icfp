@@ -1,6 +1,6 @@
 module Language.Equivalence.Check where
 
-import Language.Equivalence.CkInd
+import qualified Language.Equivalence.CkInd as CkInd
 import Language.Equivalence.Derivations
 import Language.Equivalence.VerifyDerivation
 import Language.Equivalence.Types
@@ -9,8 +9,8 @@ import qualified Data.Set as Set
 
 verify :: CoreExpr -> CoreExpr -> IO Bool
 verify expr1 expr2 = do
-  let der1 = (Der RASym expr1 [] 1)
-  let der2 = (Der RASym expr2 [] 2)
+  let der1 = (Der RASym expr1 expr1 [] 1)
+  let der2 = (Der RASym expr2 expr2 [] 2)
   checkResult 3 der1 der2
 
 checkResult :: Int -> Der -> Der -> IO Bool
@@ -25,7 +25,7 @@ checkResult idNumber der1 der2 = do
   print isEqual
   if (not isEqual) then return False
     else do
-           isInductive <- checkInductive invariants [newDer1,newDer2]
+           isInductive <- CkInd.checkInductive invariants (CkInd.Location [newDer1] [newDer2])
            print "isInductive"
            print isInductive
            if isInductive then return True
