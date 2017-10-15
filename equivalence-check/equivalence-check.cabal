@@ -35,5 +35,6 @@ executable equivalence-check
                        Language.Equivalence.Verify
                        Language.Equivalence.CHC
                        Language.Equivalence.Expr
+                       Language.Equivalence.Derivations
 
   Default-Extensions: OverloadedStrings

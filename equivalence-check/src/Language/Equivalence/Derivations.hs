@@ -2,7 +2,7 @@ module Language.Equivalence.Derivations where
 
 import Language.Equivalence.Types
 import qualified Data.Set as Set
-import qualified Data.Map as Map
+-- import qualified Data.Map as Map
 import Control.Monad.State
 
 
@@ -50,10 +50,10 @@ getNewId = do
   return newId
 
 unwindDer :: Der -> UnwindState Der
-unwindDer der@(Der RASym expr1 expr2 _ idNumber) = do
+unwindDer (Der RASym expr1 expr2 _ _) = do
   theDer <- makeDerivations expr1 expr2
   return theDer
-unwindDer der@(Der rule expr1 expr2 list idNumber) = do
+unwindDer (Der rule expr1 expr2 list idNumber) = do
   list1 <- mapM unwindDer list
   return (Der rule expr1 expr2 list1 idNumber)
 
@@ -107,6 +107,8 @@ makeDerivations e@(ELet _ _ _) _
   = error ("makeDerivations: undefined on " ++ show e)
 makeDerivations e@ENil _
   = error ("makeDerivations: undefined on " ++ show e)
+makeDerivations e1 e2
+  = error ("makeDerivations: undefined on " ++ show e1 ++ "\t vs.\t" ++ show e2)
 
 
 substituteCoreExpr :: (Var,CoreExpr) -> CoreExpr -> CoreExpr
