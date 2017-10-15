@@ -5,6 +5,24 @@ import Control.Monad.Except
 import Control.Monad.State
 import Language.Equivalence.Types
 
+
+types :: Program -> Either String [(Var, Scheme)]
+types prog =
+  case (evalState (runExceptT (act prog)) 0) of
+    Left  err -> Left err
+    Right env -> Right [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
+   where
+     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env e) mempty
+
+insertEnv :: TypeEnv -> Var -> TypeResult -> TypeEnv
+insertEnv env x (TypeResult _ t _) 
+  = TypeEnv (Map.insert (EVar x) (generalize env t) (tyEnv env))
+
+-- data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type)
+-- ti :: TypeEnv -> CoreExpr -> HM TypeResult
+-- infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
+
+
 type TV = String
 data Type = TVar TV
            | TInt
@@ -13,8 +31,14 @@ data Type = TVar TV
   deriving (Eq, Ord,Show)
 
 data Scheme = Forall [Type] Type
+  deriving (Show)
 
-newtype TypeEnv = TypeEnv (Map.Map CoreExpr Scheme)
+-- NV: TypeEnv should map Variables to Scheme, not CoreExpr
+newtype TypeEnv = TypeEnv {tyEnv :: Map.Map CoreExpr Scheme}
+
+instance Monoid TypeEnv where
+  mempty = TypeEnv mempty
+  mappend (TypeEnv m1) (TypeEnv m2) = TypeEnv (mappend m1 m2)
 
 type Subst = Map.Map Type Type
 
@@ -25,8 +49,8 @@ class Substitutable a where
 instance Substitutable Type where
   apply _ TInt = TInt
   apply _ TBool = TBool
-  apply subSet t@(TVar a) = Map.findWithDefault t t subSet
-  apply subSet t@(TArr t1 t2) = (TArr (apply subSet t1) (apply subSet t2))
+  apply subSet t@(TVar _) = Map.findWithDefault t t subSet
+  apply subSet (TArr t1 t2) = (TArr (apply subSet t1) (apply subSet t2))
 
   freeTvars TInt = Set.empty
   freeTvars TBool = Set.empty
@@ -189,4 +213,4 @@ infereType expr = do
   let r = (evalState (runExceptT (ti (TypeEnv Map.empty) expr)) 0)
   case r of
     Left err -> Left err
-    Right (TypeResult subset t mapResult) -> Right (Map.map (apply subset) mapResult)
+    Right (TypeResult subset _ mapResult) -> Right (Map.map (apply subset) mapResult)

@@ -1,8 +1,9 @@
 module Main where
 
 import Language.Equivalence.Types
-import Language.Equivalence.Verify
+-- import Language.Equivalence.Verify
 import Language.Equivalence.Parser
+import Language.Equivalence.TypeInference
 import System.Environment
 import System.Exit
 import Data.Maybe (mapMaybe)
@@ -13,14 +14,18 @@ main = equivalenceCheck =<< makeConfig =<< getArgs
 
 equivalenceCheck :: Config -> IO ExitCode
 equivalenceCheck cfg = do
-  eqEnv <- makeEqEnv cfg
-  putStrLn ("************** GOALS ************** \n" ++ show eqEnv)
-  res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
-  putStrLn (unlines (show <$> res))
+  prog <- makeProgram cfg
+  putStrLn ("************** Program ************** \n" ++ show prog)
+  putStrLn ("************** Types ************** \n"   ++ show (types prog))
+  -- res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
+  -- putStrLn (unlines (show <$> res))
   exitWith ExitSuccess
 
-makeEqEnv :: Config -> IO EqEnv
-makeEqEnv cfg = do
+makeProgram :: Config -> IO Program
+makeProgram cfg = parseProg <$> readFile (cfgFile cfg)
+
+_makeEqEnv :: Config -> IO EqEnv
+_makeEqEnv cfg = do
   str  <- readFile (cfgFile cfg)
   return $ EqEnv (parseProg str) (queries str ++ cfgQueries cfg)
 

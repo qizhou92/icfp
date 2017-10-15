@@ -49,7 +49,7 @@ instance Show EqEnv where
 
 
 data Config = Config
-  { cfgFile :: String
+  { cfgFile    :: String
   , cfgQueries :: [(Var, Var)]
   } deriving (Show)
 
