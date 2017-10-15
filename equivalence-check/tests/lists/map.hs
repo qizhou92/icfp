@@ -1,6 +1,6 @@
--- @checkEq map1 map2
+-- @checkEq map map2
 
-map1 f xs = if xs == [] 
+map f xs = if xs == [] 
                    then [] 
                    else let h = head xs in 
                         let t = tail xs in 
@@ -11,4 +11,4 @@ map2 f xs = if xs == []
                    then [] 
                    else let h = head xs in 
                         let t = tail xs in 
-                          f h : map f t 
+                          f h : map2 f t 
