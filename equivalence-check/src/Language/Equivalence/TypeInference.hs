@@ -5,16 +5,49 @@ import Control.Monad.Except
 import Control.Monad.State
 import Language.Equivalence.Types
 
+
+types :: Program -> Either String [(Var, Scheme)]
+types prog =
+  case (evalState (runExceptT (act prog)) 0) of
+    Left  err -> Left err
+    Right env -> Right [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
+   where
+     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env e) initEnv 
+
+initEnv :: TypeEnv
+initEnv = TypeEnv $ Map.fromList
+  [ (EVar $ Var "head", Forall [a] (TList a `TArr` a))
+  , (EVar $ Var "tail", Forall [a] (TList a `TArr` TList a)) 
+  ]
+  where
+    a = TVar "a"
+
+insertEnv :: TypeEnv -> Var -> TypeResult -> TypeEnv
+insertEnv env x (TypeResult _ t _) 
+  = TypeEnv (Map.insert (EVar x) (generalize env t) (tyEnv env))
+
+-- data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type)
+-- ti :: TypeEnv -> CoreExpr -> HM TypeResult
+-- infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
+
+
 type TV = String
 data Type = TVar TV
            | TInt
            | TBool
            | TArr Type Type
+           | TList Type 
   deriving (Eq, Ord,Show)
 
 data Scheme = Forall [Type] Type
+  deriving (Show)
 
-newtype TypeEnv = TypeEnv (Map.Map CoreExpr Scheme)
+-- NV: TypeEnv should map Variables to Scheme, not CoreExpr
+newtype TypeEnv = TypeEnv {tyEnv :: Map.Map CoreExpr Scheme}
+
+instance Monoid TypeEnv where
+  mempty = TypeEnv mempty
+  mappend (TypeEnv m1) (TypeEnv m2) = TypeEnv (mappend m1 m2)
 
 type Subst = Map.Map Type Type
 
@@ -23,14 +56,16 @@ class Substitutable a where
   freeTvars :: a -> Set.Set Type
 
 instance Substitutable Type where
-  apply _ TInt = TInt
-  apply _ TBool = TBool
-  apply subSet t@(TVar a) = Map.findWithDefault t t subSet
-  apply subSet t@(TArr t1 t2) = (TArr (apply subSet t1) (apply subSet t2))
+  apply _ TInt          = TInt
+  apply _ TBool         = TBool
+  apply su (TList t)    = TList $ apply su t 
+  apply su t@(TVar _)   = Map.findWithDefault t t su
+  apply su (TArr t1 t2) = TArr (apply su t1) (apply su t2)
 
-  freeTvars TInt = Set.empty
-  freeTvars TBool = Set.empty
-  freeTvars (TVar a) = Set.singleton (TVar a)
+  freeTvars TInt         = Set.empty
+  freeTvars TBool        = Set.empty
+  freeTvars (TList t)    = freeTvars t 
+  freeTvars (TVar a)     = Set.singleton (TVar a)
   freeTvars (TArr t1 t2) = (Set.union (freeTvars t1) (freeTvars t2) )
 
 instance Substitutable Scheme where
@@ -61,6 +96,7 @@ mgu (TVar a) t = varAsgn (TVar a) t
 mgu t (TVar a) = varAsgn (TVar a) t 
 mgu TInt TInt = return Map.empty
 mgu TBool TBool = return Map.empty
+mgu (TList a) (TList b) = mgu a b 
 mgu t1 t2 = throwError ("types do not unify: " ++ (show t1) ++ " vs ." ++ (show t2) ++"\n")
 
 varAsgn :: Type -> Type -> HM Subst
@@ -94,7 +130,9 @@ data TypeResult = TypeResult Subst Type (Map.Map CoreExpr Type)
 ti :: TypeEnv -> CoreExpr -> HM TypeResult
 ti _ expr@(EInt  _) = return (TypeResult (Map.empty) TInt (Map.insert expr TInt Map.empty))
 ti _ expr@(EBool _) = return (TypeResult (Map.empty) TBool (Map.insert expr TBool Map.empty))
-ti _ (ENil ) = throwError "Cannot analysis ENil type"
+ti _ ENil = do
+  a <- freshTVar
+  return $ TypeResult mempty (TList a) mempty
 ti (TypeEnv env) expr@(EVar x) = 
   case (Map.lookup (EVar x) env) of
      Nothing -> throwError ("Unbounded Varaiablie: " ++ (show x))
@@ -106,7 +144,7 @@ ti tEnv expr@(EBin op expr1 expr2) = do
   TypeResult s1 t1 m1 <- (ti tEnv expr1)
   TypeResult s2 t2 m2 <- (ti tEnv expr2)
   tv <- freshTVar
-  opType <- (getOp op)
+  opType <- instantiate $ getOp op
   s3 <- mgu (TArr t1 (TArr t2 tv)) opType
   let m3 = Map.union m1 m2
   let tnew = apply s3 tv
@@ -165,18 +203,19 @@ ti (TypeEnv env) expr@(EFix var1 expr1) = do
 
  
 -- for Eq and Ne, it is not accurate 
-getOp :: Binop -> HM Type
-getOp Plus = return (TArr TInt (TArr TInt TInt))
-getOp Minus =return (TArr TInt (TArr TInt TInt))
-getOp Mul  = return(TArr TInt (TArr TInt TInt))
-getOp Div  = return (TArr TInt (TArr TInt TInt))
-getOp Eq = return (TArr TInt (TArr TInt TBool))
-getOp Ne =return (TArr TInt (TArr TInt TBool))
-getOp Lt =return (TArr TInt (TArr TInt TBool))
-getOp Le =return (TArr TInt (TArr TInt TBool))
-getOp And =return (TArr TInt (TArr TInt TBool))
-getOp Or =return (TArr TInt (TArr TInt TBool))
-getOp Cons = throwError "cannot anlaysis Cons"
+getOp :: Binop -> Scheme
+getOp Plus  = Forall [] (TArr TInt (TArr TInt TInt))
+getOp Minus = Forall [] (TArr TInt (TArr TInt TInt))
+getOp Mul   = Forall [] (TArr TInt (TArr TInt TInt))
+getOp Div   = Forall [] (TArr TInt (TArr TInt TInt))
+getOp Eq    = Forall [a] (TArr a (TArr a TBool)) where a = TVar "a"
+getOp Ne    = Forall [a] (TArr a (TArr a TBool)) where a = TVar "a"
+getOp Lt    = Forall [] (TArr TInt (TArr TInt TBool))
+getOp Le    = Forall [] (TArr TInt (TArr TInt TBool))
+getOp And   = Forall [] (TArr TInt (TArr TInt TBool))
+getOp Or    = Forall [] (TArr TInt (TArr TInt TBool))
+getOp Cons  = Forall [a] (a `TArr` (TList a `TArr` TList a)) where a = TVar "a"
+
 
 getPairFresh :: HM (Type,Type)
 getPairFresh = do
@@ -189,4 +228,4 @@ infereType expr = do
   let r = (evalState (runExceptT (ti (TypeEnv Map.empty) expr)) 0)
   case r of
     Left err -> Left err
-    Right (TypeResult subset t mapResult) -> Right (Map.map (apply subset) mapResult)
+    Right (TypeResult subset _ mapResult) -> Right (Map.map (apply subset) mapResult)
