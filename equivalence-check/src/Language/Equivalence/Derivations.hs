@@ -148,5 +148,3 @@ showDerShort der =
     ++ "|- " ++ exprString (coreExpr der)  ++ "id:" ++ show(idNumber der) ++ "\n"  
 
     -- ++ show (denv der) ++ " |- " ++ exprString (dinExpr der) ++ " ~> " ++ exprString (doutExpr der) ++ "\n"  
-
-

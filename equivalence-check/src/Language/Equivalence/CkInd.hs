@@ -46,7 +46,10 @@ checkByEntail invariants location visitedSet = do
   resultList <- mapM (isEntailHolds invariants location) sameLocationList
   let list = takeWhile ( == False) resultList
   if length(list) == length(resultList) then return False
-    else return True
+    else do
+      print location
+      print "entail holds" 
+      return True
 
 -- this function need to re-implement, the order might not be right.
 isEntailHolds :: (Map.Map String Expr) -> Location -> Location ->IO Bool
@@ -55,7 +58,7 @@ isEntailHolds invariants location1@(Location list1 list2) location2@(Location li
   let invariants1 = Map.findWithDefault (ExprConstant (ConstantBool False)) predicateName1 invariants
   let predicateName2 = "R" ++ (foldr getPredicateName "" (list3++list4))
   let invariants2 = Map.findWithDefault (ExprConstant (ConstantBool True)) predicateName2 invariants
-  checkEntail invariants1 invariants2 
+  checkEntail invariants2  invariants1
 
 isSameLocation :: Location -> Location -> Bool
 isSameLocation location1@(Location list1 list2) location2@(Location list3 list4) = do
