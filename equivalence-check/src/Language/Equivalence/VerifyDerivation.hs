@@ -15,6 +15,9 @@ import qualified Data.Map as Map
 
 -- function need to implemented, the substitute function, register all var
 
+data RelationalType = RelationalLeaf 
+
+
 data HyperEdge = HyperEdge Expr [DerivationNode]
  deriving(Show,Eq,Ord)
 
