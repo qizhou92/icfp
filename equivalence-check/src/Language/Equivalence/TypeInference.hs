@@ -39,6 +39,7 @@ data Type = TVar TV
            | TPlus Type Type
            | TProduct Type Type
            | TFix TV Type
+           | TNil
            | TList Type 
   deriving (Eq, Ord,Show)
 
