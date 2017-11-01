@@ -103,7 +103,7 @@ data CoreExpr
   | EVar Var
   | EBin Binop CoreExpr CoreExpr
   | EIf  CoreExpr  CoreExpr  CoreExpr
-  | EMatch CoreExpr Var CoreExpr CoreExpr
+  | EMatch Var CoreExpr CoreExpr CoreExpr
   | EBind Var Var CoreExpr CoreExpr
   | ELet Var   CoreExpr  CoreExpr
   | EApp CoreExpr  CoreExpr

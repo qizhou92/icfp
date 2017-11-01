@@ -1,120 +1,154 @@
-module Language.Equivalence.RelationalTypes where
-
+module Language.Equivalence.InfereRelationalTypes where
 import Language.Equivalence.TypeInference
+import Language.Equivalence.RelationalTypes
+import qualified Language.Equivalence.Types as CoreExpr
 import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
-data TypePoint = TypePoint [Type] [TypeEdge] Int
+data TemporyResult = TemporyResult Int  (Map.Map (CoreExpr.CoreExpr,CoreExpr.CoreExpr) UnfoldPair) (Map.Map CoreExpr.CoreExpr Type)
   deriving (Show,Eq,Ord)
 
-data TypeConstructor = TypeArr | TypePlus | TypeProduct | TypeFix
+type UnfoldState a = (State TemporyResult) a
+
+data UnfoldPair = UnfoldPair TypePoint TypePoint CoreExpr.CoreExpr CoreExpr.CoreExpr Int [UnfoldEdge]
   deriving (Show,Eq,Ord)
 
-data TypeEdge = TypeEdge TypeConstructor [Int] [TypePoint]
-  deriving (Show,Eq,Ord)
-data ConstructResult = ConstructResult Int  (Map.Map [Type] TypePoint)
+data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
   deriving (Show,Eq,Ord)
 
-type ConstructState a = (State ConstructResult) a
+data UnfoldEdge = UnfoldEdge UnfoldRule [UnfoldPair]
+  deriving (Show,Eq,Ord)
 
-constructRelationalDag :: [Type] -> TypePoint
-constructRelationalDag types = evalState (constructPoint types) (ConstructResult 0 (Map.empty))
+constructUnfoldPair :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr ->UnfoldState UnfoldPair
+constructUnfoldPair c1 c2 = do
+  (TemporyResult number result _) <- get
+  if Map.member (c1,c2) result then return (result Map.! (c1,c2))
+    else constructNewUnfoldPair c1 c2
 
-constructPoint :: [Type] -> ConstructState TypePoint
-constructPoint types = do
-  (ConstructResult _ result) <- get
-  if Map.member types result then return (result Map.! types)
-    else constructNewPoint types
+constructNewUnfoldPair :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldPair
+constructNewUnfoldPair c1 c2 = do
+  (TemporyResult number result typeEnv) <- get
+  freeVariables <- constructFreeVariables c1 c2
+  pairExpressions <- constructPairExpressions c1 c2
+  edgeList <- constructUnfoldEdge c1 c2
+  let newUnfoldPair = UnfoldPair freeVariables pairExpressions c1 c2 number edgeList
+  put (TemporyResult (number+1) (Map.insert (c1,c2) newUnfoldPair result) typeEnv)
+  return newUnfoldPair
 
-constructNewPoint :: [Type] -> ConstructState TypePoint
-constructNewPoint types = do
- arrTypeEdges <- constructEdges TypeArr types  (getTypeIndex isTypeArr types)
- plusTypeEdges <- constructEdges TypePlus types (getTypeIndex isTypePlus types)
- productTypeEdges <- constructEdges TypeProduct types (getTypeIndex isTypeProduct types)
- fixTypeEdges <- constructEdges TypeFix types  (getTypeIndex isTypeFix types)
- (ConstructResult number result) <- get
- let newTypePoint = TypePoint types (arrTypeEdges ++ plusTypeEdges ++ productTypeEdges ++ fixTypeEdges) number
- put (ConstructResult (number+1) (Map.insert types newTypePoint result))
- return newTypePoint
+constructFreeVariables :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState TypePoint
+constructFreeVariables c1 c2 = do
+  (TemporyResult _ _ typeEnv) <- get
+  let freeVariables =Set.toList (Set.union (CoreExpr.freeVars c1) (CoreExpr.freeVars c2))
+  let types = map (\x -> typeEnv Map.! (CoreExpr.EVar x) ) freeVariables
+  return (constructRelationalDag types)
 
-constructEdges :: TypeConstructor -> [Type] -> [Int] -> ConstructState [TypeEdge]
-constructEdges typeConstructor types index = do
- let allPossibleIndexs = powerSet index
- mapM (constructEdge typeConstructor types) allPossibleIndexs
-
-constructEdge :: TypeConstructor -> [Type] -> [Int] -> ConstructState TypeEdge
-constructEdge TypeFix types index = do
- let typeWithIndex = zip types [1 .. ]
- let newTypes = map (getNewTypes getFixType (Set.fromList index)) typeWithIndex
- typePoint <- constructPoint newTypes
- return (TypeEdge TypeFix index [typePoint])
-constructEdge TypeArr types index = constructEdgeBinaryConstructor TypeArr getTArrLeft getTArrRight types index
-constructEdge TypePlus types index = constructEdgeBinaryConstructor TypePlus getTPlusLeft getTPlusRight types index
-constructEdge TypeProduct types index = constructEdgeBinaryConstructor TypeProduct getTProductLeft getTProductRight types index
-
-constructEdgeBinaryConstructor :: TypeConstructor -> (Type -> Type) -> (Type -> Type) -> [Type] -> [Int] -> ConstructState TypeEdge
-constructEdgeBinaryConstructor typeConstructor leftF rightF types index = do
- let typeWithIndex = zip types [1 .. ]
- let newTypes1 = map (getNewTypes leftF (Set.fromList index)) typeWithIndex
- let newTypes2 = map (getNewTypes rightF (Set.fromList index)) typeWithIndex
- typePoint1 <- constructPoint newTypes1
- typePoint2 <- constructPoint newTypes2
- return (TypeEdge typeConstructor index [typePoint1,typePoint2])
+constructPairExpressions :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr ->UnfoldState TypePoint
+constructPairExpressions c1 c2 = do
+   (TemporyResult _ _ typeEnv) <- get
+   let t1 = typeEnv Map.! c1
+   let t2 = typeEnv Map.! c2
+   return (constructRelationalDag [t1,t2])
 
 
-getNewTypes :: (Type -> Type) -> (Set.Set Int) -> (Type,Int) -> Type
-getNewTypes replaceF indexs (theType,theIndex) = do
- if (Set.member theIndex indexs) then (replaceF theType)
-  else theType 
+constructUnfoldEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState [UnfoldEdge]
+constructUnfoldEdge c1 c2 = do
+  leftEdge <- unfoldLeftEdge c1 c2
+  rightEdge <- unfoldRightEdge c1 c2
+  bothEdge <- unfoldBothEdge c1 c2
+  return (filter (\(UnfoldEdge _ list) -> if (length list) > 0 then True else False ) [leftEdge,rightEdge,bothEdge])
 
-getTypeIndex :: (Type -> Bool) -> [Type] -> [Int]
-getTypeIndex filterF list = do
- let result1 = zip (map filterF list) [1 ..]
- map (\(x,y) -> y) (filter (\(x,y) -> x ) result1)
+unfoldLeftEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
+unfoldLeftEdge c1@(CoreExpr.EBin _ e1 e2) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  pair2 <- constructUnfoldPair e2 c2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
-isTypeArr :: Type -> Bool
-isTypeArr (TArr _ _) = True
-isTypeArr _ = False
+unfoldLeftEdge c1@(CoreExpr.EIf e1 e2 e3) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  pair2 <- constructUnfoldPair e2 c2
+  pair3 <- constructUnfoldPair e3 c2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
+
+unfoldLeftEdge c1@(CoreExpr.EMatch _ e1 e2 e3) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  pair2 <- constructUnfoldPair e2 c2
+  pair3 <- constructUnfoldPair e3 c2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
+
+unfoldLeftEdge c1@(CoreExpr.EBind _  _ e1 e2) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  pair2 <- constructUnfoldPair e2 c2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
+
+unfoldLeftEdge c1@(CoreExpr.EApp e1 e2) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  pair2 <- constructUnfoldPair e2 c2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
+
+unfoldLeftEdge c1@(CoreExpr.ELam _ e1) c2 = do
+  pair1 <- constructUnfoldPair e1 c2
+  return (UnfoldEdge UnfoldLeft [pair1])
+
+unfoldLeftEdge c1 c2 = return (UnfoldEdge UnfoldLeft [])
+
+unfoldRightEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
+unfoldRightEdge c1 c2@(CoreExpr.EBin _ e1 e2) = do
+  pair1 <- constructUnfoldPair c1 e1
+  pair2 <- constructUnfoldPair c1 e2
+  return (UnfoldEdge UnfoldRight [pair1,pair2])
+
+unfoldRightEdge c1 c2@(CoreExpr.EIf e1 e2 e3) = do
+  pair1 <- constructUnfoldPair c1 e1
+  pair2 <- constructUnfoldPair c1 e2
+  pair3 <- constructUnfoldPair c1 e3
+  return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
+
+unfoldRightEdge c1 c2@(CoreExpr.EMatch _ e1 e2 e3) = do
+  pair1 <- constructUnfoldPair c1 e1
+  pair2 <- constructUnfoldPair c1 e2
+  pair3 <- constructUnfoldPair c1 e3
+  return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
+
+unfoldRightEdge c1 c2@(CoreExpr.EBind _ _ e1 e2) = do
+  pair1 <- constructUnfoldPair c1 e1
+  pair2 <- constructUnfoldPair c1 e2
+  return (UnfoldEdge UnfoldRight [pair1,pair2])
+
+unfoldRightEdge c1 c2@(CoreExpr.EApp e1 e2) = do
+  pair1 <- constructUnfoldPair c1 e1
+  pair2 <- constructUnfoldPair c1 e2
+  return (UnfoldEdge UnfoldRight [pair1,pair2])
+
+unfoldRightEdge c1 c2@(CoreExpr.ELam _ e1)  = do
+  pair1 <- constructUnfoldPair c1 e1
+  return (UnfoldEdge UnfoldRight [pair1])
+
+unfoldRightEdge c1 c2 = return (UnfoldEdge UnfoldRight [])
+
+unfoldBothEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
+unfoldBothEdge c1@(CoreExpr.EMatch _ e1 e2 e3) c2@(CoreExpr.EMatch _ e4 e5 e6) = do
+  pair1 <- constructUnfoldPair e1 e4
+  pair2 <- constructUnfoldPair e2 e5
+  pair3 <- constructUnfoldPair e3 e6
+  return (UnfoldEdge UnfoldBoth [pair1,pair2,pair3])
+
+unfoldBothEdge c1@(CoreExpr.EBind _ _ e1 e2) c2@(CoreExpr.EBind _ _ e3 e4) = do
+  pair1 <- constructUnfoldPair e1 e3
+  pair2 <- constructUnfoldPair e2 e4
+  return (UnfoldEdge UnfoldBoth [pair1,pair2])
+
+unfoldBothEdge c1@(CoreExpr.EApp e1 e2) c2@(CoreExpr.EApp e3 e4) = do
+  pair1 <- constructUnfoldPair e1 e3
+  pair2 <- constructUnfoldPair e2 e4
+  return (UnfoldEdge UnfoldBoth [pair1,pair2])
+
+unfoldBothEdge c1@(CoreExpr.ELam _ e1) c2@(CoreExpr.ELam _ e2) = do
+  pair1 <- constructUnfoldPair e1 e2
+  return (UnfoldEdge UnfoldBoth [pair1])
+
+unfoldBothEdge c1 c2 = return (UnfoldEdge UnfoldBoth [])
 
 
-isTypePlus :: Type -> Bool
-isTypePlus (TPlus _ _)  = True
-isTypePlus _ = False
-
-isTypeProduct :: Type -> Bool
-isTypeProduct (TProduct _ _) = True
-isTypeProduct _ = False
-
-isTypeFix :: Type -> Bool
-isTypeFix (TFix _ _) = True
-isTypeFix _ = False
-
-getFixType :: Type -> Type
-getFixType (TFix _ t) = t
-
-getTArrLeft :: Type -> Type
-getTArrLeft (TArr t _) = t
-
-getTArrRight :: Type -> Type
-getTArrRight (TArr _ t) = t
-
-getTPlusLeft :: Type -> Type
-getTPlusLeft (TPlus t _) = t
-
-getTPlusRight :: Type -> Type
-getTPlusRight (TPlus _ t) = t
-
-getTProductLeft :: Type -> Type
-getTProductLeft (TProduct t _) = t
-
-getTProductRight :: Type -> Type
-getTProductRight (TProduct _ t) = t
-
-powerSet :: [Int] -> [[Int]]
-powerSet (x:xs) = do
- let set = powerSet xs
- (map (x:) set) ++ set
-powerSet [] = []
 
 
