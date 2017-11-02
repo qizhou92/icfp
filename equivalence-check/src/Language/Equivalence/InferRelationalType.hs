@@ -150,5 +150,52 @@ unfoldBothEdge c1@(CoreExpr.ELam _ e1) c2@(CoreExpr.ELam _ e2) = do
 unfoldBothEdge c1 c2 = return (UnfoldEdge UnfoldBoth [])
 
 
+generateConstrains :: TypePoint -> TypePoint -> Bool
+generateConstrains = undefined
+
+subTypeCheck :: TypePoint -> TypePoint -> Bool
+subTypeCheck t1@(TypePoint typeList1 typeEdges1 id1) t2@(TypePoint typeList2 typeEdges2 id2) = do
+  if length(typeEdges1) == 0 then (generateConstrains t1 t2)
+    else do
+          length (zipWith subTypeCheckWithSameType typeEdges1 typeEdges2) > 0
+
+subTypeCheckWithSameType :: TypeEdge -> TypeEdge -> Bool
+subTypeCheckWithSameType edge1@(TypeEdge TypeArr _ pointList1) edge2@(TypeEdge TypeArr _ pointList2) = do
+  let subPoint1_0 = pointList1 !! 0
+  let subPoint1_1 = pointList1 !! 1
+  let subPoint2_0 = pointList2 !! 0
+  let subPoint2_1 = pointList2 !! 1
+  --- convariant check
+  let result1 = subTypeCheck subPoint2_0 subPoint1_0
+  let result2 = subTypeCheck subPoint1_1 subPoint2_1
+  True
+
+subTypeCheckWithSameType edge1@(TypeEdge TypePlus _ pointList1) edge2@(TypeEdge TypePlus _ pointList2) = do
+  let subPoint1_0 = pointList1 !! 0
+  let subPoint1_1 = pointList1 !! 1
+  let subPoint2_0 = pointList2 !! 0
+  let subPoint2_1 = pointList2 !! 1
+  let result1 = subTypeCheck subPoint1_0 subPoint2_0
+  let result2 = subTypeCheck subPoint1_1 subPoint2_1
+  True
+
+subTypeCheckWithSameType edge1@(TypeEdge TypeProduct _ pointList1) edge2@(TypeEdge TypeProduct _ pointList2) = do
+  let subPoint1_0 = pointList1 !! 0
+  let subPoint1_1 = pointList1 !! 1
+  let subPoint2_0 = pointList2 !! 0
+  let subPoint2_1 = pointList2 !! 1
+  let result1 = subTypeCheck subPoint1_0 subPoint2_0
+  let result2 = subTypeCheck subPoint1_1 subPoint2_1
+  True
+
+subTypeCheckWithSameType edge1@(TypeEdge TypeFix _ pointList1) edge2@(TypeEdge TypeFix _ pointList2) = do
+  let subPoint1_0 = pointList1 !! 0
+  let subPoint2_0 = pointList2 !! 0
+  let result1 = subTypeCheck subPoint1_0 subPoint2_0
+  True
+
+
+
+
 
 
