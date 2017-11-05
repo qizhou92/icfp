@@ -1,16 +1,17 @@
-module Language.Equivalence.TypeInference where
+module Language.Equivalence.TypeInference (types, Type (..)) where
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Control.Monad.Except
 import Control.Monad.State
 import Language.Equivalence.Types
+import Language.Equivalence.Transformations
 
 
 types :: Program -> Either String [(Var, Scheme)]
 types prog =
   case (evalState (runExceptT (act prog)) 0) of
     Left  err -> Left err
-    Right env -> Right [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
+    Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
    where
      act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env e) initEnv 
 
@@ -31,20 +32,8 @@ insertEnv env x (TypeResult _ t _)
 -- infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
 
 
-type TV = String
-data Type = TVar TV
-           | TInt
-           | TBool
-           | TArr Type Type
-           | TPlus Type Type
-           | TProduct Type Type
-           | TFix TV Type
-           | TNil
-           | TList Type 
-  deriving (Eq, Ord,Show)
 
-data Scheme = Forall [Type] Type
-  deriving (Show)
+
 
 -- NV: TypeEnv should map Variables to Scheme, not CoreExpr
 newtype TypeEnv = TypeEnv {tyEnv :: Map.Map CoreExpr Scheme}
@@ -60,17 +49,25 @@ class Substitutable a where
   freeTvars :: a -> Set.Set Type
 
 instance Substitutable Type where
-  apply _ TInt          = TInt
-  apply _ TBool         = TBool
-  apply su (TList t)    = TList $ apply su t 
-  apply su t@(TVar _)   = Map.findWithDefault t t su
-  apply su (TArr t1 t2) = TArr (apply su t1) (apply su t2)
+  apply _ TInt              = TInt
+  apply _ TBool             = TBool
+  apply _ TNil              = TNil
+  apply su (TList t)        = TList $ apply su t 
+  apply su t@(TVar _)       = Map.findWithDefault t t su
+  apply su (TArr t1 t2)     = TArr (apply su t1) (apply su t2)
+  apply su (TPlus t1 t2)    = TPlus (apply su t1) (apply su t2)
+  apply su (TProduct t1 t2) = TProduct (apply su t1) (apply su t2)
+  apply su (TFix t1 t2)     = TFix t1 (apply (Map.delete (TVar t1) su) t2)
 
-  freeTvars TInt         = Set.empty
-  freeTvars TBool        = Set.empty
-  freeTvars (TList t)    = freeTvars t 
-  freeTvars (TVar a)     = Set.singleton (TVar a)
-  freeTvars (TArr t1 t2) = (Set.union (freeTvars t1) (freeTvars t2) )
+  freeTvars TInt             = Set.empty
+  freeTvars TNil             = Set.empty
+  freeTvars TBool            = Set.empty
+  freeTvars (TList t)        = freeTvars t 
+  freeTvars (TVar a)         = Set.singleton (TVar a)
+  freeTvars (TArr t1 t2)     = (Set.union (freeTvars t1) (freeTvars t2) )
+  freeTvars (TProduct t1 t2) = Set.union (freeTvars t1) (freeTvars t2)
+  freeTvars (TPlus t1 t2)    = Set.union (freeTvars t1) (freeTvars t2)
+  freeTvars (TFix x t)       = Set.delete (TVar x) (freeTvars t) 
 
 instance Substitutable Scheme where
   apply subSet (Forall boundVars t) = Forall boundVars (apply newSubSet t) 
@@ -203,7 +200,8 @@ ti (TypeEnv env) expr@(EFix var1 expr1) = do
   let tnew = apply s2 tv
   let m2 = Map.insert expr tnew m1
   return (TypeResult (andSubSet s1 s2) tnew m2)
-
+ti _ (EMatch _ _ _ _) = error "ti.EMatch"
+ti _ (EBind _ _ _ _) = error "ti.EBind"
 
  
 -- for Eq and Ne, it is not accurate 
@@ -232,4 +230,4 @@ infereType expr = do
   let r = (evalState (runExceptT (ti (TypeEnv Map.empty) expr)) 0)
   case r of
     Left err -> Left err
-    Right (TypeResult subset _ mapResult) -> Right (Map.map (apply subset) mapResult)
+    Right (TypeResult subset _ mapResult) -> Right $ listToFix (Map.map (apply subset) mapResult)

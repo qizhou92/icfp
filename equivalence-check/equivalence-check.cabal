@@ -11,8 +11,9 @@ cabal-version:       >=1.10
 
 executable equivalence-check
   main-is:             EquivalenceCheck.hs
-  ghc-options:         -W -threaded -Werror
-  build-depends:       base >=4.9 && <4.10
+  ghc-options:         -W -threaded 
+                      -- -Werror
+  build-depends:       base >=4.9 && <5
                      , ghc-paths
                      , temporary
                      , containers
@@ -37,7 +38,8 @@ executable equivalence-check
                        Language.Equivalence.Expr
                        Language.Equivalence.Derivations
                        Language.Equivalence.TypeInference
+                       Language.Equivalence.Transformations
                        Language.Equivalence.RelationalTypes
-                       Language.Equivalence.InfereRelationalTypes
+                       -- Language.Equivalence.InfereRelationalTypes
 
   Default-Extensions: OverloadedStrings
