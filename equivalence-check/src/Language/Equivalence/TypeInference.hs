@@ -13,7 +13,7 @@ types prog =
     Left  err -> Left err
     Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
    where
-     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env (desugarMatch e)) initEnv 
+     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env (resugarMatch e)) initEnv 
 
 initEnv :: TypeEnv
 initEnv = TypeEnv $ Map.fromList
@@ -238,7 +238,7 @@ getPairFresh = do
 
 infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
 infereType expr = do
-  let r = (evalState (runExceptT (ti (TypeEnv Map.empty) (desugarMatch expr))) 0)
+  let r = (evalState (runExceptT (ti (TypeEnv Map.empty) (resugarMatch expr))) 0)
   case r of
     Left err -> Left err
     Right (TypeResult subset _ mapResult) -> Right $ listToFix (Map.map (apply subset) mapResult)
