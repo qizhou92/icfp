@@ -1,6 +1,8 @@
 module Language.Equivalence.InfereRelationalTypes where
 import Language.Equivalence.TypeInference
 import Language.Equivalence.RelationalTypes
+import Language.Equivalence.CHC
+import Language.Equivalence.Expr
 import qualified Language.Equivalence.Types as CoreExpr
 import Control.Monad.State
 import qualified Data.Set as Set
@@ -70,13 +72,13 @@ unfoldLeftEdge c1@(CoreExpr.EIf e1 e2 e3) c2 = do
   pair3 <- constructUnfoldPair e3 c2
   return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
 
-unfoldLeftEdge c1@(CoreExpr.EMatch _ e1 e2 e3) c2 = do
+unfoldLeftEdge c1@(CoreExpr.EMatch e1 e2 _ _ e3) c2 = do
   pair1 <- constructUnfoldPair e1 c2
   pair2 <- constructUnfoldPair e2 c2
   pair3 <- constructUnfoldPair e3 c2
   return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
 
-unfoldLeftEdge c1@(CoreExpr.EBind _  _ e1 e2) c2 = do
+unfoldLeftEdge c1@(CoreExpr.ECon e1 e2) c2 = do
   pair1 <- constructUnfoldPair e1 c2
   pair2 <- constructUnfoldPair e2 c2
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
@@ -104,13 +106,13 @@ unfoldRightEdge c1 c2@(CoreExpr.EIf e1 e2 e3) = do
   pair3 <- constructUnfoldPair c1 e3
   return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
 
-unfoldRightEdge c1 c2@(CoreExpr.EMatch _ e1 e2 e3) = do
+unfoldRightEdge c1 c2@(CoreExpr.EMatch e1 e2 _ _ e3) = do
   pair1 <- constructUnfoldPair c1 e1
   pair2 <- constructUnfoldPair c1 e2
   pair3 <- constructUnfoldPair c1 e3
   return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
 
-unfoldRightEdge c1 c2@(CoreExpr.EBind _ _ e1 e2) = do
+unfoldRightEdge c1 c2@(CoreExpr.ECon e1 e2) = do
   pair1 <- constructUnfoldPair c1 e1
   pair2 <- constructUnfoldPair c1 e2
   return (UnfoldEdge UnfoldRight [pair1,pair2])
@@ -127,13 +129,13 @@ unfoldRightEdge c1 c2@(CoreExpr.ELam _ e1)  = do
 unfoldRightEdge c1 c2 = return (UnfoldEdge UnfoldRight [])
 
 unfoldBothEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
-unfoldBothEdge c1@(CoreExpr.EMatch _ e1 e2 e3) c2@(CoreExpr.EMatch _ e4 e5 e6) = do
+unfoldBothEdge c1@(CoreExpr.EMatch e1 e2 _ _ e3) c2@(CoreExpr.EMatch e4 e5 _ _ e6) = do
   pair1 <- constructUnfoldPair e1 e4
   pair2 <- constructUnfoldPair e2 e5
   pair3 <- constructUnfoldPair e3 e6
   return (UnfoldEdge UnfoldBoth [pair1,pair2,pair3])
 
-unfoldBothEdge c1@(CoreExpr.EBind _ _ e1 e2) c2@(CoreExpr.EBind _ _ e3 e4) = do
+unfoldBothEdge c1@(CoreExpr.ECon e1 e2) c2@(CoreExpr.ECon e3 e4) = do
   pair1 <- constructUnfoldPair e1 e3
   pair2 <- constructUnfoldPair e2 e4
   return (UnfoldEdge UnfoldBoth [pair1,pair2])
@@ -150,49 +152,72 @@ unfoldBothEdge c1@(CoreExpr.ELam _ e1) c2@(CoreExpr.ELam _ e2) = do
 unfoldBothEdge c1 c2 = return (UnfoldEdge UnfoldBoth [])
 
 
-generateConstrains :: TypePoint -> TypePoint -> Bool
-generateConstrains = undefined
+data CHCSystem = CHCSystem (Set.Set UnfoldPair) CHC
+  deriving (Show,Eq,Ord)
 
-subTypeCheck :: TypePoint -> TypePoint -> Bool
+type CHCState a = (State CHCSystem) a
+
+generateConstrains :: TypePoint -> TypePoint -> CHCState ()
+generateConstrains t1@(TypePoint typeList1 _ _) t2 = do
+  let listWithVar = filter (isTypeVar) typeList1
+  if (length typeList1) == 0 then (generateRule t1 t2)
+    else return ()
+
+generateRule :: TypePoint -> TypePoint -> CHCState ()
+generateRule t1@(TypePoint typeList1 _ id1) t2@(TypePoint typeList2 _ id2) = do
+  let sortList = (getSortFromTypes typeList1)
+  let r1 = Function ("R@"++ show(id1)) sortList
+  let r2 = Function ("R@"++ show(id2)) sortList
+  let varList = zipWith (\x y -> (ParameterVar (Var ("arg@"++show(y)) x))) sortList [1 ..]
+  let b = ApplyFunction r1 varList
+  let h = ApplyFunction r2 varList
+  (CHCSystem unfoldPairSet (CHC rules f v q))  <- get
+  let newCHC = CHC ((Rule b h):rules) f v q
+  put (CHCSystem unfoldPairSet newCHC)
+
+getSortFromTypes :: [Type] -> [Sort]
+getSortFromTypes [] = []
+getSortFromTypes (TInt :xs) = IntegerSort : (getSortFromTypes xs)
+getSortFromTypes (TBool :xs) = BoolSort : (getSortFromTypes xs)
+getSortFromTypes (x:xs) = getSortFromTypes xs
+
+subTypeCheck :: TypePoint -> TypePoint -> CHCState ()
 subTypeCheck t1@(TypePoint typeList1 typeEdges1 id1) t2@(TypePoint typeList2 typeEdges2 id2) = do
   if length(typeEdges1) == 0 then (generateConstrains t1 t2)
     else do
-          length (zipWith subTypeCheckWithSameType typeEdges1 typeEdges2) > 0
+          zipWithM subTypeCheckWithSameType typeEdges1 typeEdges2
+          return ()
 
-subTypeCheckWithSameType :: TypeEdge -> TypeEdge -> Bool
+subTypeCheckWithSameType :: TypeEdge -> TypeEdge -> CHCState ()
 subTypeCheckWithSameType edge1@(TypeEdge TypeArr _ pointList1) edge2@(TypeEdge TypeArr _ pointList2) = do
   let subPoint1_0 = pointList1 !! 0
   let subPoint1_1 = pointList1 !! 1
   let subPoint2_0 = pointList2 !! 0
   let subPoint2_1 = pointList2 !! 1
   --- convariant check
-  let result1 = subTypeCheck subPoint2_0 subPoint1_0
-  let result2 = subTypeCheck subPoint1_1 subPoint2_1
-  True
+  subTypeCheck subPoint2_0 subPoint1_0
+  subTypeCheck subPoint1_1 subPoint2_1
 
 subTypeCheckWithSameType edge1@(TypeEdge TypePlus _ pointList1) edge2@(TypeEdge TypePlus _ pointList2) = do
   let subPoint1_0 = pointList1 !! 0
   let subPoint1_1 = pointList1 !! 1
   let subPoint2_0 = pointList2 !! 0
   let subPoint2_1 = pointList2 !! 1
-  let result1 = subTypeCheck subPoint1_0 subPoint2_0
-  let result2 = subTypeCheck subPoint1_1 subPoint2_1
-  True
+  subTypeCheck subPoint1_0 subPoint2_0
+  subTypeCheck subPoint1_1 subPoint2_1
 
 subTypeCheckWithSameType edge1@(TypeEdge TypeProduct _ pointList1) edge2@(TypeEdge TypeProduct _ pointList2) = do
   let subPoint1_0 = pointList1 !! 0
   let subPoint1_1 = pointList1 !! 1
   let subPoint2_0 = pointList2 !! 0
   let subPoint2_1 = pointList2 !! 1
-  let result1 = subTypeCheck subPoint1_0 subPoint2_0
-  let result2 = subTypeCheck subPoint1_1 subPoint2_1
-  True
+  subTypeCheck subPoint1_0 subPoint2_0
+  subTypeCheck subPoint1_1 subPoint2_1
 
 subTypeCheckWithSameType edge1@(TypeEdge TypeFix _ pointList1) edge2@(TypeEdge TypeFix _ pointList2) = do
   let subPoint1_0 = pointList1 !! 0
   let subPoint2_0 = pointList2 !! 0
-  let result1 = subTypeCheck subPoint1_0 subPoint2_0
-  True
+  subTypeCheck subPoint1_0 subPoint2_0
 
 
 

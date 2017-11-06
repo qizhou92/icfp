@@ -73,6 +73,10 @@ getTypeIndex filterF list = do
  let result1 = zip (map filterF list) [1 ..]
  map (\(x,y) -> y) (filter (\(x,y) -> x ) result1)
 
+isTypeVar :: Type -> Bool
+isTypeVar (TVar _ ) = True
+isTypeVar _ = False
+
 isTypeArr :: Type -> Bool
 isTypeArr (TArr _ _) = True
 isTypeArr _ = False

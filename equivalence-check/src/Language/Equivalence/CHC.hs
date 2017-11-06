@@ -7,6 +7,7 @@ import qualified Data.Set as Set
 import Text.ParserCombinators.Parsec
 
 data Rule = Rule Expr Expr
+  deriving (Eq,Ord)
   
 instance Show Rule where
   show = rule_pretty_print 
@@ -21,6 +22,7 @@ rule_list_pretty_print list = case list of
     [] -> "\n"
 
 data CHC = CHC [Rule] [Function] [Var] Expr
+  deriving (Eq,Ord)
 
 instance  Show CHC where
   show = chc_pretty_print 
