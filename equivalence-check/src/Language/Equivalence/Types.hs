@@ -96,10 +96,9 @@ instance PPrint Var where
 instance IsString CoreExpr where
   fromString = EVar . Var
 
-data CoreExpr
-  = EInt  Int
+data CoreExpr = ENil 
+  |EInt  Int
   | EBool Bool
-  | ENil
   | EVar Var
   | EBin Binop CoreExpr CoreExpr
   | EIf  CoreExpr  CoreExpr  CoreExpr
