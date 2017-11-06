@@ -13,7 +13,7 @@ types prog =
     Left  err -> Left err
     Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- Map.toList $ tyEnv env]
    where
-     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env e) initEnv 
+     act = foldM (\env (x,e) -> (insertEnv env x) <$> ti env (desugarMatch e)) initEnv 
 
 initEnv :: TypeEnv
 initEnv = TypeEnv $ Map.fromList
@@ -200,8 +200,19 @@ ti (TypeEnv env) expr@(EFix var1 expr1) = do
   let tnew = apply s2 tv
   let m2 = Map.insert expr tnew m1
   return (TypeResult (andSubSet s1 s2) tnew m2)
-ti _ (EMatch _ _ _ _) = error "ti.EMatch"
-ti _ (EBind _ _ _ _) = error "ti.EBind"
+ti γ@(TypeEnv env) expr@(EMatch e e1 x y e2) = do 
+  TypeResult s0 te me <- ti γ e
+  tv <- freshTVar 
+  se <- mgu te (TList tv)
+  TypeResult s1 t1 m1 <- ti γ e1
+  let env' = Map.insert (EVar y) (generalize γ $ TList tv) $ Map.insert (EVar x) (generalize γ $ tv) env
+  TypeResult s2 t2 m2 <- ti (TypeEnv env') e2
+  s12 <- mgu (apply se t1) (apply se t2)
+  let s = andSubSet s12 (andSubSet s2 (andSubSet s1 (andSubSet s2 s0)))
+  let texpr = apply s t1
+  let m = Map.insert expr texpr (mconcat [me, m1, m2])
+  return (TypeResult s texpr m)
+
 
  
 -- for Eq and Ne, it is not accurate 
@@ -227,7 +238,7 @@ getPairFresh = do
 
 infereType :: CoreExpr -> Either String (Map.Map CoreExpr Type)
 infereType expr = do
-  let r = (evalState (runExceptT (ti (TypeEnv Map.empty) expr)) 0)
+  let r = (evalState (runExceptT (ti (TypeEnv Map.empty) (desugarMatch expr))) 0)
   case r of
     Left err -> Left err
     Right (TypeResult subset _ mapResult) -> Right $ listToFix (Map.map (apply subset) mapResult)
