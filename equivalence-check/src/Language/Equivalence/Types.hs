@@ -170,6 +170,8 @@ exprString (EApp e1 e2)   = printf "(%s %s)" (exprString e1) (exprString e2)
 exprString (ELam x e)     = printf "\\%s -> %s" (show x) (exprString e)
 exprString (EFix x e)     = printf "fix %s %s" (show x) (exprString e)
 exprString ENil           = "[]"
+exprString (EMatch _ _ _ _) = error "exprString.ematch"
+exprString (EBind _ _ _ _)  = error "exprString.ebind"
 
 bindString :: Bind -> String
 bindString (x, e) = printf "let %s =\n  %s" (show x) (exprString e)
@@ -213,6 +215,8 @@ freeVars (ELet x ex e)  = S.filter (/= x) (freeVars ex <> freeVars e)
 freeVars (EApp e1 e2)   = freeVars e1 <> freeVars e2 
 freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
 freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
+freeVars (EMatch _ _ _ _) = error "freeVars.EMatch"
+freeVars (EBind _ _ _ _) = error "freeVars.EBind"
 
 -- need to implement get var type
 getVarSort :: Var -> Sort
@@ -241,6 +245,8 @@ getSort (ELam x e) = (getVarSort x):(getSort e)
 getSort (EFix _ e) = getSort e
 getSort ENil = []
 getSort (ELet _ _ _) = []
+getSort (EMatch _ _ _ _) = error "getSort.EMatch"
+getSort (EBind _ _ _ _) = error "getSort.EMatch"
 
 subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
 subst (x,e) (EVar v)
@@ -270,3 +276,30 @@ subst su@(y,_) (EFix x e)
   = EFix x e 
   | otherwise
   = EFix x (subst su e)
+subst _ (EBind _ _ _ _ )
+  = error "subst.ebind"
+subst _ (EMatch _ _ _ _ )
+  = error "subst.ebind"
+
+
+
+
+-------------------------------------------------------------------------------
+-- | Types --------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+type TV = String
+data Type = TVar TV
+           | TInt
+           | TBool
+           | TArr Type Type
+           | TPlus Type Type
+           | TProduct Type Type
+           | TFix TV Type
+           | TNil
+           | TList Type 
+  deriving (Eq, Ord,Show)
+
+
+data Scheme = Forall [Type] Type
+  deriving (Show)
