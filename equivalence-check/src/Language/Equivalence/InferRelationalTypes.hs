@@ -1,19 +1,19 @@
-module Language.Equivalence.InfereRelationalTypes where
+module Language.Equivalence.InferRelationalTypes where
 import Language.Equivalence.TypeInference
 import Language.Equivalence.RelationalTypes
 import Language.Equivalence.CHC
 import Language.Equivalence.Expr
-import qualified Language.Equivalence.Types as CoreExpr
+import qualified Language.Equivalence.Types as T
 import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
-data TemporyResult = TemporyResult Int  (Map.Map (CoreExpr.CoreExpr,CoreExpr.CoreExpr) UnfoldPair) (Map.Map CoreExpr.CoreExpr Type)
+data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr Type)
   deriving (Show,Eq,Ord)
 
 type UnfoldState a = (State TemporyResult) a
 
-data UnfoldPair = UnfoldPair TypePoint TypePoint CoreExpr.CoreExpr CoreExpr.CoreExpr Int [UnfoldEdge]
+data UnfoldPair = UnfoldPair TypePoint TypePoint [T.Var] T.CoreExpr [T.Var] T.CoreExpr Int [UnfoldEdge]
   deriving (Show,Eq,Ord)
 
 data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
@@ -22,13 +22,13 @@ data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
 data UnfoldEdge = UnfoldEdge UnfoldRule [UnfoldPair]
   deriving (Show,Eq,Ord)
 
-constructUnfoldPair :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr ->UnfoldState UnfoldPair
+constructUnfoldPair :: T.CoreExpr -> T.CoreExpr ->UnfoldState UnfoldPair
 constructUnfoldPair c1 c2 = do
   (TemporyResult number result _) <- get
   if Map.member (c1,c2) result then return (result Map.! (c1,c2))
     else constructNewUnfoldPair c1 c2
 
-constructNewUnfoldPair :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldPair
+constructNewUnfoldPair :: T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldPair
 constructNewUnfoldPair c1 c2 = do
   (TemporyResult number result typeEnv) <- get
   freeVariables <- constructFreeVariables c1 c2
@@ -38,14 +38,14 @@ constructNewUnfoldPair c1 c2 = do
   put (TemporyResult (number+1) (Map.insert (c1,c2) newUnfoldPair result) typeEnv)
   return newUnfoldPair
 
-constructFreeVariables :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState TypePoint
+constructFreeVariables :: T.CoreExpr -> T.CoreExpr -> UnfoldState TypePoint
 constructFreeVariables c1 c2 = do
   (TemporyResult _ _ typeEnv) <- get
   let freeVariables =Set.toList (Set.union (CoreExpr.freeVars c1) (CoreExpr.freeVars c2))
   let types = map (\x -> typeEnv Map.! (CoreExpr.EVar x) ) freeVariables
   return (constructRelationalDag types)
 
-constructPairExpressions :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr ->UnfoldState TypePoint
+constructPairExpressions :: T.CoreExpr -> T.CoreExpr ->UnfoldState TypePoint
 constructPairExpressions c1 c2 = do
    (TemporyResult _ _ typeEnv) <- get
    let t1 = typeEnv Map.! c1
@@ -151,11 +151,56 @@ unfoldBothEdge c1@(CoreExpr.ELam _ e1) c2@(CoreExpr.ELam _ e2) = do
 
 unfoldBothEdge c1 c2 = return (UnfoldEdge UnfoldBoth [])
 
-
-data CHCSystem = CHCSystem (Set.Set UnfoldPair) CHC
+data CHCSystem = CHCSystem (Set.Set Int) CHC
   deriving (Show,Eq,Ord)
 
 type CHCState a = (State CHCSystem) a
+
+buildConstrains :: UnfoldPair -> CHCState ()
+buildConstrains unfoldPair@(UnfoldPair _ _ _ _ idnumber _) = do
+ (CHCSystem visitedPairs chc) <- get 
+ if (Set.member idnumber visitedPairs) then return ()
+  else buildNewConstrains unfoldPair
+
+buildNewConstrains :: UnfoldPair -> CHCState ()
+buildNewConstrains unfoldPair@(UnfoldPair _ _ _ _ _ edgeList) = do
+ mapM (buildEdgeConstrains unfoldPair) edgeList
+ return ()
+
+buildEdgeConstrains :: UnfoldPair -> UnfoldEdge -> CHCState
+buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldLeft _) = buildLeftConstrains unfoldPair unfoldEdge
+buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldRight _) = buildRightConstrains unfoldPair unfoldEdge
+buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldBoth _) = buildBothConstrains unfoldPair unfoldEdge
+
+buildLeftConstrains :: UnfoldPair -> UnfoldEdge -> CHCState
+buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EBin _ _ _) _ idnumber _ ) (UnfoldEdge _ successors) = do
+ let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
+ let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
+ buildOpConstrains pairExpr1 pairExpr2 pairExpression op
+ buildFreeVariables freeVariables freeVar1
+ buildFreeVariables freeVariables freeVar2
+ mapM buildConstrains successors
+ return ()
+
+buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EIf _ _ _) _ idnumber _ ) (UnfoldEdge _ successors) = do
+ let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
+ let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
+ let (UnfoldPair freeVar3 pairExpr3 _ _ id3 _ ) = successors !! 2
+ buildFreeVariables freeVariables freeVar1
+ buildFreeVariables (buildJoinTrue pairExpr1 freeVariables) freeVar2
+ buildFreeVariables (buildJoinFalse pairExpr2 freeVariables) freeVar3
+ subTypeCheck pairExpression pairExpr2
+ subTypeCheck pairExpression pairExpr3
+ mapM buildConstrains successors
+ return ()
+
+buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EMatch _ _ _ _ _ )_ idnumber _ ) (UnfoldEdge _ successors) = do
+ let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
+ let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
+ let (UnfoldPair freeVar3 pairExpr3 _ _ id3 _ ) = successors !! 2
+ buildFreeVariables freeVariables freeVar1
+ buildFreeVariables (buildNil ) 
+
 
 generateConstrains :: TypePoint -> TypePoint -> CHCState ()
 generateConstrains t1@(TypePoint typeList1 _ _) t2 = do
