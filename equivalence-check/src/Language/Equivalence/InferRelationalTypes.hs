@@ -17,190 +17,135 @@ type UnfoldState a = (State TemporyResult) a
 data UnfoldPair = UnfoldPair TypePoint TypePoint [T.Var] T.CoreExpr [T.Var] T.CoreExpr Int [UnfoldEdge]
   deriving (Show,Eq,Ord)
 
-data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
+data UnfoldRule = UnfoldLeft | UnfoldRight
   deriving (Show,Eq,Ord)
 
 data UnfoldEdge = UnfoldEdge UnfoldRule [UnfoldPair]
   deriving (Show,Eq,Ord)
 
-constructUnfoldPair :: T.CoreExpr -> T.CoreExpr ->UnfoldState UnfoldPair
-constructUnfoldPair c1 c2 = do
-  (TemporyResult number result _) <- get
-  if Map.member (c1,c2) result then return (result Map.! (c1,c2))
-    else constructNewUnfoldPair c1 c2
 
-constructNewUnfoldPair :: T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldPair
-constructNewUnfoldPair c1 c2 = do
+constructUnfoldPair ::TypePoint -> [T.Var] -> [T.Var] -> T.CoreExpr -> T.CoreExpr ->UnfoldState UnfoldPair
+constructUnfoldPair contextV freeVars1 freeVars2 e1 e2 = do
+  (TemporyResult _ result _) <- get
+  if Map.member (e1,e2) result then return (result Map.! (e1,e2))
+    else constructNewUnfoldPair contextV freeVars1 freeVars2 e1 e2
+
+constructNewUnfoldPair ::TypePoint -> [T.Var] -> [T.Var] -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldPair
+constructNewUnfoldPair contextV freeVars1 freeVars2 e1 e2 = do
   (TemporyResult number result typeEnv) <- get
-  freeVariables <- constructFreeVariables c1 c2
-  pairExpressions <- constructPairExpressions c1 c2
-  edgeList <- constructUnfoldEdge c1 c2
-  let newUnfoldPair = UnfoldPair freeVariables pairExpressions c1 c2 number edgeList
-  put (TemporyResult (number+1) (Map.insert (c1,c2) newUnfoldPair result) typeEnv)
+  expressionV <- constructPairExpressions e1 e2 freeVars1 freeVars2
+  let virtualPair = UnfoldPair contextV expressionV freeVars1 e1 freeVars2 e2 number []
+  edgeList <- constructUnfoldEdge virtualPair e1 e2
+  let newUnfoldPair = UnfoldPair contextV expressionV freeVars1 e1 freeVars2 e2 number edgeList
+  put (TemporyResult (number+1) (Map.insert (e1,e2) newUnfoldPair result) typeEnv)
   return newUnfoldPair
 
-constructFreeVariables :: T.CoreExpr -> T.CoreExpr -> UnfoldState TypePoint
-constructFreeVariables c1 c2 = do
-  (TemporyResult _ _ typeEnv) <- get
-  let freeVariables =Set.toList (Set.union (CoreExpr.freeVars c1) (CoreExpr.freeVars c2))
-  let types = map (\x -> typeEnv Map.! (CoreExpr.EVar x) ) freeVariables
-  return (constructRelationalDag types)
+constructFreeVariables :: [T.Var] -> [T.Var] ->UnfoldState TypePoint
+constructFreeVariables = undefined
 
-constructPairExpressions :: T.CoreExpr -> T.CoreExpr ->UnfoldState TypePoint
-constructPairExpressions c1 c2 = do
-   (TemporyResult _ _ typeEnv) <- get
-   let t1 = typeEnv Map.! c1
-   let t2 = typeEnv Map.! c2
-   return (constructRelationalDag [t1,t2])
+constructPairExpressions :: T.CoreExpr -> T.CoreExpr -> [T.Var] -> [T.Var] -> UnfoldState TypePoint
+constructPairExpressions = undefined
 
 
-constructUnfoldEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState [UnfoldEdge]
-constructUnfoldEdge c1 c2 = do
-  leftEdge <- unfoldLeftEdge c1 c2
-  rightEdge <- unfoldRightEdge c1 c2
-  bothEdge <- unfoldBothEdge c1 c2
-  return (filter (\(UnfoldEdge _ list) -> if (length list) > 0 then True else False ) [leftEdge,rightEdge,bothEdge])
+constructUnfoldEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState [UnfoldEdge]
+constructUnfoldEdge rootPair e1 e2 = do
+  leftEdge  <- unfoldLeftEdge rootPair e1 e2
+  rightEdge <- unfoldRightEdge rootPair e1 e2
+  return (filter (\(UnfoldEdge _ list) -> if (length list) > 0 then True else False ) [leftEdge,rightEdge])
 
-unfoldLeftEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
-unfoldLeftEdge c1@(CoreExpr.EBin _ e1 e2) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
-  pair2 <- constructUnfoldPair e2 c2
+unfoldLeftEdge ::UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
+unfoldLeftEdge pair@(UnfoldPair contextV _ freeV1 _ freeV2 _ _ _) (T.EBin ob e3 e4) e2 = do
+  pair1 <- constructUnfoldPair contextV freeV1 freeV2 e3 e2
+  pair2 <- constructUnfoldPair contextV freeV1 freeV2 e4 e2
+  buildBinaryConstrainsLeft ob pair1 pair2 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
-unfoldLeftEdge c1@(CoreExpr.EIf e1 e2 e3) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
-  pair2 <- constructUnfoldPair e2 c2
-  pair3 <- constructUnfoldPair e3 c2
+unfoldLeftEdge pair@(UnfoldPair contextV expressionV freeV1 _ freeV2 _ id0 _) e1@(T.EIf e3 e4 e5) e2 = do
+  pair1@(UnfoldPair _ expressionV1 _ _ _ _ id1 _) <- constructUnfoldPair contextV freeV1 freeV2 e3 e2
+  contextForTrue  <- buildContextForTrue expressionV1 freeV1 freeV2 e2 id1
+  contextForFalse <- buildContextForFalse expressionV1 freeV1 freeV2 e2 id1  
+  pair2 <- constructUnfoldPair contextForTrue freeV1 freeV2 e4 e2
+  pair3 <- constructUnfoldPair contextForFalse freeV1 freeV2 e5 e2
+  buildIfStConstrainsLeft pair2 pair3 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
 
-unfoldLeftEdge c1@(CoreExpr.EMatch e1 e2 _ _ e3) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
-  pair2 <- constructUnfoldPair e2 c2
-  pair3 <- constructUnfoldPair e3 c2
+unfoldLeftEdge pair@(UnfoldPair contextV expressionV freeV1 _ freeV2 _ id0 _) e1@(T.EMatch e3 e4 v1 v2 e5) e2 = do
+  pair1@(UnfoldPair _ expressionV1 _ _ _ _ id1 _) <- constructUnfoldPair contextV freeV1 freeV2 e3 e2
+  contextForLeft <- buildContextForLeft expressionV1 freeV1 freeV2 e1 e2 id1
+  contextForRight <- buildContextForRight expressionV1 v1 v2 freeV1 freeV2 e1 e2 id1
+  pair2 <- constructUnfoldPair contextForLeft freeV1 freeV2 e4 e2
+  pair3 <- constructUnfoldPair contextForRight (updateFreeList [v1,v2] freeV1) freeV2 e5 e2
+  buildMatchConstrainsLeft pair2 pair3 pair1
   return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
 
-unfoldLeftEdge c1@(CoreExpr.ECon e1 e2) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
-  pair2 <- constructUnfoldPair e2 c2
+unfoldLeftEdge pair@(UnfoldPair contextV expressionV freeV1 _ freeV2 _ id0 _) e1@(T.ECon e3 e4) e2 = do
+  pair1 <- constructUnfoldPair contextV freeV1 freeV2 e3 e2
+  pair2 <- constructUnfoldPair contextV freeV1 freeV2 e4 e2
+  buildConConstrainsLeft pair1 pair2 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
-unfoldLeftEdge c1@(CoreExpr.EApp e1 e2) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
-  pair2 <- constructUnfoldPair e2 c2
+unfoldLeftEdge pair@(UnfoldPair contextV expressionV freeV1 _ freeV2 _ id0 _) e1@(T.EApp e3 e4) e2 = do
+  pair1@(UnfoldPair _ expressionV1 _ _ _ _ id1 _) <- constructUnfoldPair contextV freeV1 freeV2 e3 e2
+  pair2@(UnfoldPair _ expressionV2 _ _ _ _ id2 _) <- constructUnfoldPair contextV freeV1 freeV2 e4 e2
+  buildArgsConstrainsLeft pair1 pair2
+  buildAppConstrains pair1 pair2 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
-unfoldLeftEdge c1@(CoreExpr.ELam _ e1) c2 = do
-  pair1 <- constructUnfoldPair e1 c2
+unfoldLeftEdge pair@(UnfoldPair contextV expressionV freeV1 _ freeV2 _ id0 _) e1@(T.ELam v e3) e2 = do
+  newContext <- buildLamContextLeft contextV v freeV1 freeV2 
+  pair1 <- constructUnfoldPair newContext (updateFreeList [v] freeV1) freeV2 e3 e2
+  buildLamConstrainsLeft v pair1 pair
   return (UnfoldEdge UnfoldLeft [pair1])
 
-unfoldLeftEdge c1 c2 = return (UnfoldEdge UnfoldLeft [])
+unfoldLeftEdge _  e1 e2 = return (UnfoldEdge UnfoldLeft [])
 
-unfoldRightEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
-unfoldRightEdge c1 c2@(CoreExpr.EBin _ e1 e2) = do
-  pair1 <- constructUnfoldPair c1 e1
-  pair2 <- constructUnfoldPair c1 e2
-  return (UnfoldEdge UnfoldRight [pair1,pair2])
+buildBinaryConstrainsLeft :: T.Binop -> UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildBinaryConstrainsLeft = undefined
 
-unfoldRightEdge c1 c2@(CoreExpr.EIf e1 e2 e3) = do
-  pair1 <- constructUnfoldPair c1 e1
-  pair2 <- constructUnfoldPair c1 e2
-  pair3 <- constructUnfoldPair c1 e3
-  return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
+buildContextForTrue :: TypePoint -> [T.Var] -> [T.Var] -> T.CoreExpr -> Int -> UnfoldState TypePoint
+buildContextForTrue = undefined
 
-unfoldRightEdge c1 c2@(CoreExpr.EMatch e1 e2 _ _ e3) = do
-  pair1 <- constructUnfoldPair c1 e1
-  pair2 <- constructUnfoldPair c1 e2
-  pair3 <- constructUnfoldPair c1 e3
-  return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
+buildContextForFalse :: TypePoint -> [T.Var] -> [T.Var] -> T.CoreExpr -> Int -> UnfoldState TypePoint
+buildContextForFalse = undefined
 
-unfoldRightEdge c1 c2@(CoreExpr.ECon e1 e2) = do
-  pair1 <- constructUnfoldPair c1 e1
-  pair2 <- constructUnfoldPair c1 e2
-  return (UnfoldEdge UnfoldRight [pair1,pair2])
+buildIfStConstrainsLeft :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildIfStConstrainsLeft = undefined
 
-unfoldRightEdge c1 c2@(CoreExpr.EApp e1 e2) = do
-  pair1 <- constructUnfoldPair c1 e1
-  pair2 <- constructUnfoldPair c1 e2
-  return (UnfoldEdge UnfoldRight [pair1,pair2])
+buildContextForLeft :: TypePoint -> [T.Var] -> [T.Var] ->T.CoreExpr -> T.CoreExpr -> Int -> UnfoldState TypePoint
+buildContextForLeft = undefined
 
-unfoldRightEdge c1 c2@(CoreExpr.ELam _ e1)  = do
-  pair1 <- constructUnfoldPair c1 e1
-  return (UnfoldEdge UnfoldRight [pair1])
+buildContextForRight :: TypePoint -> T.Var -> T.Var -> [T.Var] -> [T.Var] ->T.CoreExpr -> T.CoreExpr -> Int -> UnfoldState TypePoint
+buildContextForRight = undefined
 
-unfoldRightEdge c1 c2 = return (UnfoldEdge UnfoldRight [])
+buildMatchConstrainsLeft :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildMatchConstrainsLeft = undefined
 
-unfoldBothEdge :: CoreExpr.CoreExpr -> CoreExpr.CoreExpr -> UnfoldState UnfoldEdge
-unfoldBothEdge c1@(CoreExpr.EMatch e1 e2 _ _ e3) c2@(CoreExpr.EMatch e4 e5 _ _ e6) = do
-  pair1 <- constructUnfoldPair e1 e4
-  pair2 <- constructUnfoldPair e2 e5
-  pair3 <- constructUnfoldPair e3 e6
-  return (UnfoldEdge UnfoldBoth [pair1,pair2,pair3])
+buildConConstrainsLeft :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildConConstrainsLeft = undefined
 
-unfoldBothEdge c1@(CoreExpr.ECon e1 e2) c2@(CoreExpr.ECon e3 e4) = do
-  pair1 <- constructUnfoldPair e1 e3
-  pair2 <- constructUnfoldPair e2 e4
-  return (UnfoldEdge UnfoldBoth [pair1,pair2])
+buildArgsConstrainsLeft :: UnfoldPair -> UnfoldPair  -> UnfoldState ()
+buildArgsConstrainsLeft = undefined
 
-unfoldBothEdge c1@(CoreExpr.EApp e1 e2) c2@(CoreExpr.EApp e3 e4) = do
-  pair1 <- constructUnfoldPair e1 e3
-  pair2 <- constructUnfoldPair e2 e4
-  return (UnfoldEdge UnfoldBoth [pair1,pair2])
+buildAppConstrains :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildAppConstrains = undefined
 
-unfoldBothEdge c1@(CoreExpr.ELam _ e1) c2@(CoreExpr.ELam _ e2) = do
-  pair1 <- constructUnfoldPair e1 e2
-  return (UnfoldEdge UnfoldBoth [pair1])
+buildLamContextLeft :: TypePoint -> T.Var -> [T.Var] -> [T.Var] -> UnfoldState TypePoint
+buildLamContextLeft = undefined
 
-unfoldBothEdge c1 c2 = return (UnfoldEdge UnfoldBoth [])
+buildLamConstrainsLeft :: T.Var -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildLamConstrainsLeft = undefined
+
+unfoldRightEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
+unfoldRightEdge = undefined
+
+updateFreeList :: [T.Var] -> [T.Var] -> [T.Var]
+updateFreeList = undefined
+
 
 data CHCSystem = CHCSystem (Set.Set Int) CHC
   deriving (Show,Eq,Ord)
 
 type CHCState a = (State CHCSystem) a
-
-buildConstrains :: UnfoldPair -> CHCState ()
-buildConstrains unfoldPair@(UnfoldPair _ _ _ _ idnumber _) = do
- (CHCSystem visitedPairs chc) <- get 
- if (Set.member idnumber visitedPairs) then return ()
-  else buildNewConstrains unfoldPair
-
-buildNewConstrains :: UnfoldPair -> CHCState ()
-buildNewConstrains unfoldPair@(UnfoldPair _ _ _ _ _ edgeList) = do
- mapM (buildEdgeConstrains unfoldPair) edgeList
- return ()
-
-buildEdgeConstrains :: UnfoldPair -> UnfoldEdge -> CHCState
-buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldLeft _) = buildLeftConstrains unfoldPair unfoldEdge
-buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldRight _) = buildRightConstrains unfoldPair unfoldEdge
-buildConstrains unfoldPair unfoldEdge@(UnfoldEdge UnfoldBoth _) = buildBothConstrains unfoldPair unfoldEdge
-
-buildLeftConstrains :: UnfoldPair -> UnfoldEdge -> CHCState
-buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EBin _ _ _) _ idnumber _ ) (UnfoldEdge _ successors) = do
- let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
- let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
- buildOpConstrains pairExpr1 pairExpr2 pairExpression op
- buildFreeVariables freeVariables freeVar1
- buildFreeVariables freeVariables freeVar2
- mapM buildConstrains successors
- return ()
-
-buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EIf _ _ _) _ idnumber _ ) (UnfoldEdge _ successors) = do
- let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
- let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
- let (UnfoldPair freeVar3 pairExpr3 _ _ id3 _ ) = successors !! 2
- buildFreeVariables freeVariables freeVar1
- buildFreeVariables (buildJoinTrue pairExpr1 freeVariables) freeVar2
- buildFreeVariables (buildJoinFalse pairExpr2 freeVariables) freeVar3
- subTypeCheck pairExpression pairExpr2
- subTypeCheck pairExpression pairExpr3
- mapM buildConstrains successors
- return ()
-
-buildLeftConstrains (UnfoldPair freeVariables pairExpression (CoreExpr.EMatch _ _ _ _ _ )_ idnumber _ ) (UnfoldEdge _ successors) = do
- let (UnfoldPair freeVar1 pairExpr1 _ _ id1 _ ) = successors !! 0
- let (UnfoldPair freeVar2 pairExpr2 _ _ id2 _ ) = successors !! 1
- let (UnfoldPair freeVar3 pairExpr3 _ _ id3 _ ) = successors !! 2
- buildFreeVariables freeVariables freeVar1
- buildFreeVariables (buildNil ) 
 
 
 generateConstrains :: TypePoint -> TypePoint -> CHCState ()
@@ -210,16 +155,7 @@ generateConstrains t1@(TypePoint typeList1 _ _) t2 = do
     else return ()
 
 generateRule :: TypePoint -> TypePoint -> CHCState ()
-generateRule t1@(TypePoint typeList1 _ id1) t2@(TypePoint typeList2 _ id2) = do
-  let sortList = (getSortFromTypes typeList1)
-  let r1 = Function ("R@"++ show(id1)) sortList
-  let r2 = Function ("R@"++ show(id2)) sortList
-  let varList = zipWith (\x y -> (ParameterVar (Var ("arg@"++show(y)) x))) sortList [1 ..]
-  let b = ApplyFunction r1 varList
-  let h = ApplyFunction r2 varList
-  (CHCSystem unfoldPairSet (CHC rules f v q))  <- get
-  let newCHC = CHC ((Rule b h):rules) f v q
-  put (CHCSystem unfoldPairSet newCHC)
+generateRule = undefined
 
 getSortFromTypes :: [Type] -> [Sort]
 getSortFromTypes [] = []
