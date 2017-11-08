@@ -8,6 +8,7 @@ import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
+
 data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr Type)
   deriving (Show,Eq,Ord)
 
