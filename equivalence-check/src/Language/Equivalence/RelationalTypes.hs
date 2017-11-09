@@ -102,7 +102,7 @@ typeEdgePrettyPrint (TypeEdge ruleName index points) = do
   let secondParts = (foldr (\(TypePoint _ _ idn) y ->y ++ (show idn) ++ ",") "Points:" points)
   partString ++ secondParts
 --- type of left expr, right expr, left free variables, and right free variables
-data Pair = Pair TypeWithId TypeWithId [TypeWithId] [TypeWithId]
+data Pair = Pair [TypeWithId] [TypeWithId] [TypeWithId] [TypeWithId]
   deriving (Show,Eq,Ord)
 
 data ConstructResult = ConstructResult Int  (Map.Map Pair TypePoint)
@@ -110,13 +110,9 @@ data ConstructResult = ConstructResult Int  (Map.Map Pair TypePoint)
 
 type ConstructState a = (State ConstructResult) a
 
-constructVersionSpace :: Type->Type->[Type] -> [Type] -> TypePoint
-constructVersionSpace exprT1 exprT2 freeT1 freeT2 = do
- let exprT1WithId = typeToTypeWithId exprT1
- let exprT2WithId = typeToTypeWithId exprT2
- let freeT1WithId = map typeToTypeWithId freeT1
- let freeT2WithId = map typeToTypeWithId freeT2
- constructRelationalDag (Pair exprT1WithId exprT2WithId freeT1WithId freeT2WithId)
+constructVersionSpace :: [TypeWithId] -> [TypeWithId] ->[TypeWithId] -> [TypeWithId] -> TypePoint
+constructVersionSpace exprT1 exprT2 freeT1 freeT2 = 
+ constructRelationalDag (Pair exprT1 exprT2 freeT1 freeT2)
 
 constructRelationalDag :: Pair -> TypePoint
 constructRelationalDag pair = evalState (constructPoint pair) (ConstructResult 0 (Map.empty))
@@ -129,7 +125,7 @@ constructPoint pair = do
 
 constructNewPoint :: Pair -> ConstructState TypePoint
 constructNewPoint pair@(Pair exprT1 exprT2 freeT1 freeT2) = do
- let types = exprT1:(exprT2:(freeT1++freeT2))
+ let types = exprT1++exprT2++freeT1++freeT2
  arrTypeEdges <- constructEdges TypeArr pair  (getTypeIndex isTypeArr types)
  plusTypeEdges <- constructEdges TypePlus pair (getTypeIndex isTypePlus types)
  productTypeEdges <- constructEdges TypeProduct pair (getTypeIndex isTypeProduct types)
@@ -146,30 +142,36 @@ constructEdges typeConstructor types index = do
 
 constructEdge :: TypeConstructor -> Pair -> [Int] -> ConstructState TypeEdge
 constructEdge TypeFix (Pair exprT1 exprT2 freeT1 freeT2) index = do
-  let types = exprT1:(exprT2:(freeT1++freeT2))
-  let length1 = length freeT1
+  let types = exprT1++exprT2++freeT1++freeT2
+  let length1 = length exprT1
+  let length2 = length exprT2
+  let length3 = length freeT1
   let typeWithIndex = zip types [1 .. ]
   let newTypes = map (getNewTypes getFixType (Set.fromList index)) typeWithIndex
-  let (headList,newFreeT2) = splitAt (2+length1) newTypes
-  let (exprList,newFreeT1) = splitAt 2 headList
-  let newExprT1 = exprList !! 0
-  let newExprT2 = exprList !! 1 
+  let (newExprT1,tailList1) = splitAt length1 newTypes
+  let (newExprT2,tailList2) = splitAt length2 tailList1
+  let (newFreeT1, newFreeT2) = splitAt length3 tailList2
   typePoint <- constructPoint (Pair newExprT1 newExprT2 newFreeT1 newFreeT2)
   return (TypeEdge TypeFix index [typePoint])
 
-constructEdge TypeArr (Pair (TArrId t1 t2 _) exprT2 freeT1 freeT2) [1] = do
-  typePoint1 <- constructPoint (Pair t1 exprT2 freeT1 freeT2)
-  typePoint2 <- constructPoint (Pair t2 exprT2 (t1:freeT1) freeT2 )
+constructEdge TypeArr (Pair [(TArrId t1 t2 _)] exprT2 freeT1 freeT2) [1] = do
+  typePoint1 <- constructPoint (Pair [t1] exprT2 freeT1 freeT2)
+  typePoint2 <- constructPoint (Pair [t2] exprT2 (t1:freeT1) freeT2 )
   return (TypeEdge TypeArr [1] [typePoint1,typePoint2])
 
-constructEdge TypeArr (Pair exprT1 (TArrId t1 t2 _) freeT1 freeT2) [2] = do
-  typePoint1 <- constructPoint (Pair exprT1 t1 freeT1 freeT2)
-  typePoint2 <- constructPoint (Pair exprT1 t2 freeT1 (t1:freeT2))
+constructEdge TypeArr (Pair [] [(TArrId t1 t2 _)] freeT1 freeT2) [1] = do
+  typePoint1 <- constructPoint (Pair [ ] [t1] freeT1 freeT2)
+  typePoint2 <- constructPoint (Pair [ ] [t2] freeT1 (t1:freeT2))
+  return (TypeEdge TypeArr [1] [typePoint1,typePoint2])
+
+constructEdge TypeArr (Pair exprT1 [(TArrId t1 t2 _)] freeT1 freeT2) [2] = do
+  typePoint1 <- constructPoint (Pair exprT1 [t1] freeT1 freeT2)
+  typePoint2 <- constructPoint (Pair exprT1 [t2] freeT1 (t1:freeT2))
   return (TypeEdge TypeArr [2] [typePoint1,typePoint2])
 
-constructEdge TypeArr (Pair (TArrId t1 t2 _) (TArrId t3 t4 _) freeT1 freeT2) [1,2] = do 
-  typePoint1 <- constructPoint (Pair t1 t3 freeT1 freeT2)
-  typePoint2 <- constructPoint (Pair t2 t4 (t1:freeT1) (t3:freeT2))
+constructEdge TypeArr (Pair [(TArrId t1 t2 _)] [(TArrId t3 t4 _)] freeT1 freeT2) [1,2] = do 
+  typePoint1 <- constructPoint (Pair [t1] [t3] freeT1 freeT2)
+  typePoint2 <- constructPoint (Pair [t2] [t4] (t1:freeT1) (t3:freeT2))
   return (TypeEdge TypeArr [1,2] [typePoint1,typePoint2])
   
 constructEdge TypePlus pair index = constructEdgeBinaryConstructor TypePlus getTPlusLeft getTPlusRight pair index
@@ -178,19 +180,19 @@ constructEdge _ _ _ = error "constructEdge in relational type didnt mtach"
 
 constructEdgeBinaryConstructor :: TypeConstructor -> (TypeWithId -> TypeWithId) -> (TypeWithId -> TypeWithId) -> Pair -> [Int] -> ConstructState TypeEdge
 constructEdgeBinaryConstructor typeConstructor leftF rightF (Pair exprT1 exprT2 freeT1 freeT2) index = do
- let types = exprT1:(exprT2:(freeT1++freeT2))
- let length1 = length freeT1
+ let types = exprT1++exprT2++freeT1++freeT2
+ let length1 = length exprT1
+ let length2 = length exprT2
+ let length3 = length freeT1
  let typeWithIndex = zip types [1 .. ]
  let newTypes1 = map (getNewTypes leftF (Set.fromList index)) typeWithIndex
  let newTypes2 = map (getNewTypes rightF (Set.fromList index)) typeWithIndex
- let (headList_1,newFreeT2_1) = splitAt (2+length1) newTypes1
- let (exprList_1,newFreeT1_1) = splitAt 2 headList_1
- let newExprT1_1 = exprList_1 !! 0
- let newExprT2_1 = exprList_1 !! 1
- let (headList_2,newFreeT2_2) = splitAt (2+length1) newTypes2
- let (exprList_2,newFreeT1_2) = splitAt 2 headList_2
- let newExprT1_2 = exprList_2 !! 0
- let newExprT2_2 = exprList_2 !! 1  
+ let (newExprT1_1,tailList1_1) = splitAt length1 newTypes1
+ let (newExprT2_1,tailList2_1) = splitAt length2 tailList1_1
+ let (newFreeT1_1, newFreeT2_1) = splitAt length3 tailList2_1
+ let (newExprT1_2,tailList1_2) = splitAt length1 newTypes2
+ let (newExprT2_2,tailList2_2) = splitAt length2 tailList1_2
+ let (newFreeT1_2, newFreeT2_2) = splitAt length3 tailList2_2
  typePoint1 <- constructPoint (Pair newExprT1_1 newExprT2_1 newFreeT1_1 newFreeT2_1)
  typePoint2 <- constructPoint (Pair newExprT1_2 newExprT2_2 newFreeT1_2 newFreeT2_2)
  return (TypeEdge typeConstructor index [typePoint1,typePoint2])
