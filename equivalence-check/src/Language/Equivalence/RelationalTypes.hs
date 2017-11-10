@@ -258,10 +258,13 @@ getTProductRight (TProductId _ t _) = t
 getTProductRight _ = error "getTProduct right error"
 
 powerSet :: [Int] -> [[Int]]
-powerSet ([x]) = [[x]]
-powerSet (x:xs) = do
+powerSet list = filter (\x -> if (length x) == 0 then False else True) (powerSet1 list)
+
+powerSet1 :: [Int] -> [[Int]]
+powerSet1 ([x]) = [[x]]
+powerSet1 (x:xs) = do
  let set = powerSet xs
  (map (x:) set) ++ set
-powerSet [] = []
+powerSet1 [] = []
 
 
