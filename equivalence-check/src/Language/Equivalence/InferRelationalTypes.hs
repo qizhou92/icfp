@@ -58,9 +58,9 @@ unfoldLeftEdge ::UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdg
 unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.EBin ob e3 e4) e2 = do
   pair1 <- constructUnfoldPair freeV1 freeV2 e3 e2
   pair2 <- constructUnfoldPair freeV1 freeV2 e4 e2
-  buildBinaryConstrainsLeft ob pair1 pair2 pair
+  buildBinaryConstrains 1 ob pair1 pair2 pair
   buildContextEntail pair pair1
-  buildContextEntail pair pair1
+  buildContextEntail pair pair2
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
 unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.EIf e3 e4 e5) e2 = do
@@ -70,7 +70,7 @@ unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.EIf e3 e4 e5) e2 =
   buildContextForTrue 1 pair1 pair2
   pair3 <- constructUnfoldPair freeV1 freeV2 e5 e2
   buildContextForFalse 1 pair1 pair3
-  buildIfStConstrainsLeft pair2 pair3 pair
+  buildIfStConstrains pair2 pair3 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
 
 unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.EMatch e3 e4 v1 v2 e5) e2 = do
@@ -102,8 +102,8 @@ unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.EApp e3 e4) e2 = d
 
 unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.ELam v e3) e2 = do 
   pair1 <- constructUnfoldPair (updateFreeList [v] freeV1) freeV2 e3 e2
-  buildLamContextLeft pair pair1 v
-  buildLamConstrains  pair1 pair
+  buildLamContextLeft pair pair1
+  buildLamConstrains 1 pair1 pair
   return (UnfoldEdge UnfoldLeft [pair1])
 
 unfoldLeftEdge _  _ _ = return (UnfoldEdge UnfoldLeft [])
@@ -114,29 +114,29 @@ buildEntail indicator1 pairId1 indicator2 pairId2 t1 t2 = undefined
 buildContextEntail :: UnfoldPair -> UnfoldPair -> UnfoldState ()
 buildContextEntail = undefined
 
-buildBinaryConstrainsLeft :: T.Binop -> UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildBinaryConstrainsLeft op (UnfoldPair _ expressionV _ _ _ _ pairId1 _) (UnfoldPair _ _ _ _ _ _ pairId2 _) (UnfoldPair _ expressionV3 _ _ _ _ pairId3 _) = do
+buildBinaryConstrains ::Int -> T.Binop -> UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildBinaryConstrains leftOrRight op (UnfoldPair _ expressionV _ _ _ _ pairId1 _) (UnfoldPair _ _ _ _ _ _ pairId2 _) (UnfoldPair _ expressionV3 _ _ _ _ pairId3 _) = do
   let allConstrainsTypePoint =Set.filter (\(TypePoint _ typeEdges _) -> if (length typeEdges) == 0 then True else False) (collectAllTypePoint expressionV)
   let (TypePoint types1 _ _) = expressionV
   let (TypePoint types2 _ _) = expressionV3
   let type1 = types1 !! 0
   let type2 = types2 !! 0
-  mapM (buildConstrains op type1 type2 0 pairId1 pairId2 pairId3) (Set.toList allConstrainsTypePoint)
+  mapM (buildConstrains leftOrRight op type1 type2 0 pairId1 pairId2 pairId3) (Set.toList allConstrainsTypePoint)
   return ()
 
 
-buildConstrains :: T.Binop -> TypeWithId -> TypeWithId -> Int -> Int -> Int -> Int -> TypePoint->UnfoldState ()
-buildConstrains op t1 t2  indicator pairId1 pairId2 pairId3 t@(TypePoint types _ typeId) = do
+buildConstrains ::Int -> T.Binop -> TypeWithId -> TypeWithId -> Int -> Int -> Int -> Int -> TypePoint->UnfoldState ()
+buildConstrains leftOrRight op t1 t2  indicator pairId1 pairId2 pairId3 t@(TypePoint types _ typeId) = do
   let r1 = getPredicate t pairId1 indicator
   let r2 = getPredicate t pairId2 indicator
   let r3 = getPredicate t pairId3 indicator
-  let index = [1 ..  (length types)]
+  let index =filter (\n -> if n == leftOrRight then False else True) [1 ..  (length types)]
   let mapIndex = tail index
   let eq1 = generateEqs t t (Map.fromList (zip mapIndex mapIndex)) indicator indicator pairId1 pairId2
   let eq2 = generateEqs t t (Map.fromList (zip mapIndex mapIndex)) indicator indicator pairId1 pairId3
-  let var1 = Var (getVarName 1 pairId1 indicator typeId) (getSortFromType t1)
-  let var2 = Var (getVarName 1 pairId2 indicator typeId) (getSortFromType t1)
-  let var3 = Var (getVarName 1 pairId3 indicator typeId) (getSortFromType t2)
+  let var1 = Var (getVarName leftOrRight pairId1 indicator typeId) (getSortFromType t1)
+  let var2 = Var (getVarName leftOrRight pairId2 indicator typeId) (getSortFromType t1)
+  let var3 = Var (getVarName leftOrRight pairId3 indicator typeId) (getSortFromType t2)
   let binaryConstrains = generateBinaryConstrains op (ExprVar var1) (ExprVar var2) (ExprVar var3)
   let newRule = Rule (MkAnd ([r1,r2,binaryConstrains] ++ eq1 ++ eq2)) r3
   (TemporyResult number result typeEnv chc) <- get
@@ -221,8 +221,8 @@ buildFalseConstrain leftOrRight pairId1 pairId2 (t1@(TypePoint types1 _ typePoin
   return ()
 
 -- just handle true and false branch has same type
-buildIfStConstrainsLeft :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildIfStConstrainsLeft (UnfoldPair _ expressionV1 _ _ _ _ pairId1 _) (UnfoldPair _ expressionV2 _ _ _ _ pairId2 _) (UnfoldPair _ expressionV3 _ _ _ _ pairId3 _) = do
+buildIfStConstrains :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildIfStConstrains (UnfoldPair _ expressionV1 _ _ _ _ pairId1 _) (UnfoldPair _ expressionV2 _ _ _ _ pairId2 _) (UnfoldPair _ expressionV3 _ _ _ _ pairId3 _) = do
  buildEntail 1 pairId1 1 pairId3 expressionV1 expressionV2
  buildEntail 1 pairId2 1 pairId3 expressionV1 expressionV3
  return ()
@@ -369,11 +369,11 @@ buildAppConstrainsLeft (UnfoldPair _ expressionV1 _ _ _ _ pairId1 _) (UnfoldPair
   let constrainTypePoint2 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints2
   let allPossiblePairs =concat (map (\x -> map (\y -> (x,y)) constrainTypePoint2) constrainTypePoint1)
   let allValidPair = filter (\((a1,_),(a2,_))-> if a1 == a2 then True else False) allPossiblePairs
-  mapM (buildLeftAppRules indexMap indexMap2 pairId1 pairId2 pairId3) allValidPair
+  mapM (buildRules indexMap indexMap2 pairId1 pairId2 pairId3) allValidPair
   return ()
 
-buildLeftAppRules :: (Map.Map Int Int) -> (Map.Map Int Int) -> Int -> Int -> Int-> ((TypePoint,TypePoint),(TypePoint, TypePoint)) -> UnfoldState()
-buildLeftAppRules indexMap1 indexMap2 pairId1 pairId2 pairId3 ((t1,t2),(_,t3)) = do
+buildRules :: (Map.Map Int Int) -> (Map.Map Int Int) -> Int -> Int -> Int-> ((TypePoint,TypePoint),(TypePoint, TypePoint)) -> UnfoldState()
+buildRules indexMap1 indexMap2 pairId1 pairId2 pairId3 ((t1,t2),(_,t3)) = do
   let r1 = getPredicate t1 pairId1 1
   let r2 = getPredicate t2 pairId2 1
   let r3 = getPredicate t3 pairId3 1
@@ -399,15 +399,33 @@ buildAppConstrainsRight (UnfoldPair _ expressionV1 freeV1 _ _ _ pairId1 _) (Unfo
   let constrainTypePoint2 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints2
   let allPossiblePairs =concat (map (\x -> map (\y -> (x,y)) constrainTypePoint2) constrainTypePoint1)
   let allValidPair = filter (\((a1,_),(a2,_))-> if a1 == a2 then True else False) allPossiblePairs
-  mapM (buildRightAppRules indexMap1 indexMap2 pairId1 pairId2 pairId3) allValidPair
+  mapM (buildRules indexMap1 indexMap2 pairId1 pairId2 pairId3) allValidPair
   return ()
 
-buildRightAppRules ::(Map.Map Int Int) -> (Map.Map Int Int) -> Int -> Int -> Int-> ((TypePoint,TypePoint),(TypePoint, TypePoint)) -> UnfoldState()
-buildRightAppRules indexMap1 indexMap2 pairId1 pairId2 pairId3 ((t1,t2),(_,t3)) = do
+buildLamContextLeft :: UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildLamContextLeft (UnfoldPair contextV expressionV1 _ _ _ _ pairId1 _) (UnfoldPair contextV2 _ _ _ _ _ pairId2 _) = do
+  let (TypePoint types _ _) = contextV
+  let indexMap =Map.fromList (zip [1 .. (length types)] [2 .. ((length types)+1)])
+  let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV contextV2 [] [1] indexMap) (Set.empty))
+  let constrainTypePoint1 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints1
+  let (TypePoint _ edges _) = expressionV1
+  let (TypeEdge TypeArr _ typePoints) = (filter (\(TypeEdge _ index _) -> if index == ([1]) then True else False ) edges) !! 0
+  let leftArr@(TypePoint types2 _ _) = typePoints !! 0
+  let (TypePoint types3 _ _) = contextV2
+  let indexMap2 = Map.fromList [(1,1)]
+  let correspondingTypePoints2 =Set.toList (execState (collectNewCorespondingTypePoint leftArr contextV2 [2 .. (length types2)] [2 .. (length types3)] indexMap2) (Set.empty))
+  let constrainTypePoint2 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints2
+  let allPossiblePairs = concat (map (\x -> map (\y -> (x,y) ) constrainTypePoint1) constrainTypePoint2)
+  let allVaildPairs = filter (\((_,b1),(_,b2)) -> if b1 == b2 then True else False) allPossiblePairs
+  mapM (buildRules2 indexMap indexMap2 pairId1 pairId2 ) allVaildPairs
+  return ()
+
+buildRules2 :: (Map.Map Int Int) -> (Map.Map Int Int) -> Int -> Int-> ((TypePoint,TypePoint),(TypePoint, TypePoint)) -> UnfoldState()
+buildRules2 indexMap1 indexMap2 pairId1 pairId3 ((t1,t3),(t2,_)) = do
   let r1 = getPredicate t1 pairId1 1
-  let r2 = getPredicate t2 pairId2 1
+  let r2 = getPredicate t2 pairId1 1
   let r3 = getPredicate t3 pairId3 1
-  let eq1 = generateEqs t1 t3 indexMap1 1 1 pairId1 pairId2
+  let eq1 = generateEqs t1 t3 indexMap1 1 1 pairId1 pairId3
   let eq2 = generateEqs t2 t3 indexMap2 1 1 pairId1 pairId3
   let rule = Rule (MkAnd ([r1,r2]++eq1++eq2)) r3
   (TemporyResult number result typeEnv chc) <- get
@@ -415,15 +433,89 @@ buildRightAppRules indexMap1 indexMap2 pairId1 pairId2 pairId3 ((t1,t2),(_,t3)) 
   put (TemporyResult number result typeEnv newChc)
   return ()
 
-buildLamContextLeft :: UnfoldPair -> UnfoldPair -> T.Var -> UnfoldState ()
-buildLamContextLeft = undefined
+buildLamContextRight :: UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildLamContextRight (UnfoldPair contextV expressionV1 freeV1 _ _ _ pairId1 _) (UnfoldPair contextV2 _ _ _ _ _ pairId2 _) = do
+  let (TypePoint types _ _) = contextV
+  let indexMap =Map.fromList (zip [1 .. (length freeV1)] [1 .. ((length freeV1))])
+  let indexMap1 = foldr (\i m->Map.insert i (i+1) m) indexMap [((length freeV1)+1) .. (length types)]
+  let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV contextV2 [] [((length freeV1)+1)] indexMap1) (Set.empty))
+  let constrainTypePoint1 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints1
+  let (TypePoint _ edges _) = expressionV1
+  let (TypeEdge TypeArr _ typePoints) = (filter (\(TypeEdge _ index _) -> if index == ([2]) then True else False ) edges) !! 0
+  let leftArr@(TypePoint types2 _ _) = typePoints !! 0
+  let (TypePoint types3 _ _) = contextV2
+  let indexMap2 = Map.fromList [(2,((length freeV1)+1))]
+  let dropList = filter (\x -> if x == ((length freeV1)+1) then False else True) [1 .. (length types3)]
+  let correspondingTypePoints2 =Set.toList (execState (collectNewCorespondingTypePoint leftArr contextV2 [2 .. (length types2)] dropList indexMap2) (Set.empty))
+  let constrainTypePoint2 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints2
+  let allPossiblePairs = concat (map (\x -> map (\y -> (x,y) ) constrainTypePoint1) constrainTypePoint2)
+  let allVaildPairs = filter (\((_,b1),(_,b2)) -> if b1 == b2 then True else False) allPossiblePairs
+  mapM (buildRules2 indexMap indexMap2 pairId1 pairId2 ) allVaildPairs
+  return ()
 
-buildLamConstrains :: UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildLamConstrains = undefined
+
+
+buildLamConstrains ::Int -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildLamConstrains leftOrRight (UnfoldPair _ expressionV1 _ _ _ _ pairId1 _) (UnfoldPair _ expressionV2 _ _ _ _ pairId2 _) = do
+  let (TypePoint _ edges _) = expressionV1
+  let (TypeEdge TypeArr _ typePoints) = (filter (\(TypeEdge _ index _) -> if index == ([leftOrRight]) then True else False ) edges) !! 0
+  let rightArr = typePoints !! 1
+  buildEntail 1 pairId1 1 pairId2 rightArr expressionV2
+  return ()
+
 
 
 unfoldRightEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
-unfoldRightEdge = undefined
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.EBin ob e3 e4) = do
+  pair1 <- constructUnfoldPair freeV1 freeV2 e2 e3
+  pair2 <- constructUnfoldPair freeV1 freeV2 e2 e4
+  buildBinaryConstrains 2 ob pair1 pair2 pair
+  buildContextEntail pair pair1
+  buildContextEntail pair pair2
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
+
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.EIf e3 e4 e5) = do
+  pair1 <- constructUnfoldPair freeV1 freeV2 e2 e3
+  buildContextEntail pair pair1
+  pair2 <- constructUnfoldPair freeV1 freeV2 e2 e4
+  buildContextForTrue 2 pair1 pair2
+  pair3 <- constructUnfoldPair freeV1 freeV2 e2 e5
+  buildContextForFalse 2 pair1 pair3
+  buildIfStConstrains pair2 pair3 pair
+  return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
+
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.EMatch e3 e4 v1 v2 e5) = do
+  pair1 <- constructUnfoldPair freeV1 freeV2 e2 e3
+  buildContextEntail pair pair1
+  pair2 <- constructUnfoldPair freeV1 freeV2 e2 e4
+  pair3 <- constructUnfoldPair freeV1 (updateFreeList [v1,v2] freeV2) e2 e5
+  buildContextForLeft 2 pair1 pair2 
+  buildContextForRight 2 v1 v2 pair1 pair3
+  buildMatchConstrains pair2 pair3 pair
+  return (UnfoldEdge UnfoldLeft [pair1,pair2,pair3])
+
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.ECon e3 e4) = do
+  pair1 <- constructUnfoldPair freeV1 freeV2 e2 e3
+  pair2 <- constructUnfoldPair freeV1 freeV2 e2 e4
+  buildContextEntail pair pair1
+  buildContextEntail pair pair2
+  buildConConstrains 2 pair1 pair2 pair
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
+
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.EApp e3 e4) = do
+  pair1 <- constructUnfoldPair  freeV1 freeV2 e2 e3
+  pair2 <- constructUnfoldPair  freeV1 freeV2 e2 e4
+  buildContextEntail pair pair1
+  buildContextEntail pair pair2
+  buildArgsConstrains 2 pair1 pair2
+  buildAppConstrainsRight pair1 pair2 pair
+  return (UnfoldEdge UnfoldLeft [pair1,pair2])
+
+unfoldRightEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) e2 (T.ELam v e3) = do 
+  pair1 <- constructUnfoldPair freeV1 (updateFreeList [v] freeV2) e2 e3
+  buildLamContextRight pair pair1
+  buildLamConstrains 2 pair1 pair
+  return (UnfoldEdge UnfoldLeft [pair1])
 
 updateFreeList :: [T.Var] -> [T.Var] -> [T.Var]
 updateFreeList newFreeVs oldFree = do
