@@ -33,20 +33,32 @@ constructUnfoldPair freeVars1 freeVars2 e1 e2 = do
 constructNewUnfoldPair :: [T.Var] -> [T.Var] -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldPair
 constructNewUnfoldPair freeVars1 freeVars2 e1 e2 = do
   (TemporyResult number result typeEnv chc) <- get
-  let contextV = constructFreeVariables freeVars1 freeVars2
-  let expressionV = constructPairExpressions e1 e2 freeVars1 freeVars2
+  contextV <- constructFreeVariables freeVars1 freeVars2
+  expressionV <- constructPairExpressions e1 e2 freeVars1 freeVars2
   let virtualPair = UnfoldPair contextV expressionV freeVars1 e1 freeVars2 e2 number []
   edgeList <- constructUnfoldEdge virtualPair e1 e2
   let newUnfoldPair = UnfoldPair contextV expressionV freeVars1 e1 freeVars2 e2 number edgeList
   put (TemporyResult (number+1) (Map.insert (e1,e2) newUnfoldPair result) typeEnv chc)
   return newUnfoldPair
 
-constructFreeVariables :: [T.Var] -> [T.Var] ->TypePoint
-constructFreeVariables = undefined
+constructFreeVariables :: [T.Var] -> [T.Var] ->UnfoldState TypePoint
+constructFreeVariables free1 free2= do
+  freeV1 <- mapM (\x->getTypeWithIdVar (T.EVar x) ) free1
+  freeV2 <- mapM (\x->getTypeWithIdVar (T.EVar x) ) free2
+  return (constructVersionSpace [] [] freeV1 freeV2)
 
-constructPairExpressions :: T.CoreExpr -> T.CoreExpr -> [T.Var] -> [T.Var] -> TypePoint
-constructPairExpressions = undefined
+constructPairExpressions :: T.CoreExpr -> T.CoreExpr -> [T.Var] -> [T.Var] ->UnfoldState TypePoint
+constructPairExpressions e1 e2 free1 free2= do
+  t1 <- getTypeWithIdVar e1
+  t2 <- getTypeWithIdVar e2
+  freeV1 <- mapM (\x->getTypeWithIdVar (T.EVar x) ) free1
+  freeV2 <- mapM (\x->getTypeWithIdVar (T.EVar x) ) free2
+  return (constructVersionSpace [t1] [t2] freeV1 freeV2)
 
+getTypeWithIdVar :: T.CoreExpr -> UnfoldState TypeWithId
+getTypeWithIdVar e = do
+ (TemporyResult _ _ typeEnv _) <- get
+ return (typeToTypeWithId (typeEnv Map.! e))
 
 constructUnfoldEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState [UnfoldEdge]
 constructUnfoldEdge rootPair e1 e2 = do
@@ -109,10 +121,34 @@ unfoldLeftEdge pair@(UnfoldPair _ _ freeV1 _ freeV2 _ _ _) (T.ELam v e3) e2 = do
 unfoldLeftEdge _  _ _ = return (UnfoldEdge UnfoldLeft [])
 
 buildEntail ::Int -> Int -> Int -> Int -> TypePoint -> TypePoint -> UnfoldState ()
-buildEntail indicator1 pairId1 indicator2 pairId2 t1 t2 = undefined
+buildEntail indicator1 pairId1 indicator2 pairId2 t1 t2 = do
+  let (TypePoint types _ _) = t1
+  let indexMap = Map.fromList (zip [1 .. (length types)] [1 ..])
+  let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint t1 t2 [] [] indexMap) (Set.empty))
+  let constrainTypePoint1 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints1
+  mapM (buildSimpleConstrains indexMap indicator1 pairId1 indicator2 pairId2) constrainTypePoint1
+  return ()
 
 buildContextEntail :: UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildContextEntail = undefined
+buildContextEntail (UnfoldPair contextV1 _ _ _ _ _ pairId1 _) (UnfoldPair contextV2 _ _ _ _ _ pairId2 _) = do
+  let (TypePoint types _ _) = contextV1
+  let indexMap = Map.fromList (zip [1 .. (length types)] [1 ..])
+  let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV1 contextV2 [] [] indexMap) (Set.empty))
+  let constrainTypePoint1 = filter (\((TypePoint _ edgeList1 _),(TypePoint _ edgeList2 _)) ->if (length (edgeList1++edgeList2) == 0) then True else False) correspondingTypePoints1
+  mapM (buildSimpleConstrains indexMap 0 pairId1 0 pairId2) constrainTypePoint1
+  return ()
+
+buildSimpleConstrains :: (Map.Map Int Int) -> Int -> Int -> Int -> Int ->(TypePoint,TypePoint)-> UnfoldState ()
+buildSimpleConstrains indexMap indicator1 pairId1 indicator2 pairId2 (t1,t2) = do
+  let r1 = getPredicate t1 pairId1 indicator1
+  let r2 = getPredicate t2 pairId2 indicator2
+  let eq1 = generateEqs t1 t2 indexMap indicator1 indicator2 pairId1 pairId2
+  let rule = Rule (MkAnd (r1:eq1)) r2
+  (TemporyResult number result typeEnv chc) <- get
+  let newChc = add_rule rule chc
+  put (TemporyResult number result typeEnv newChc)
+  return ()
+
 
 buildBinaryConstrains ::Int -> T.Binop -> UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
 buildBinaryConstrains leftOrRight op (UnfoldPair _ expressionV _ _ _ _ pairId1 _) (UnfoldPair _ _ _ _ _ _ pairId2 _) (UnfoldPair _ expressionV3 _ _ _ _ pairId3 _) = do
