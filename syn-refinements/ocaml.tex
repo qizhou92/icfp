@@ -1,0 +1,31 @@
+\usepackage{listings}
+\lstset{
+  language=[Objective]Caml,
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily,
+}
+\lstnewenvironment{ocode}{
+\lstset{
+  language=[Objective]Caml,
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily,
+}}
+{}
+
+\lstnewenvironment{ecode}{
+\lstset{
+  language=[Objective]Caml,
+  basicstyle=\ttfamily,
+  keywordstyle=\ttfamily,
+  numbers=left,
+  frame=leftline,
+  xleftmargin=7.5mm,
+  moredelim=[is][\bfseries]{==}{==},
+  moredelim=[is][\underbar]{__}{__},
+  moredelim=[is][\bfseries\underbar]{_=}{=_},
+  escapeinside={(*@}{@*)},
+}}
+{}
+
+\lstMakeShortInline{@}
+% \usepackage{tcolorbox}

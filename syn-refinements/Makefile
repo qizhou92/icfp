@@ -32,7 +32,7 @@ rev.tex: FORCE
 code/%.tex: code/% ## build highlighted tex code from source code
 	pygmentize -P tabsize=4 -P mathescape -f latex $^ | mark.py > $@
 
-code/fmt.tex: ## generate color table
+code/fmt.tex: ## generate color table 
 	pygmentize -f latex -S default > $@
 
 fig/%.pdf: fig/%.svg ## generate pdf from svg

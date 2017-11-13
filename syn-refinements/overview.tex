@@ -1,4 +1,44 @@
 \section{Overview}
 \label{s:overview}
 
-\BH{complete}
+We start with an overview of how \sys works by describing
+how it can prove the equivalence of two functions: a
+recursive function |sumTo| that adds up the numbers
+from |1| to |n|, and a \emph{tail-recursive} variant
+|sumToTR| that uses a helper |loop| with an accumulator
+|acc| to compute the same result.
+
+
+\begin{figure*}[t!]
+\centering
+\begin{minipage}[t]{0.40\textwidth}
+% \begin{minted}[linenos, firstnumber=1,breaklines=true]{ocaml}
+\begin{ocode}
+(* -- Recursive Summation -- *)
+
+let rec sumTo n =
+  if n = 0
+    then 0
+    else n + sumTo (n - 1)
+\end{ocode}
+\end{minipage}
+\hspace{0.14in}
+\begin{minipage}[t]{0.49\textwidth}
+% \begin{minted}[linenos, firstnumber=1,breaklines=true]{ocaml}
+\begin{ocode}
+(* -- Tail-Recursive Summation -- *)
+
+let sumToTR n =
+  let rec loop n acc =
+    if n = 0
+      then acc
+      else loop (n - 1) (acc + n)
+  in
+    loop n 0
+\end{ocode}
+\end{minipage}
+\caption{\textbf{(L)} Function that sums the numbers to $n$
+         and \textbf{(R)} Tail-recursive accumulator based variant.
+}
+\label{fig:example}
+\end{figure*}
