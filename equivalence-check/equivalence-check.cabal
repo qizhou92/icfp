@@ -39,6 +39,7 @@ executable equivalence-check
                      , Language.Equivalence.Derivations
                      , Language.Equivalence.TypeInference
                      , Language.Equivalence.Transformations
-                     , Language.Equivalence.RelationalTypes
+                     , Language.Equivalence.SimpleRelationalTypes
+                     , Language.Equivalence.SimpleInferRelationalTypes
 
   Default-Extensions: OverloadedStrings
