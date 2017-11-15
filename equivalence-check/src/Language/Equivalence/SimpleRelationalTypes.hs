@@ -4,7 +4,7 @@ import Language.Equivalence.TypeInference
 import Control.Monad.State
 import qualified Data.Map as Map
 
-data TypePoint = TypePoint [Type] [TypeEdge] Int
+data TypePoint = TypePoint Pair [TypeEdge] Int
   deriving (Show,Eq,Ord)
 
 data TypeEdge = TypeEdge [Int] [TypePoint]
@@ -32,11 +32,10 @@ constructPoint pair = do
     else constructNewPoint pair
 
 constructNewPoint :: Pair -> ConstructState TypePoint
-constructNewPoint pair@(Pair left right exprT1 exprT2 freeT1 freeT2) = do
+constructNewPoint pair@(Pair _ _ exprT1 exprT2 _ _) = do
  arrTypeEdges <- constructEdges pair (getTypeIndex isTypeArr (exprT1++exprT2) )
  (ConstructResult number result) <- get
- let types = left++exprT1++right++exprT2++freeT1++freeT2
- let newTypePoint = TypePoint types  arrTypeEdges number
+ let newTypePoint = TypePoint pair arrTypeEdges number
  put (ConstructResult (number+1) (Map.insert pair newTypePoint result))
  return newTypePoint
 
