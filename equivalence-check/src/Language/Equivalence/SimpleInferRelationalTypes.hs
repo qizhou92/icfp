@@ -66,8 +66,6 @@ getType e = do
  (TemporyResult _ _ typeEnv _ _) <- get
  return (typeEnv Map.! e)
 
-buildContextEntail :: UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildContextEntail = undefined
 
 constructUnfoldEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState [UnfoldEdge]
 constructUnfoldEdge rootPair e1 e2 = do
@@ -433,7 +431,7 @@ buildArgsConstrains leftOrRight pair1 pair2 = do
  let leftArr = typePoints !! 0
  freeV1 <- getAllFreeVar pair1
  freeV2 <- getAllFreeVar pair2
- buildEntail 1 pairId1 t1 freeV1 1 pairId2 leftArr freeV2
+ buildEntail 1 pairId1 freeV1 1 pairId2 freeV2 (t1,leftArr)
  return ()
 
 buildContextIfElse :: Bool -> Int ->UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
@@ -656,9 +654,46 @@ twoEdgeListSame  (TypeEdge index1 _) (TypeEdge index2 _) dropIndex1 dropIndex2 i
   mapIndex == drop2
 
 buildEntails :: UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildEntails = undefined
+buildEntails pair1@(UnfoldPair _ expressionV1 _ _ pairId1 _) pair2@(UnfoldPair _ expressionV2 _ _ pairId2 _) = do
+ let indexMap = Map.fromList ([(1,1),(2,2)] )
+ let pairs1 = getPairTypePoint expressionV1 expressionV2 [] [] indexMap
+ freeV1 <- getAllFreeVar pair1
+ freeV2 <- getAllFreeVar pair2
+ mapM (buildEntail 1 pairId1 freeV1 1 pairId2 freeV2) pairs1
+ return ()
 
-buildEntail :: Int -> Int -> TypePoint ->[T.Var] -> Int -> Int -> TypePoint ->[T.Var]-> UnfoldState ()
-buildEntail = undefined
+buildEntail :: Int -> Int ->[T.Var] -> Int -> Int ->[T.Var]->(TypePoint,TypePoint) -> UnfoldState ()
+buildEntail indicator1 pairId1 freeV1 indicator2 pairId2 freeV2 (t1,t2) = do
+  let (TypePoint _ _ typePointId1) = t1
+  let (TypePoint _ _ typePointId2) = t2
+  r1 <- getPredicate freeV1 t1 pairId1 indicator1
+  r2 <- getPredicate freeV2 t2 pairId2 indicator2
+  let freeIn12 = filter (\x -> elem x freeV1) freeV2
+  eq1 <- mapM (generateEq pairId1 indicator1 typePointId1 pairId2 indicator2 typePointId2) freeIn12
+  let left1 = getLeftExpr pairId1 t1
+  let left2 = getLeftExpr pairId2 t2
+  let right1 = getRightExpr pairId1 t1
+  let right2 = getRightExpr pairId2 t2
+  let eq2 = zipWith (\e1 e2 -> MkEq (ExprVar e1) (ExprVar e2)) ((concat left1) ++ (concat right1)) ((concat left2) ++ (concat right2))
+  let rule = Rule (MkAnd ([r1]++eq2++(concat eq1))) r2
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+  let newChc = add_rule rule chc
+  put (TemporyResult number result typeEnv mapToFreeVar newChc)
+  return ()
+buildContextEntail :: UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildContextEntail pair1@(UnfoldPair contextV1 _ _ _ pairId1 _) pair2@(UnfoldPair contextV2 _ _ _ pairId2 _) = do
+ freeV1 <- getAllFreeVar pair1
+ freeV2 <- getAllFreeVar pair2
+ r1 <- getPredicate freeV1 contextV1 pairId1 0
+ r2 <- getPredicate freeV2 contextV2 pairId2 0
+ let (TypePoint _ _ typePointId1) = contextV1
+ let (TypePoint _ _ typePointId2) = contextV2
+ let freeIn12 = filter (\x -> elem x freeV1) freeV2
+ eq1 <- mapM (generateEq pairId1 0 typePointId1 pairId2 0 typePointId2) freeIn12
+ let rule = Rule (MkAnd ([r1]++(concat eq1))) r2
+ (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+ let newChc = add_rule rule chc
+ put (TemporyResult number result typeEnv mapToFreeVar newChc)
+ return ()
 
 
