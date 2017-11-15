@@ -107,12 +107,146 @@ unfoldLeftEdge pair (T.EApp e1 e2) e3 = do
 
 unfoldLeftEdge pair (T.ELam v e1) e2 = do 
   pair1 <- constructUnfoldPair e1 e2
-  buildLamContext 1 v pair pair1
+  buildLamContext [1] [v] pair pair1
   buildLamEntail [1] [v] pair1 pair
   return (UnfoldEdge UnfoldLeft [pair1])
 
 unfoldLeftEdge _  _ _ = return (UnfoldEdge UnfoldLeft [])
 
+unfoldRightEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
+unfoldRightEdge pair e1 (T.EBin op e2 e3) = do
+  pair1 <- constructUnfoldPair e1 e2
+  pair2 <- constructUnfoldPair e1 e3
+  buildBinaryConstrains 2 op pair1 pair2 pair
+  buildContextEntail pair pair1
+  buildContextEntail pair pair2
+  return (UnfoldEdge UnfoldRight [pair1,pair2])
+
+unfoldRightEdge pair e1 (T.EIf e2 e3 e4) = do
+  pair1 <- constructUnfoldPair e1 e2
+  buildContextEntail pair pair1
+  pair2 <- constructUnfoldPair e1 e3
+  buildContextIfElse True 2 pair1 pair pair2
+  pair3 <- constructUnfoldPair e1 e4
+  buildContextIfElse False 2 pair1 pair pair3
+  buildEntails pair2 pair
+  buildEntails pair3 pair
+  return (UnfoldEdge UnfoldRight [pair1,pair2,pair3])
+
+unfoldRightEdge pair e1 (T.EApp e2 e3) = do
+  pair1 <- constructUnfoldPair e1 e2
+  pair2 <- constructUnfoldPair e1 e3
+  buildContextEntail pair pair1
+  buildContextEntail pair pair2
+  buildArgsConstrains 2 pair2 pair1
+  buildAppConstrains 2 pair1 pair2 pair
+  return (UnfoldEdge UnfoldRight [pair1,pair2])
+
+unfoldRightEdge pair e1 (T.ELam v e2) = do 
+  pair1 <- constructUnfoldPair e1 e2
+  buildLamContext [2] [v] pair pair1
+  buildLamEntail [2] [v] pair1 pair
+  return (UnfoldEdge UnfoldRight [pair1])
+
+unfoldRightEdge _  _ _ = return (UnfoldEdge UnfoldRight [])
+
+unfoldBothEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
+unfoldBothEdge pair (T.EMatch e1 e2 v1 v2 e3) (T.EMatch e4 e5 v3 v4 e6) = do
+  pair1 <- constructUnfoldPair e1 e4
+  buildContextEntail pair pair1
+  pair2 <- constructUnfoldPair e2 e5
+  buildNilContext pair pair1 pair2
+  pair3 <- constructUnfoldPair e3 e6
+  buildTailContext v1 v2 v3 v4 pair pair1 pair3
+  buildEntails pair2 pair
+  buildEntails pair3 pair
+  return (UnfoldEdge UnfoldBoth [pair1,pair2,pair3])
+
+unfoldBothEdge pair (T.ELam v1 e1) (T.ELam v2 e2) = do
+  pair1 <- constructUnfoldPair e1 e2
+  buildLamContext [1,2] [v1,v2] pair pair1
+  buildLamEntail [1,2] [v1,v2] pair1 pair
+  return (UnfoldEdge UnfoldRight [pair1])
+
+unfoldBothEdge _ _ _ = return (UnfoldEdge UnfoldBoth [])
+
+buildConstrainsForPair :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState ()
+buildConstrainsForPair = undefined
+
+buildTailContext :: T.Var -> T.Var -> T.Var -> T.Var -> UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildTailContext head1 tail1 head2 tail2 pair1 pair2 pair3 = do
+  let (UnfoldPair contextV1 _ _ _ pairId1 _) = pair1
+  let (UnfoldPair _ expressionV _ _ pairId2 _) = pair2
+  let (UnfoldPair contextV2 _ _ _ pairId3 _) = pair3
+  let (TypePoint _ _ typePointId1) = contextV1
+  let (TypePoint _ _ typePointId2) = expressionV
+  let (TypePoint _ _ typePointId3) = contextV2
+  freeV1 <- getAllFreeVar pair1
+  freeV2 <- getAllFreeVar pair2
+  freeV3 <- getAllFreeVar pair3
+  r1 <- getPredicate freeV1 contextV1 pairId1 0
+  r2 <- getPredicate freeV2 expressionV pairId2 1
+  r3 <- getPredicate freeV3 contextV2 pairId3 0
+  let leftExpr =  (getLeftExpr pairId2 1 expressionV)!! 0
+  let rightExpr = (getRightExpr pairId2 1 expressionV)!! 0
+  let leftLength = leftExpr !! 1
+  let rightLength = rightExpr !! 1
+  let freeIn13 = filter (\x -> elem x freeV1) freeV3
+  let freeIn23 = filter (\x -> elem x freeV2) freeV3
+  eq1 <- mapM (generateEq pairId1 0 typePointId1 pairId3 0 typePointId3) freeIn13
+  eq2 <- mapM (generateEq pairId2 1 typePointId2 pairId3 0 typePointId3) freeIn23
+  headInSmt1 <- getVarInSmt pairId3 0 typePointId3 head1
+  headInSmt2 <- getVarInSmt pairId3 0 typePointId3 head2
+  tailInSmt1 <- getVarInSmt pairId3 0 typePointId3 tail1
+  tailInSmt2 <- getVarInSmt pairId3 0 typePointId3 tail2
+  let leftLenghtGt0 = MkGt (ExprVar leftLength) (ExprConstant (ConstantInt 0))
+  let rightLenghtGt0 = MkGt (ExprVar rightLength) (ExprConstant (ConstantInt 0))
+  let leftLengthMinus1 = MkEq (ExprVar (tailInSmt1 !! 1)) (MkSub [(ExprVar leftLength),(ExprConstant (ConstantInt 1))])
+  let rightLengthMinus1 = MkEq (ExprVar (tailInSmt2 !! 1)) (MkSub [(ExprVar rightLength),(ExprConstant (ConstantInt 1))])
+  let elemEqual1 =  MkEq (ExprVar (tailInSmt1 !! 0)) (ExprVar (leftExpr !! 0))
+  let elemEqual2 =  MkEq (ExprVar (tailInSmt2 !! 0)) (ExprVar (rightExpr !! 0))
+  let r2_2 = modified r2 (headInSmt1 !! 0) (headInSmt2 !! 0)
+  let conditions = [leftLenghtGt0,rightLenghtGt0,leftLengthMinus1,rightLengthMinus1,elemEqual1,elemEqual2]
+  let rule = Rule (MkAnd ([r1,r2,r2_2]++(conditions)++(concat eq2)++(concat eq1))) r3
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+  let newChc = add_rule rule chc
+  put (TemporyResult number result typeEnv mapToFreeVar newChc)
+  return ()
+
+modified :: Expr ->Var ->Var -> Expr
+modified (ApplyFunction f1 parameterList ) v1 v2 = do
+  let ([_,p2,_,p4],tails) = splitAt 4 parameterList
+  let newParameterList = [(ParameterVar v1),p2,(ParameterVar v2),p4]++tails
+  (ApplyFunction f1 newParameterList)
+modified _ _ _ = error "there is error in modified"
+
+buildNilContext :: UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildNilContext pair1 pair2 pair3 = do
+  let (UnfoldPair contextV1 _ _ _ pairId1 _) = pair1
+  let (UnfoldPair _ expressionV _ _ pairId2 _) = pair2
+  let (UnfoldPair contextV2 _ _ _ pairId3 _) = pair3
+  let (TypePoint _ _ typePointId1) = contextV1
+  let (TypePoint _ _ typePointId2) = expressionV
+  let (TypePoint _ _ typePointId3) = contextV2
+  freeV1 <- getAllFreeVar pair1
+  freeV2 <- getAllFreeVar pair2
+  freeV3 <- getAllFreeVar pair3
+  r1 <- getPredicate freeV1 contextV1 pairId1 0
+  r2 <- getPredicate freeV2 expressionV pairId2 1
+  r3 <- getPredicate freeV3 contextV2 pairId3 0
+  let leftLength = ((getLeftExpr pairId2 1 expressionV)!! 0)!! 1
+  let rightLength = ((getRightExpr pairId2 1 expressionV)!! 0)!! 1
+  let freeIn13 = filter (\x -> elem x freeV1) freeV3
+  let freeIn23 = filter (\x -> elem x freeV2) freeV3
+  eq1 <- mapM (generateEq pairId1 0 typePointId1 pairId3 0 typePointId3) freeIn13
+  eq2 <- mapM (generateEq pairId2 1 typePointId2 pairId3 0 typePointId3) freeIn23
+  let eq3 = MkEq (ExprVar leftLength) (ExprConstant (ConstantInt 0))
+  let eq4 = MkEq (ExprVar rightLength) (ExprConstant (ConstantInt 0))
+  let rule = Rule (MkAnd ([r1,r2,eq3,eq4]++(concat eq2)++(concat eq1))) r3
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+  let newChc = add_rule rule chc
+  put (TemporyResult number result typeEnv mapToFreeVar newChc)
+  return ()
 
 buildLamEntail :: [Int] -> [T.Var] -> UnfoldPair -> UnfoldPair -> UnfoldState ()
 buildLamEntail leftOrRights vars pair1 pair2 = do
@@ -152,20 +286,20 @@ getLamEntail pairId1 indicator1 t1 pairId2 indicator2 t2 (leftOrRight,var) = do
   return (zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2) ) leftExpr varInSmt)
 
 
-buildLamContext :: Int -> T.Var -> UnfoldPair -> UnfoldPair -> UnfoldState ()
-buildLamContext leftOrRight v pair1 pair2 = do
+buildLamContext :: [Int] -> [T.Var] -> UnfoldPair -> UnfoldPair -> UnfoldState ()
+buildLamContext leftOrRights v pair1 pair2 = do
  let (UnfoldPair contextV1 expressionV1 _ _ pairId1 _) = pair1
  let (UnfoldPair contextV2 _ _ _ pairId2 _) = pair2
  let (TypePoint _ edges _) = expressionV1
- let (TypeEdge _ typePoints) = (filter (\(TypeEdge index _) -> if index == ([leftOrRight]) then True else False ) edges) !! 0
+ let (TypeEdge _ typePoints) = (filter (\(TypeEdge index _) -> if index == (leftOrRights) then True else False ) edges) !! 0
  let leftArr = typePoints !! 0
  freeV1 <- getAllFreeVar pair1
  freeV2 <- getAllFreeVar pair2
- getLamConstrain leftOrRight v 1 pairId1 leftArr 0 pairId1 contextV1 0 pairId2 contextV2 freeV1 freeV1 freeV2
+ getLamConstrain leftOrRights v 1 pairId1 leftArr 0 pairId1 contextV1 0 pairId2 contextV2 freeV1 freeV1 freeV2
  return ()
 
-getLamConstrain :: Int -> T.Var -> Int -> Int -> TypePoint -> Int -> Int -> TypePoint -> Int -> Int -> TypePoint ->[T.Var]->[T.Var]->[T.Var]-> UnfoldState ()
-getLamConstrain leftOrRight v indicator1 pairId1 t1 indicator2 pairId2 t2 indicator3 pairId3 t3 freeV1 freeV2 freeV3= do
+getLamConstrain :: [Int] -> [T.Var] -> Int -> Int -> TypePoint -> Int -> Int -> TypePoint -> Int -> Int -> TypePoint ->[T.Var]->[T.Var]->[T.Var]-> UnfoldState ()
+getLamConstrain leftOrRights v indicator1 pairId1 t1 indicator2 pairId2 t2 indicator3 pairId3 t3 freeV1 freeV2 freeV3= do
   r1 <- getPredicate freeV1 t1 pairId1 indicator1
   r2 <- getPredicate freeV2 t2 pairId2 indicator2
   r3 <- getPredicate freeV3 t3 pairId3 indicator3
@@ -176,14 +310,18 @@ getLamConstrain leftOrRight v indicator1 pairId1 t1 indicator2 pairId2 t2 indica
   let freeIn23 = filter (\x -> elem x freeV2) freeV3
   eq1 <- mapM (generateEq pairId1 indicator1 typePointId1 pairId3 indicator3 typePointId3) freeIn13
   eq2 <- mapM (generateEq pairId2 indicator2 typePointId2 pairId3 indicator3 typePointId3) freeIn23
-  let expr1 = getExprWithIndex leftOrRight 0 pairId1 indicator1 t1
-  vExpr <-getVarInSmt pairId3 indicator3 typePointId3 v
-  let eq3 = zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2)) vExpr expr1
-  let rule = Rule (MkAnd ([r1,r2]++eq3++(concat eq2)++(concat eq1))) r3
+  eq3 <- mapM (getExprEqualVar indicator1 pairId1 t1 indicator3 pairId3 typePointId3) (zip leftOrRights v)
+  let rule = Rule (MkAnd ([r1,r2]++(concat eq3)++(concat eq2)++(concat eq1))) r3
   (TemporyResult number result typeEnv mapToFreeVar chc) <- get
   let newChc = add_rule rule chc
   put (TemporyResult number result typeEnv mapToFreeVar newChc)
   return ()
+
+getExprEqualVar :: Int -> Int -> TypePoint -> Int -> Int -> Int -> (Int,T.Var) -> UnfoldState [Expr]
+getExprEqualVar indicator1 pairId1 t1 indicator3 pairId3 typePointId3 (leftOrRight,v) = do
+  let expr1 = getExprWithIndex leftOrRight 0 pairId1 indicator1 t1
+  vExpr <- getVarInSmt pairId3 indicator3 typePointId3 v
+  return $ zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2)) vExpr expr1
 
 getExprWithIndex :: Int -> Int ->Int -> Int -> TypePoint -> [Var]
 getExprWithIndex 1 index pairId indicator t= (getLeftExpr pairId indicator t) !! index
@@ -258,12 +396,12 @@ buildArgsConstrains :: Int -> UnfoldPair -> UnfoldPair -> UnfoldState ()
 buildArgsConstrains leftOrRight pair1 pair2 = do
  let (UnfoldPair _ t1 _ _ pairId1 _) = pair1
  let (UnfoldPair _ t2 _ _ pairId2 _) = pair2
- let (TypePoint _ edges _) = t1
+ let (TypePoint _ edges _) = t2
  let (TypeEdge _ typePoints) = (filter (\(TypeEdge index _) -> if index == ([leftOrRight]) then True else False ) edges) !! 0
  let leftArr = typePoints !! 0
  freeV1 <- getAllFreeVar pair1
  freeV2 <- getAllFreeVar pair2
- buildEntail 1 pairId2 t2 freeV2 1 pairId1 leftArr freeV1
+ buildEntail 1 pairId1 t1 freeV1 1 pairId2 leftArr freeV2
  return ()
 
 buildContextIfElse :: Bool -> Int ->UnfoldPair -> UnfoldPair -> UnfoldPair -> UnfoldState ()
@@ -398,16 +536,6 @@ generateEq pairId1 indicator1 typePointId1 pairId2 indicator2 typePointId2 v= do
   var2 <- getVarInSmt pairId2 indicator2 typePointId2 v
   return $ zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2)) var1 var2
  
-
-
-unfoldRightEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
-unfoldRightEdge = undefined
-
-unfoldBothEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
-unfoldBothEdge = undefined
-
-buildConstrainsForPair :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState ()
-buildConstrainsForPair = undefined
 
 getPredicate :: [T.Var] -> TypePoint -> Int -> Int ->UnfoldState Expr
 getPredicate freeVs t@(TypePoint _ _ typePointId) pairId indicator = do
