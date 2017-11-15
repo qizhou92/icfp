@@ -693,7 +693,7 @@ getPredicate  (TypePoint types _ typePointId) pairId indicator = do
   ApplyFunction (Function ("R"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)) (map (\(s,_)->s) sortList)) (map (\x -> ParameterVar x) varList)
 
 generateBinaryConstrains :: T.Binop -> Expr -> Expr -> Expr -> Expr
-generateBinaryConstrains T.Plus expr1 expr2 expr3 = MkEq expr3 (MkAnd [expr1,expr2])
+generateBinaryConstrains T.Plus expr1 expr2 expr3 = MkEq expr3 (MkAdd [expr1,expr2])
 generateBinaryConstrains T.Minus expr1 expr2 expr3 = MkEq expr3 (MkSub [expr1,expr2])
 generateBinaryConstrains T.Mul expr1 expr2 expr3 = MkEq expr3 (MkMul [expr1,expr2])
 generateBinaryConstrains T.Div expr1 expr2 expr3 = MkEq expr3 (MkDiv_1 expr1 expr2)
