@@ -2,7 +2,14 @@ module Language.Equivalence.SimpleRelationalTypes where
 
 import Language.Equivalence.TypeInference
 import Control.Monad.State
+import Language.Equivalence.Expr
 import qualified Data.Map as Map
+
+data GivenTypePoint = GivenTypePoint [GivenTypeEdge] [Var] Expr
+  deriving (Show,Eq,Ord)
+
+data GivenTypeEdge = GivenTypeEdge [Int] [GivenTypePoint]
+  deriving (Show,Eq,Ord)
 
 data TypePoint = TypePoint Pair [TypeEdge] Int
   deriving (Show,Eq,Ord)

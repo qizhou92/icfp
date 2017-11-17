@@ -696,40 +696,97 @@ buildContextEntail pair1@(UnfoldPair contextV1 _ _ _ pairId1 _) pair2@(UnfoldPai
  put (TemporyResult number result typeEnv mapToFreeVar newChc)
  return ()
 
-subTypeCheck :: Set.Set (TypePoint,TypePoint)-> Int -> Int -> Int -> Int -> [T.Var] -> [T.Var]-> TypePoint -> TypePoint ->UnfoldState (Set.Set (TypePoint,TypePoint))
-subTypeCheck pairSet pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1 t2 = 
-  if Set.member (t1,t2) pairSet then return $ pairSet
-    else subTypeCheckNew pairSet pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1 t2
-
-subTypeCheckNew :: Set.Set (TypePoint,TypePoint)-> Int -> Int -> Int -> Int ->[T.Var] -> [T.Var]-> TypePoint -> TypePoint ->UnfoldState (Set.Set (TypePoint,TypePoint))
-subTypeCheckNew pairSet pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1@(TypePoint _ edges1 _) t2@(TypePoint _ edges2  _) = do
-  let newPairSet = Set.insert (t1,t2) pairSet
-  buildSubTypeRules pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1 t2
-  let allPossiblePair = concat (map (\x -> map (\y -> (x,y)) edges2) edges1)
-  let allValidPairs = filter (\((TypeEdge index1 _),(TypeEdge index2 _)) -> if index1 == index2 then True else False) allPossiblePair
-  let leftPair = map (\((TypeEdge _ pairs1),(TypeEdge _ pairs2)) -> ((pairs1 !! 0),(pairs2 !! 0)) ) allValidPairs
-  let rightPair = map (\((TypeEdge _ pairs1),(TypeEdge _ pairs2)) -> ((pairs1 !! 1),(pairs2 !! 1)) ) allValidPairs
-  finalSet1 <- foldrM (\(t1,t2) oldSet -> subTypeCheck oldSet pairId2 indicator2 pairId1 indicator1 freeV2 freeV1 t2 t1) newPairSet leftPair
-  finalSet2 <- foldrM (\(t1,t2) oldSet -> subTypeCheck oldSet pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1 t2 ) newPairSet leftPair
-  return $ Set.union finalSet1 finalSet2
-
-buildSubTypeRules ::  Int -> Int -> Int -> Int -> [T.Var] -> [T.Var]->TypePoint -> TypePoint ->UnfoldState ()
-buildSubTypeRules  pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1@(TypePoint _ edges1 _) t2@(TypePoint _ edges2 _) = do
-  if (length (edges1++edges2)) == 0 then buildRealSubType pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1 t2 else return ()
-
-buildRealSubType ::  Int -> Int -> Int -> Int ->[T.Var] -> [T.Var]-> TypePoint -> TypePoint ->UnfoldState ()
-buildRealSubType  pairId1 indicator1 pairId2 indicator2 freeV1 freeV2 t1@(TypePoint _ _ typePointId1) t2@(TypePoint _ _ typePointId2) = do
-  r1 <- getPredicate freeV1 t1 pairId1 indicator1
-  r2 <- getPredicate freeV2 t2 pairId2 indicator2
-  let freeIn12 = filter (\x -> elem x freeV1) freeV2
-  eq1 <- mapM (generateEq pairId1 indicator1 typePointId1 pairId2 indicator2 typePointId2) freeIn12
-  let left1 = getLeftExpr pairId1 t1
-  let left2 = getLeftExpr pairId2 t2
-  let right1 = getRightExpr pairId1 t1
-  let right2 = getRightExpr pairId2 t2
-  let eq2 = zipWith (\e1 e2 -> MkEq (ExprVar e1) (ExprVar e2)) ((concat left1) ++ (concat right1)) ((concat left2) ++ (concat right2))
-  let rule = Rule (MkAnd ([r1]++eq2++(concat eq1))) r2
-  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
-  let newChc = add_rule rule chc
-  put (TemporyResult number result typeEnv mapToFreeVar newChc)
+assignRefinementType :: UnfoldPair -> GivenTypePoint -> UnfoldState ()
+assignRefinementType pair@(UnfoldPair _ expressionV _ _ pairId _) refinementType = do
+  freeV <- getAllFreeVar pair
+  buildGivenTypeConstrain1 (Set.empty) pairId 1 freeV expressionV refinementType
   return ()
+
+buildGivenTypeConstrain1 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+buildGivenTypeConstrain1 visistedSet pairId indicator freeV t givenType = do
+  if Set.member (t,givenType) visistedSet then return $ visistedSet
+    else buildNewGivenTypeConstrain1 visistedSet pairId indicator freeV t givenType
+
+buildNewGivenTypeConstrain1 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+buildNewGivenTypeConstrain1 visistedSet pairId indicator freeV t@(TypePoint _ edges1 _) givenType@(GivenTypePoint edges2 _ _) = do
+  let allPairOfEdge = concat (map (\x -> (map (\y -> (x,y) ) edges2)) edges1 )
+  let allValidPairs = filter (\( (TypeEdge index1 _) , (GivenTypeEdge index2 _) ) -> if index1 == index2 then True else False ) allPairOfEdge
+  let leftPair = map (\( (TypeEdge _ successors1) , (GivenTypeEdge _ successors2) ) ->  ((successors1!!0),(successors2!!0)) ) allValidPairs
+  let rightPair = map (\( (TypeEdge _ successors1) , (GivenTypeEdge _ successors2) ) ->  ((successors1!!1),(successors2!!1)) ) allValidPairs
+  leftSet <- getSuccessors2 visistedSet pairId indicator freeV leftPair
+  rightSet <- getSuccessors1 visistedSet pairId indicator freeV rightPair
+  buildGivenConstrain1 pairId indicator freeV t givenType
+  return $ Set.union rightSet leftSet
+
+buildGivenTypeConstrain2 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+buildGivenTypeConstrain2 visistedSet pairId indicator freeV t givenType = do
+  if Set.member (t,givenType) visistedSet then return $ visistedSet
+    else buildNewGivenTypeConstrain2 visistedSet pairId indicator freeV t givenType
+
+buildNewGivenTypeConstrain2 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+buildNewGivenTypeConstrain2 visistedSet pairId indicator freeV t@(TypePoint _ edges1 _) givenType@(GivenTypePoint edges2 _ _) = do
+  let allPairOfEdge = concat (map (\x -> (map (\y -> (x,y) ) edges2 )) edges1)
+  let allValidPairs = filter (\( (TypeEdge index1 _) , (GivenTypeEdge index2 _) ) -> if index1 == index2 then True else False ) allPairOfEdge
+  let leftPair = map (\( (TypeEdge _ successors1) , (GivenTypeEdge _ successors2) ) ->  ((successors1!!0),(successors2!!0)) ) allValidPairs
+  let rightPair = map (\( (TypeEdge _ successors1) , (GivenTypeEdge _ successors2) ) ->  ((successors1!!1),(successors2!!1)) ) allValidPairs
+  leftSet <- getSuccessors1 visistedSet pairId indicator freeV leftPair
+  rightSet <- getSuccessors2 visistedSet pairId indicator freeV rightPair
+  buildGivenConstrain2 pairId indicator freeV t givenType
+  return $ Set.union rightSet leftSet
+
+getSuccessors1 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> [(TypePoint,GivenTypePoint)] -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+getSuccessors1 visistedSet _ _ _  [] = return $ visistedSet
+getSuccessors1 visistedSet pairId indicator freeV (x:xs) = do
+  let (t1,t2) = x
+  newVisitedSet <- buildGivenTypeConstrain1 visistedSet pairId indicator freeV t1 t2
+  newVisitedSet2 <- getSuccessors1 newVisitedSet pairId indicator freeV xs
+  return newVisitedSet2
+
+getSuccessors2 :: (Set.Set (TypePoint,GivenTypePoint)) -> Int -> Int -> [T.Var] -> [(TypePoint,GivenTypePoint)] -> UnfoldState (Set.Set (TypePoint,GivenTypePoint))
+getSuccessors2 visistedSet _ _ _ [] = return $ visistedSet
+getSuccessors2 visistedSet pairId indicator freeV (x:xs) = do
+  let (t1,t2) = x
+  newVisitedSet <- buildGivenTypeConstrain2 visistedSet pairId indicator freeV t1 t2
+  newVisitedSet2 <- getSuccessors2 newVisitedSet pairId indicator freeV xs
+  return newVisitedSet2
+
+buildGivenConstrain1 :: Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState ()
+buildGivenConstrain1 pairId indicator freeV t@(TypePoint _ edges1 _ ) givenType@(GivenTypePoint edges2 _ _) = do
+  if (length edges1)+ (length edges2) == 0 then return ()
+    else buildRealGivenConstrain1 pairId indicator freeV t givenType
+
+buildRealGivenConstrain1 :: Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState ()
+buildRealGivenConstrain1 pairId indicator freeV t@(TypePoint _ _ typeId) (GivenTypePoint _ smtVars smtExpr) = do
+ r1 <- getPredicate freeV t pairId indicator
+ vars <- mapM (getVarInSmt pairId indicator typeId) freeV
+ let equalVal = zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2) ) smtVars (concat vars)
+ let notEqual = MkNot smtExpr
+ (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+ let (CHC rules predicates vars _) = chc
+ let newQuery = MkAnd ([r1,notEqual]++equalVal)
+ let newChc = (CHC rules predicates vars newQuery)
+ put (TemporyResult number result typeEnv mapToFreeVar newChc)
+ return ()
+
+buildGivenConstrain2 :: Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState ()
+buildGivenConstrain2 pairId indicator freeV t@(TypePoint _ edges1 _ ) givenType@(GivenTypePoint edges2 _ _) = do
+  if (length edges1)+ (length edges2) == 0 then return ()
+    else buildRealGivenConstrain2 pairId indicator freeV t givenType
+
+buildRealGivenConstrain2 :: Int -> Int -> [T.Var] -> TypePoint -> GivenTypePoint -> UnfoldState ()
+buildRealGivenConstrain2 pairId indicator freeV t@(TypePoint _ _ typeId) (GivenTypePoint _ smtVars smtExpr) = do
+ r1 <- getPredicate freeV t pairId indicator
+ vars <- mapM (getVarInSmt pairId indicator typeId) freeV
+ let equalVal = zipWith (\v1 v2 -> MkEq (ExprVar v1) (ExprVar v2) ) smtVars (concat vars)
+ let rule = Rule (MkAnd (smtExpr:equalVal)) r1
+ (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+ let newChc = add_rule rule chc
+ put (TemporyResult number result typeEnv mapToFreeVar newChc)
+ return ()
+
+
+
+
+
+
+
