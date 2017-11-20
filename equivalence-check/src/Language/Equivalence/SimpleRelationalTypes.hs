@@ -4,6 +4,7 @@ import Language.Equivalence.TypeInference
 import Control.Monad.State
 import Language.Equivalence.Expr
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 data GivenTypePoint = GivenTypePoint [GivenTypeEdge] [Var] Expr
   deriving (Show,Eq,Ord)
@@ -24,6 +25,10 @@ data ConstructResult = ConstructResult Int  (Map.Map Pair TypePoint)
   deriving (Show,Eq,Ord)
 
 type ConstructState a = (State ConstructResult) a
+
+collectAllTypePoint :: TypePoint -> Set.Set TypePoint
+collectAllTypePoint t@(TypePoint _ edges _) = 
+  Set.union (Set.unions (map (\(TypeEdge _ points) -> (Set.unions (map collectAllTypePoint points))) edges)) (Set.singleton t)
 
 constructVersionSpace :: [Type] -> [Type] ->[Type] -> [Type] -> TypePoint
 constructVersionSpace exprT1 exprT2 freeT1 freeT2 = 

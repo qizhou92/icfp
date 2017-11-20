@@ -23,6 +23,17 @@ data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
 data UnfoldEdge = UnfoldEdge UnfoldRule [UnfoldPair]
   deriving (Show,Eq,Ord)
 
+data VerifyResult = VerifyResult Bool UnfoldPair (Map.Map String Expr) 
+verifyForPairs ::T.CoreExpr -> T.CoreExpr -> (Map.Map T.CoreExpr Type) ->  (Map.Map T.CoreExpr [T.Var]) ->IO VerifyResult
+verifyForPairs e1 e2 types freeVs = do
+  let emptyCHC = CHC Set.empty Set.empty Set.empty MkEmpty
+  let startState = TemporyResult 1 (Map.empty) types freeVs emptyCHC
+  let (foldingPair,foldingResult) = runState (constructUnfoldPair e1 e2) startState 
+  let (TemporyResult _ _ _ _ resultCHC) = foldingResult
+  (result,theMap) <- chc_execute resultCHC
+  let stringMap =Map.fromList (map (\((Function name _),smtExpr) -> (name,smtExpr)) (Map.toList theMap))
+  return (VerifyResult result foldingPair stringMap)
+
 constructUnfoldPair :: T.CoreExpr -> T.CoreExpr ->UnfoldState UnfoldPair
 constructUnfoldPair e1 e2 = do
   (TemporyResult _ result _ _ _) <- get
@@ -109,6 +120,10 @@ unfoldLeftEdge pair (T.ELam v e1) e2 = do
   buildLamEntail [1] [v] pair1 pair
   return (UnfoldEdge UnfoldLeft [pair1])
 
+unfoldLeftEdge pair (T.EFix _ _) _ = do
+  buildFalseForFix pair
+  return (UnfoldEdge UnfoldLeft [])
+
 unfoldLeftEdge _  _ _ = return (UnfoldEdge UnfoldLeft [])
 
 unfoldRightEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
@@ -146,6 +161,10 @@ unfoldRightEdge pair e1 (T.ELam v e2) = do
   buildLamEntail [2] [v] pair1 pair
   return (UnfoldEdge UnfoldRight [pair1])
 
+unfoldRightEdge pair _ (T.EFix _ _) = do
+  buildFalseForFix pair
+  return (UnfoldEdge UnfoldRight [])
+
 unfoldRightEdge _  _ _ = return (UnfoldEdge UnfoldRight [])
 
 unfoldBothEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEdge
@@ -167,6 +186,23 @@ unfoldBothEdge pair (T.ELam v1 e1) (T.ELam v2 e2) = do
   return (UnfoldEdge UnfoldRight [pair1])
 
 unfoldBothEdge _ _ _ = return (UnfoldEdge UnfoldBoth [])
+
+buildFalseForFix :: UnfoldPair -> UnfoldState ()
+buildFalseForFix p@(UnfoldPair _ expressionV _ _ pairId _) = do
+  let allTypePoints =Set.toList (collectAllTypePoint expressionV)
+  let validPoints = filter (\(TypePoint _ edges _) -> if (length edges) == 0 then True else False ) allTypePoints
+  freeV <- getAllFreeVar p
+  mapM (falseConstrain pairId 1 freeV) validPoints
+  return ()
+
+falseConstrain :: Int -> Int -> [T.Var] ->TypePoint -> UnfoldState ()
+falseConstrain pairId indicator freeV t = do
+  r1 <- getPredicate freeV t pairId indicator
+  let rule = Rule (ExprConstant (ConstantBool False)) r1
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
+  let newChc = add_rule rule chc
+  put (TemporyResult number result typeEnv mapToFreeVar newChc)
+  return ()
 
 buildSinglePair :: UnfoldPair -> Int -> T.CoreExpr -> UnfoldState [Expr] 
 buildSinglePair (UnfoldPair _ expressionV _ _ pairId _) leftOrRight (T.EInt value1) = do

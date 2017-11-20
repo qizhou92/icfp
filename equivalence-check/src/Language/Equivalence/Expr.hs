@@ -1,5 +1,6 @@
 module Language.Equivalence.Expr where
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Text.Parsec
 import Text.Parsec.String
 import qualified Text.Parsec.Token as T
@@ -127,27 +128,49 @@ data Expr  = ExprVar Var
 instance Show Expr where
   show = expr_pretty_print 
 
-collectVar :: Expr -> [Var]
+collectVar :: Expr -> Set.Set Var
 collectVar x = case x of
-  ExprVar var -> [var]
-  MkAdd list -> concat (map collectVar list)
-  MkMul list -> concat (map collectVar list)
-  MkSub list -> concat (map collectVar list)
-  MkDiv_1 expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkDiv_2 expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkMod expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkRem expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkLt expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkLe expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkGt expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkGe expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkEq expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
+  ExprVar var -> (Set.singleton var)
+  MkAdd list -> Set.unions (map collectVar list)
+  MkMul list -> Set.unions (map collectVar list)
+  MkSub list -> Set.unions (map collectVar list)
+  MkDiv_1 expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkDiv_2 expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkMod expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkRem expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkLt expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkLe expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkGt expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkGe expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkEq expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
   MkNot expr1 -> (collectVar expr1)
-  MkIff expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkImplies expr1 expr2 -> (collectVar expr1) ++ (collectVar expr2)
-  MkAnd list -> concat (map collectVar list)
-  MkOr list -> concat (map collectVar list)
-  _ -> []
+  MkIff expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkImplies expr1 expr2 ->Set.union (collectVar expr1) (collectVar expr2)
+  MkAnd list -> Set.unions (map collectVar list)
+  MkOr list -> Set.unions (map collectVar list)
+  _ -> Set.empty
+
+collectPredicates:: Expr -> Set.Set Function
+collectPredicates x = case x of
+  ApplyFunction f _ -> Set.singleton f
+  MkAdd list -> Set.unions (map collectPredicates list)
+  MkMul list -> Set.unions (map collectPredicates list)
+  MkSub list -> Set.unions (map collectPredicates list)
+  MkDiv_1 expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkDiv_2 expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkMod expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkRem expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkLt expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkLe expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkGt expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkGe expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkEq expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkNot expr1 -> (collectPredicates expr1)
+  MkIff expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkImplies expr1 expr2 ->Set.union (collectPredicates expr1) (collectPredicates expr2)
+  MkAnd list -> Set.unions (map collectPredicates list)
+  MkOr list -> Set.unions (map collectPredicates list)
+  _ -> Set.empty
 list_parameter_pretty_print :: [Parameter] -> String
 
 

@@ -21,14 +21,21 @@ rule_list_pretty_print list = case list of
     x:xs -> (rule_pretty_print x) ++ "\n" ++ (rule_list_pretty_print xs)
     [] -> "\n"
 
-data CHC = CHC [Rule] [Function] [Var] Expr
+data CHC = CHC (Set.Set Rule) (Set.Set Function) (Set.Set Var) Expr
   deriving (Eq,Ord)
 
 instance  Show CHC where
   show = chc_pretty_print 
 add_rule :: Rule->CHC -> CHC
 
-add_rule  newRule (CHC rules predicates variables query) = (CHC (newRule:rules) predicates variables query)
+add_rule newRule@(Rule b h) (CHC rules predicates variables query) = do
+  let allPredicates =Set.union (collectPredicates b) (collectPredicates h)
+  let newPredicates = Set.union allPredicates predicates
+  let newRules = Set.insert newRule rules
+  let allVariables =Set.union (collectVar b) (collectVar h)
+  let newVariables = Set.union allVariables variables
+  CHC newRules newPredicates newVariables query
+
 
 decl_var :: Var -> String
 decl_var (Var name sort) = case sort of 
@@ -38,9 +45,8 @@ decl_var (Var name sort) = case sort of
 
 checkEntail :: Expr -> Expr -> IO Bool
 checkEntail expr1 expr2 = do
-  let varList = (collectVar expr1) ++ (collectVar expr2)
-  let list = Set.toList (Set.fromList varList)
-  let string1 = unlines (map decl_var list)
+  let varList =Set.union (collectVar expr1)  (collectVar expr2)
+  let string1 = unlines (map decl_var (Set.toList varList))
   let expr3 = MkAnd [expr1, (MkNot expr2)]
   let string2 = "(assert " ++ (expr_pretty_print  expr3) ++ " )\n (check-sat)\n"
   writeFile "./test.z3" (string1++string2)
@@ -49,18 +55,6 @@ checkEntail expr1 expr2 = do
   if x == "unsat\n"
      then return True
      else return False
-
-register_predicate :: Function -> CHC -> CHC
-
-register_predicate newPredicates (CHC rules predicates variables query)
-  | elem newPredicates predicates = (CHC rules predicates variables query)
-  | otherwise = (CHC rules (newPredicates:predicates) variables query)
-
-add_varaible :: Var -> CHC -> CHC
-
-add_varaible newVar (CHC rules predicates variables query)
-  | elem newVar variables = (CHC rules predicates variables query)
-  | otherwise = (CHC rules predicates (newVar:variables) query)
 
 decl_var_list_pretty_print :: [Var] -> String
 
@@ -87,7 +81,7 @@ query_pretty_print query= "(rule (=> " ++ (expr_pretty_print query) ++ " Goal))\
 
 chc_pretty_print :: CHC -> String
 chc_pretty_print (CHC rules predicates variables query) = do
-    "(set-option :fixedpoint.engine \"duality\")\n" ++ (decl_predicate_list_pretty_print predicates) ++ (decl_var_list_pretty_print variables) ++ (rule_list_pretty_print rules) ++ (query_pretty_print query)
+    "(set-option :fixedpoint.engine \"duality\")\n" ++ (decl_predicate_list_pretty_print (Set.toList predicates)) ++ (decl_var_list_pretty_print (Set.toList variables)) ++ (rule_list_pretty_print  (Set.toList rules)) ++ (query_pretty_print query)
 
 chc_write_file :: CHC -> IO()
 chc_write_file theCHC = writeFile "./test.z3" (chc_pretty_print theCHC)
