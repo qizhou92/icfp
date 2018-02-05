@@ -1,18 +1,18 @@
 module Language.Equivalence.SimpleInferRelationalTypes where
-import Language.Equivalence.TypeInference
 import Language.Equivalence.SimpleRelationalTypes
 import Language.Equivalence.CHC
 import Language.Equivalence.Expr
 import qualified Language.Equivalence.Types as T
+import Language.Equivalence.TypeInference
 import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 
-data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr Type) (Map.Map T.CoreExpr [T.Var])  CHC
+data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr T.Type) (Map.Map T.CoreExpr [T.Var])  CHC
   deriving (Show,Eq,Ord)
 
-type UnfoldState a = (State TemporyResult) a
+type UnfoldState a = StateT TemporyResult IO a
 
 data UnfoldPair = UnfoldPair TypePoint TypePoint T.CoreExpr T.CoreExpr Int [UnfoldEdge]
   deriving (Show,Eq,Ord)
@@ -23,13 +23,28 @@ data UnfoldRule = UnfoldLeft | UnfoldRight | UnfoldBoth
 data UnfoldEdge = UnfoldEdge UnfoldRule [UnfoldPair]
   deriving (Show,Eq,Ord)
 
-data VerifyResult = VerifyResult Bool UnfoldPair (Map.Map String Expr) 
-verifyForPairs ::T.CoreExpr -> T.CoreExpr -> (Map.Map T.CoreExpr Type) ->  (Map.Map T.CoreExpr [T.Var]) ->IO VerifyResult
+
+data VerifyResult = VerifyResult Bool UnfoldPair (Map.Map String Expr)
+  deriving (Show,Eq,Ord)
+
+verifyPairs :: T.CoreExpr -> T.CoreExpr -> IO VerifyResult
+verifyPairs expr1 expr2 = do
+  let type1 = infereType expr1
+  let type2 = infereType expr2
+  case type1 of
+    Left _ -> error "infer type error in expr1"
+    Right typeMap1 -> case type2 of
+                       Left _ -> error "infer type error in expr1"
+                       Right typeMap2 -> verifyForPairs expr1 expr2 (Map.union typeMap1 typeMap2) (Map.union (T.getFreeVarsMap expr1) (T.getFreeVarsMap expr2))
+
+
+verifyForPairs ::T.CoreExpr -> T.CoreExpr -> (Map.Map T.CoreExpr T.Type) ->  (Map.Map T.CoreExpr [T.Var]) ->IO VerifyResult
 verifyForPairs e1 e2 types freeVs = do
   let emptyCHC = CHC Set.empty Set.empty Set.empty MkEmpty
   let startState = TemporyResult 1 (Map.empty) types freeVs emptyCHC
-  let (foldingPair,foldingResult) = runState (constructUnfoldPair e1 e2) startState 
-  let (TemporyResult _ _ _ _ resultCHC) = foldingResult
+  (foldingPair,foldingResult) <- runStateT (constructUnfoldPair e1 e2) startState 
+  let (TemporyResult _ unfoldMap  _ _ resultCHC) = foldingResult
+  print resultCHC
   (result,theMap) <- chc_execute resultCHC
   let stringMap =Map.fromList (map (\((Function name _),smtExpr) -> (name,smtExpr)) (Map.toList theMap))
   return (VerifyResult result foldingPair stringMap)
@@ -56,7 +71,8 @@ constructNewUnfoldPair e1 e2 = do
 getFreeV :: T.CoreExpr -> UnfoldState [T.Var]
 getFreeV e = do
   (TemporyResult _ _ _ mapToFreeVar _) <- get
-  return (mapToFreeVar Map.! e)
+  if (Map.notMember e mapToFreeVar) then error "there is an error in getFreeV"
+    else return (mapToFreeVar Map.! e)
 
 constructFreeVariables :: [T.Var] -> [T.Var] ->UnfoldState TypePoint
 constructFreeVariables free1 free2= do
@@ -72,10 +88,11 @@ constructPairExpressions e1 e2 free1 free2= do
   freeV2 <- mapM (\x->getType (T.EVar x) ) free2
   return (constructVersionSpace [t1] [t2] freeV1 freeV2)
 
-getType :: T.CoreExpr -> UnfoldState Type
+getType :: T.CoreExpr -> UnfoldState T.Type
 getType e = do
  (TemporyResult _ _ typeEnv _ _) <- get
- return (typeEnv Map.! e)
+ if (Map.notMember e typeEnv) then error "there is an error in getType"
+    else return (typeEnv Map.! e)
 
 
 constructUnfoldEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState [UnfoldEdge]
@@ -89,7 +106,9 @@ unfoldLeftEdge :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState UnfoldEd
 unfoldLeftEdge pair (T.EBin op e1 e2) e3 = do
   pair1 <- constructUnfoldPair e1 e3
   pair2 <- constructUnfoldPair e2 e3
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
   buildBinaryConstrains 1 op pair1 pair2 pair
+  (TemporyResult number result typeEnv mapToFreeVar chc) <- get
   buildContextEntail pair pair1
   buildContextEntail pair pair2
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
@@ -114,7 +133,7 @@ unfoldLeftEdge pair (T.EApp e1 e2) e3 = do
   buildAppConstrains 1 pair1 pair2 pair
   return (UnfoldEdge UnfoldLeft [pair1,pair2])
 
-unfoldLeftEdge pair (T.ELam v e1) e2 = do 
+unfoldLeftEdge pair (T.ELam v e1) e2 = do
   pair1 <- constructUnfoldPair e1 e2
   buildLamContext [1] [v] pair pair1
   buildLamEntail [1] [v] pair1 pair
@@ -519,11 +538,13 @@ buildBinaryConstrains leftOrRight op pair1 pair2 pair3 = do
  freeV1 <- getAllFreeVar pair1
  freeV2 <- getAllFreeVar pair2
  freeV3 <- getAllFreeVar pair3
+ liftIO (print "here is fine")
  let indexMap = Map.fromList [(1,1),(1,2)]
  let pairs1 = getPairTypePoint t1 t3 [] [] indexMap
  let pairs2 = getPairTypePoint t2 t3 [] [] indexMap
  let validPairs = filter (\((_,t3),(_,t4)) -> t3 == t4) (zip pairs1 pairs2)
  mapM (buildBinaryConstrain leftOrRight op pairId1 1 pairId2 1 pairId3 1 freeV1 freeV2 freeV3) validPairs
+ liftIO (print "here is fine2")
  return ()
 
 getAllFreeVar :: UnfoldPair ->UnfoldState [T.Var]
@@ -534,6 +555,7 @@ getAllFreeVar (UnfoldPair _ _ e1 e2 _ _) = do
 
 buildBinaryConstrain :: Int ->T.Binop -> Int -> Int -> Int -> Int -> Int -> Int -> [T.Var]->[T.Var]->[T.Var] ->((TypePoint,TypePoint),(TypePoint,TypePoint))-> UnfoldState()
 buildBinaryConstrain leftOrRight op pairId1 indicator1 pairId2 indicator2 pairId3 indicator3 freeV1 freeV2 freeV3 ((t1,t3),(t2,_))= do
+  liftIO (print "here is fine3")
   let (TypePoint _ _ typePointId1) = t1
   let (TypePoint _ _ typePointId2) = t2
   let (TypePoint _ _ typePointId3) = t3
@@ -543,8 +565,14 @@ buildBinaryConstrain leftOrRight op pairId1 indicator1 pairId2 indicator2 pairId
   let freeIn13 = filter (\x -> elem x freeV1) freeV3
   let freeIn23 = filter (\x -> elem x freeV2) freeV3
   eq1 <- mapM (generateEq pairId1 indicator1 typePointId1 pairId3 indicator3 typePointId3) freeIn13
+  liftIO (print eq1)
   eq2 <- mapM (generateEq pairId2 indicator2 typePointId2 pairId3 indicator3 typePointId3) freeIn23
+  liftIO (print eq2)
   let eq3 = generateBinary leftOrRight op pairId1 pairId2 pairId3 t1 t2 t3
+  liftIO (print t1)
+  liftIO (print t2)
+  liftIO (print t3)
+  liftIO (print eq3)
   let rule = Rule (MkAnd ([r1,r2]++eq3++(concat eq2)++(concat eq1))) r3
   (TemporyResult number result typeEnv mapToFreeVar chc) <- get
   let newChc = add_rule rule chc
@@ -624,7 +652,7 @@ getRightExpr pairId (TypePoint (Pair _ _ right1 right2 _ _) _ typeId) = do
   let allRight =zip (right1++right2) [1 .. ]
   map (oneExpr "exprRight!" pairId 1 typeId) allRight
 
-oneExpr :: String -> Int -> Int -> Int -> (Type,Int) -> [Var]
+oneExpr :: String -> Int -> Int -> Int -> (T.Type,Int) -> [Var]
 oneExpr leftOrRight pairId indicator typePointId (t,index) = do
   let sorts = getSortFromType t
   let names = getVarName pairId indicator typePointId t (T.Var (leftOrRight++show(index)))
@@ -639,19 +667,19 @@ getVarInSmt pairId indicator typePointId v = do
   return varInSmt
 
 
-getVarName pairId  indicator typePointId (TInt)  (T.Var name) = [name ++"@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)]
-getVarName pairId  indicator typePointId (TBool)  (T.Var name)  = [name ++"@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)]
-getVarName pairId  indicator typePointId (TList _)  (T.Var name) = do
+getVarName pairId  indicator typePointId (T.TInt)  (T.Var name) = [name ++"@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)]
+getVarName pairId  indicator typePointId (T.TBool)  (T.Var name)  = [name ++"@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)]
+getVarName pairId  indicator typePointId (T.TList _)  (T.Var name) = do
  let name1 = name ++"cell@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)
  let name2 = name ++"length@"++(show pairId)++"@"++(show indicator)++"@"++(show typePointId)
  [name1,name2]
 
 getVarName _ _ _ _ _ = []
 
-getSortFromType :: Type -> [Sort]
-getSortFromType (TInt)  = [IntegerSort]
-getSortFromType (TBool) = [BoolSort]
-getSortFromType (TList _) = [IntegerSort,IntegerSort]
+getSortFromType :: T.Type -> [Sort]
+getSortFromType (T.TInt)  = [IntegerSort]
+getSortFromType (T.TBool) = [BoolSort]
+getSortFromType (T.TList _) = [IntegerSort,IntegerSort]
 getSortFromType _ = []
 
 getPairTypePoint :: TypePoint -> TypePoint ->[Int] -> [Int] -> (Map.Map Int Int) -> [(TypePoint,TypePoint)]
@@ -686,8 +714,13 @@ twoEdgeListSame  (TypeEdge index1 _) (TypeEdge index2 _) dropIndex1 dropIndex2 i
   let dropSet2 = Set.fromList dropIndex2
   let drop1 = filter (\x -> Set.notMember x dropSet1) index1
   let drop2 = filter (\x -> Set.notMember x dropSet2) index2
-  let mapIndex = map (\x -> indexMap Map.! x) drop1
+  let mapIndex = map (\x -> safeGet indexMap x) drop1
   mapIndex == drop2
+
+safeGet :: Map.Map Int Int -> Int -> Int
+safeGet theMap key = do
+  if Map.member key theMap then theMap Map.! key
+    else error ("it is not a safe get" ++show(key)++show(theMap))
 
 buildEntails :: UnfoldPair -> UnfoldPair -> UnfoldState ()
 buildEntails pair1@(UnfoldPair _ expressionV1 _ _ pairId1 _) pair2@(UnfoldPair _ expressionV2 _ _ pairId2 _) = do

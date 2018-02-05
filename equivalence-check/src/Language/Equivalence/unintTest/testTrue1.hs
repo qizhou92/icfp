@@ -1,7 +1,4 @@
 module Language.Haskell.Test1 where
-import Language.Equivalence.CHC
-import Language.Equivalence.Expr
-import Language.Equivalence.Check
 import qualified Data.Set as Set
 import qualified Data.List as List
 import qualified Language.Equivalence.Types as Types
@@ -9,8 +6,8 @@ import Language.Equivalence.Derivations
 import qualified Data.Map as Map
 import Control.Monad.Except
 import Control.Monad.State
-import Language.Equivalence.TypeInference
-import Language.Equivalence.VerifyDerivation
+import Language.Equivalence.Derivations
+import Language.Equivalence.SimpleInferRelationalTypes
 
 
 main = do
@@ -25,6 +22,6 @@ main = do
   let sum2 = Types.EBin Types.Plus (Types.EVar y) one
   let lambada1 = Types.ELam x sum1
   let lambada2 = Types.ELam y sum2
-  result <- verify lambada1 lambada2
-  print result
+  verifyResult <- verifyPairs lambada1 zero
+  print verifyResult
   

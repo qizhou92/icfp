@@ -14,6 +14,7 @@ import           Language.Equivalence.Expr hiding (Var)
 
 import Data.Monoid
 import qualified Data.Set as S 
+import qualified Data.Map as Map
 
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
@@ -217,6 +218,46 @@ freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
 freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
 freeVars (EMatch e en x y ec) 
   = freeVars e <> freeVars en <> S.filter (\v -> (v /= x && v /= y)) (freeVars ec)
+
+
+getFreeVarsMap :: CoreExpr -> Map.Map CoreExpr [Var]
+getFreeVarsMap e@(EVar v) = Map.singleton e [v]
+getFreeVarsMap e@(EBin _ e1 e2) = do
+  let leftMap = getFreeVarsMap e1
+  let rightMap = getFreeVarsMap e2
+  let allVars = (leftMap Map.! e1) ++ (rightMap Map.! e2)
+  Map.insert e allVars (Map.union leftMap rightMap)
+getFreeVarsMap e@(EIf e1 e2 e3) = do
+  let map1 = getFreeVarsMap e1
+  let map2 = getFreeVarsMap e2
+  let map3 = getFreeVarsMap e3
+  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2) ++ (map3 Map.! e3)
+  Map.insert e allVars (Map.union (Map.union map1 map2) map3)
+getFreeVarsMap e@(ELet x e1 e2) = do
+  let map1 = getFreeVarsMap e1
+  let map2 = getFreeVarsMap e2
+  let allVars = filter (/=x) ((map1 Map.! e1) ++ (map2 Map.! e2))
+  Map.insert e allVars (Map.union map1 map2)
+getFreeVarsMap e@(EApp e1 e2) = do
+  let map1 = getFreeVarsMap e1
+  let map2 = getFreeVarsMap e2
+  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2)
+  Map.insert e allVars (Map.union map1 map2)
+getFreeVarsMap e@(ELam x e1) = do
+  let map1 = getFreeVarsMap e1
+  let allVars =filter (/= x) (map1 Map.! e1)
+  Map.insert e allVars map1 
+getFreeVarsMap e@(EFix x e1) = do 
+  let map1 = getFreeVarsMap e1
+  let allVars =filter (/= x) (map1 Map.! e1)
+  Map.insert e allVars map1 
+getFreeVarsMap e@(EMatch e1 e2 x y e3) = do
+  let map1 = getFreeVarsMap e1
+  let map2 = getFreeVarsMap e2
+  let map3 = getFreeVarsMap e3
+  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2) ++(filter (\v -> (v /= x && v /= y)) (map3 Map.! e3))
+  Map.insert e allVars (Map.union (Map.union map1 map2) map3)
+getFreeVarsMap e = Map.singleton e []
 
 -- need to implement get var type
 getVarSort :: Var -> Sort

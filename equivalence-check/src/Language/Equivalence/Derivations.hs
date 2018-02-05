@@ -59,6 +59,11 @@ unwindDer (Der rule expr1 expr2 list idNumber) = do
   list1 <- mapM unwindDer list
   return (Der rule expr1 expr2 list1 idNumber)
 
+unwindDerivation :: CoreExpr -> CoreExpr
+unwindDerivation e = do
+  let emptySet = Set.empty
+  evalState (getNewDerivation e) emptySet 
+
 getNewDerivation :: CoreExpr ->FixState CoreExpr
 getNewDerivation e@(EInt _) =return e
 getNewDerivation e@(EBool _) =return e
