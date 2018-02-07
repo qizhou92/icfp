@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Language.Types where
 
+import           Control.Lens
+import           Data.Data.Lens
+import           Data.Data (Data)
+
 import           GHC.Exts( IsString(..) )
 import           Text.Printf (printf)
 import           Text.PrettyPrint.HughesPJ hiding ((<>))
@@ -84,10 +88,10 @@ data Binop
   | And
   | Or
   | Cons
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Data)
 
-data Var = Var String
-           deriving (Eq, Ord)
+newtype Var = Var String
+  deriving (Eq, Ord, Data)
 
 instance Show Var where
   show (Var x) = x
@@ -111,7 +115,10 @@ data CoreExpr = ENil
   | EApp CoreExpr  CoreExpr
   | ELam Var   CoreExpr
   | EFix Var   CoreExpr
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Show, Ord, Data)
+
+instance Plated CoreExpr where
+  plate = uniplate
 
 data Value
   = VInt  Int
@@ -309,7 +316,10 @@ data Type = TVar TV
            | TFix TV Type
            | TNil
            | TList Type 
-  deriving (Eq, Ord,Show)
+  deriving (Eq, Ord, Show, Data)
+
+instance Plated Type where
+  plate = uniplate
 
 
 data Scheme = Forall [Type] Type
