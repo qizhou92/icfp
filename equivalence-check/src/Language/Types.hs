@@ -22,59 +22,47 @@ import qualified Data.Map as Map
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
 
-goalsToPrograms :: Program -> (Var, Var) -> (Bind, Bind)
-goalsToPrograms bs (x1, x2) = ((x1, findBind bs x1), (x2, findBind bs x2))
+newtype Var = Var String
+  deriving (Eq, Ord, Data)
+instance Show Var where show (Var x) = x
 
-findBind :: Program -> Var -> CoreExpr
-findBind ((x,e):bs) y
-  | x == y    = e
-  | otherwise = findBind bs y
-findBind [] _ = error "findBind: Not found"
+type TV = String
+data Type
+  = TVar TV
+  | TInt
+  | TBool
+  | TArr Type Type
+  | TPlus Type Type
+  | TProduct Type Type
+  | TFix TV Type
+  | TNil
+  | TList Type
+  deriving (Eq, Ord, Show, Data)
+instance Plated Type where plate = uniplate
 
-data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
-  deriving Show
+data Scheme = Forall [Type] Type
+  deriving (Show)
 
--- instance Show Result where
---   show (Result (x1, x2) b) = printf "Programs %s and %s %s equivalent" (showPpr x1) (showPpr x2) res
---     where
---       res :: String
---       res | b              = " are "
---           | otherwise      = " are not "
-
-data EqEnv
-  = EqEnv { eqProgram :: Program
-          , eqGoals   :: [(Var, Var)]
-          }
-  deriving Show
-
--- instance Show EqEnv where
-   -- show (EqEnv p x) = printf " EqEnv: goals = %s \nprogram:\n%s" gs ps
-   --    where
-   --      gs          = unlines (showPpr <$> x)
-   --      ps          = progString p
-
-
-data Config = Config
-  { cfgFile    :: String
-  , cfgQueries :: [(Var, Var)]
-  } deriving (Show)
-
-makeConfig :: [String] -> IO Config
-makeConfig (file : xs) =
-  return $ Config file (mkPairs xs)
-makeConfig _     = do
-   putStrLn "No input file specified"
-   exitWith $ ExitFailure 0
-
-mkPairs :: [String] -> [(Var, Var)]
-mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
-mkPairs _            = []
-
-
-data Error = Error {errMsg :: String}
-             deriving (Show, Typeable)
+newtype Error = Error {errMsg :: String}
+  deriving (Show, Typeable)
 
 instance Exception Error
+
+data CoreExpr
+  = ENil
+  | EInt  Int
+  | EBool Bool
+  | EVar Var
+  | EBin Binop CoreExpr CoreExpr
+  | EIf  CoreExpr  CoreExpr  CoreExpr
+  -- match e e1 x y e2 = case e of {Nil -> e1; Cons x y -> e2}
+  | EMatch CoreExpr CoreExpr Var Var CoreExpr
+  | ECon CoreExpr CoreExpr
+  | ELet Var   CoreExpr  CoreExpr
+  | EApp CoreExpr  CoreExpr
+  | ELam Var   CoreExpr
+  | EFix Var   CoreExpr
+  deriving (Eq, Show, Ord, Data)
 
 data Binop
   = Plus
@@ -90,32 +78,42 @@ data Binop
   | Cons
   deriving (Eq, Ord, Show, Data)
 
-newtype Var = Var String
-  deriving (Eq, Ord, Data)
+data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
+  deriving Show
 
-instance Show Var where
-  show (Var x) = x
+data EqEnv = EqEnv
+  { eqProgram :: Program
+  , eqGoals   :: [(Var, Var)]
+  } deriving Show
 
--- instance PPrint Var where
---   ppr = text . show
+data Config = Config
+  { cfgFile    :: String
+  , cfgQueries :: [(Var, Var)]
+  } deriving (Show)
+
+goalsToPrograms :: Program -> (Var, Var) -> (Bind, Bind)
+goalsToPrograms bs (x1, x2) = ((x1, findBind bs x1), (x2, findBind bs x2))
+
+findBind :: Program -> Var -> CoreExpr
+findBind ((x,e):bs) y
+  | x == y    = e
+  | otherwise = findBind bs y
+findBind [] _ = error "findBind: Not found"
+
+makeConfig :: [String] -> IO Config
+makeConfig (file : xs) =
+  return $ Config file (mkPairs xs)
+makeConfig _     = do
+   putStrLn "No input file specified"
+   exitWith $ ExitFailure 0
+
+mkPairs :: [String] -> [(Var, Var)]
+mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
+mkPairs _            = []
+
 
 instance IsString CoreExpr where
   fromString = EVar . Var
-
-data CoreExpr = ENil 
-  |EInt  Int
-  | EBool Bool
-  | EVar Var
-  | EBin Binop CoreExpr CoreExpr
-  | EIf  CoreExpr  CoreExpr  CoreExpr
-  -- match e e1 x y e2 = case e of {Nil -> e1; Cons x y -> e2}
-  | EMatch CoreExpr CoreExpr Var Var CoreExpr
-  | ECon CoreExpr CoreExpr
-  | ELet Var   CoreExpr  CoreExpr
-  | EApp CoreExpr  CoreExpr
-  | ELam Var   CoreExpr
-  | EFix Var   CoreExpr
-  deriving (Eq, Show, Ord, Data)
 
 instance Plated CoreExpr where
   plate = uniplate
@@ -169,18 +167,21 @@ envString env = printf "{ %s }" (L.intercalate ", " bs)
     bs        = [ x ++ " := " ++ show v | (Var x, v) <- env]
 
 exprString :: CoreExpr -> String
-exprString (EInt i)       = printf "%d" i
-exprString (EBool b)      = printf "%s" (show b)
-exprString (EVar (Var x)) = x
-exprString (EBin o e1 e2) = printf "(%s %s %s)" (exprString e1) (binopString o) (exprString e2)
-exprString (EIf c t e)    = printf "if %s then %s else %s" (exprString c) (exprString t) (exprString e)
-exprString (ELet x e e')  = printf "let %s = %s in \n %s" (show x) (exprString e) (exprString e')
-exprString (EApp e1 e2)   = printf "(%s %s)" (exprString e1) (exprString e2)
-exprString (ELam x e)     = printf "\\%s -> %s" (show x) (exprString e)
-exprString (EFix x e)     = printf "fix %s %s" (show x) (exprString e)
-exprString ENil           = "[]"
-exprString (EMatch e n x y c) = printf "match %s with {Nil -> %s; Cons %s %s -> %s}"  
-                                       (exprString e) (exprString n) (show x) (show y) (exprString c)
+exprString = \case
+  EInt i       -> printf "%d" i
+  EBool b      -> printf "%s" (show b)
+  EVar (Var x) -> x
+  EBin o e1 e2 -> printf "(%s %s %s)" (go e1) (binopString o) (go e2)
+  EIf c t e    -> printf "if %s then %s else %s" (go c) (go t) (go e)
+  ELet x e e'  -> printf "let %s = %s in \n %s" (show x) (go e) (go e')
+  EApp e1 e2   -> printf "(%s %s)" (go e1) (go e2)
+  ELam x e     -> printf "\\%s -> %s" (show x) (go e)
+  EFix x e     -> printf "fix %s %s" (show x) (go e)
+  ENil           -> "[]"
+  EMatch e n x y c -> printf "match %s with {Nil -> %s; Cons %s %s -> %s}"  
+                       (go e) (go n) (show x) (show y) (go c)
+  where
+    go = exprString
 
 bindString :: Bind -> String
 bindString (x, e) = printf "let %s =\n  %s" (show x) (exprString e)
@@ -210,7 +211,7 @@ valueList = foldr VPair VNil
 
 
 isFix :: CoreExpr -> Bool 
-isFix (ELet x ex _) =  x `S.member` (freeVars ex)
+isFix (ELet x ex _) =  x `S.member` freeVars ex
 isFix _             = False 
 
 freeVars :: CoreExpr -> S.Set Var
@@ -226,7 +227,6 @@ freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
 freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
 freeVars (EMatch e en x y ec) 
   = freeVars e <> freeVars en <> S.filter (\v -> (v /= x && v /= y)) (freeVars ec)
-
 
 getFreeVarsMap :: CoreExpr -> Map.Map CoreExpr [Var]
 getFreeVarsMap e@(EVar v) = Map.singleton e [v]
@@ -253,11 +253,11 @@ getFreeVarsMap e@(EApp e1 e2) = do
   Map.insert e allVars (Map.union map1 map2)
 getFreeVarsMap e@(ELam x e1) = do
   let map1 = getFreeVarsMap e1
-  let allVars =filter (/= x) (map1 Map.! e1)
+  let allVars = filter (/= x) (map1 Map.! e1)
   Map.insert e allVars map1 
 getFreeVarsMap e@(EFix x e1) = do 
   let map1 = getFreeVarsMap e1
-  let allVars =filter (/= x) (map1 Map.! e1)
+  let allVars = filter (/= x) (map1 Map.! e1)
   Map.insert e allVars map1 
 getFreeVarsMap e@(EMatch e1 e2 x y e3) = do
   let map1 = getFreeVarsMap e1
@@ -298,29 +298,3 @@ subst su@(y,_) (EFix x e)
 subst su@(z,_) (EMatch e e1 x y e2) 
   = EMatch (subst su e) (subst su e1) x y 
            (if (x == z || y == z) then e2 else subst su e2)
-
-
-
-
--------------------------------------------------------------------------------
--- | Types --------------------------------------------------------------------
--------------------------------------------------------------------------------
-
-type TV = String
-data Type = TVar TV
-           | TInt
-           | TBool
-           | TArr Type Type
-           | TPlus Type Type
-           | TProduct Type Type
-           | TFix TV Type
-           | TNil
-           | TList Type 
-  deriving (Eq, Ord, Show, Data)
-
-instance Plated Type where
-  plate = uniplate
-
-
-data Scheme = Forall [Type] Type
-  deriving (Show)
