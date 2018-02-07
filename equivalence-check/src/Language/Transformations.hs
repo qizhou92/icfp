@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Language.Equivalence.Transformations  where
+module Language.Transformations  where
 
-import Language.Equivalence.Types
+import Language.Types
 import qualified Data.Map as M
 
 

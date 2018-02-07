@@ -1,10 +1,10 @@
-module Language.Equivalence.TypeInference where
+module Language.TypeInference where
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Control.Monad.Except
 import Control.Monad.State
-import Language.Equivalence.Types
-import Language.Equivalence.Transformations
+import Language.Types
+import Language.Transformations
 
 
 types :: Program -> Either String [(Var, Scheme)]

@@ -62,18 +62,4 @@ library:
   - Formula
   - Formula.Z3
   - Grammar
-  - Language.Equivalence.CHC
-  # - Language.Equivalence.Check
-  - Language.Equivalence.Derivations
-  - Language.Equivalence.Expr
-  - Language.Equivalence.Lexer
-  - Language.Equivalence.Misc
-  - Language.Equivalence.Parser
-  - Language.Equivalence.SimpleCheckInductive
-  - Language.Equivalence.SimpleInferRelationalTypes
-  - Language.Equivalence.SimpleRelationalTypes
-  - Language.Equivalence.Transformations
-  - Language.Equivalence.TypeInference
-  - Language.Equivalence.Types
-  # - Language.Equivalence.InferRelationalTypes
-  - Language.Equivalence.RelationalTypes
+  - Language

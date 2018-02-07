@@ -1,14 +1,14 @@
 module Main where
 
-import Language.Equivalence.Types
--- import Language.Equivalence.Verify
-import Language.Equivalence.Parser
-import Language.Equivalence.TypeInference
--- import Language.Equivalence.RelationalTypes
+import Language
+
 import System.Environment
 import System.Exit
 import Data.Maybe (mapMaybe)
 import Data.List  (isPrefixOf)
+
+parseProg :: String -> Program
+parseProg = undefined
 
 main :: IO ExitCode
 main = equivalenceCheck =<< makeConfig =<< getArgs

@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-
-module Language.Equivalence.Types where
+module Language.Types where
 
 import           GHC.Exts( IsString(..) )
 import           Text.Printf (printf)
@@ -9,8 +8,8 @@ import           Control.Exception
 import           Data.Typeable
 import qualified Data.List as L
 import           System.Exit
-import           Language.Equivalence.Misc
-import           Language.Equivalence.Expr hiding (Var)
+-- import           Language.Equivalence.Misc
+-- import           Language.Equivalence.Expr hiding (Var)
 
 import Data.Monoid
 import qualified Data.Set as S 
@@ -29,24 +28,26 @@ findBind ((x,e):bs) y
 findBind [] _ = error "findBind: Not found"
 
 data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
+  deriving Show
 
-instance Show Result where
-  show (Result (x1, x2) b) = printf "Programs %s and %s %s equivalent" (showPpr x1) (showPpr x2) res
-    where
-      res :: String
-      res | b              = " are "
-          | otherwise      = " are not "
+-- instance Show Result where
+--   show (Result (x1, x2) b) = printf "Programs %s and %s %s equivalent" (showPpr x1) (showPpr x2) res
+--     where
+--       res :: String
+--       res | b              = " are "
+--           | otherwise      = " are not "
 
 data EqEnv
   = EqEnv { eqProgram :: Program
           , eqGoals   :: [(Var, Var)]
           }
+  deriving Show
 
-instance Show EqEnv where
-   show (EqEnv p x) = printf " EqEnv: goals = %s \nprogram:\n%s" gs ps
-      where
-        gs          = unlines (showPpr <$> x)
-        ps          = progString p
+-- instance Show EqEnv where
+   -- show (EqEnv p x) = printf " EqEnv: goals = %s \nprogram:\n%s" gs ps
+   --    where
+   --      gs          = unlines (showPpr <$> x)
+   --      ps          = progString p
 
 
 data Config = Config
@@ -91,8 +92,8 @@ data Var = Var String
 instance Show Var where
   show (Var x) = x
 
-instance PPrint Var where
-  ppr = text . show
+-- instance PPrint Var where
+--   ppr = text . show
 
 instance IsString CoreExpr where
   fromString = EVar . Var
@@ -258,35 +259,6 @@ getFreeVarsMap e@(EMatch e1 e2 x y e3) = do
   let allVars = (map1 Map.! e1) ++ (map2 Map.! e2) ++(filter (\v -> (v /= x && v /= y)) (map3 Map.! e3))
   Map.insert e allVars (Map.union (Map.union map1 map2) map3)
 getFreeVarsMap e = Map.singleton e []
-
--- need to implement get var type
-getVarSort :: Var -> Sort
-getVarSort _ = IntegerSort
-
--- paritally implemented, need to figure out let
-getSort :: CoreExpr -> [Sort]
-getSort (EVar v) = [(getVarSort v)]
-getSort (EInt _) = [IntegerSort]
-getSort (EBool _) = [BoolSort]
-getSort (EBin op _ _) = case op of
-  Plus -> [IntegerSort]
-  Minus -> [IntegerSort]
-  Mul -> [IntegerSort]
-  Div -> [IntegerSort]
-  Eq -> [BoolSort]
-  Ne -> [BoolSort]
-  Lt -> [BoolSort]
-  Le -> [BoolSort]
-  And -> [BoolSort]
-  Or -> [BoolSort]
-  Cons -> []
-getSort (EIf _ e1 _) = getSort e1
-getSort (EApp e1 e2) = (drop (length (getSort e1)) (getSort e2))
-getSort (ELam x e) = (getVarSort x):(getSort e)
-getSort (EFix _ e) = getSort e
-getSort ENil = []
-getSort (ELet _ _ _) = []
-getSort (EMatch _ e _ _ _) = getSort e
 
 subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
 subst (x,e) (EVar v)

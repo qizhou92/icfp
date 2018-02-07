@@ -553,8 +553,6 @@ getSortMap number list = case list of
  x:xs -> Map.insert ("x!"++show(number)) x (getSortMap (number+1) xs)
  [] -> Map.empty
 
-
-
 lexer = T.makeTokenParser emptyDef
 parens    = T.parens lexer
 symbol     = T.symbol lexer
