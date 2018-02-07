@@ -42,13 +42,9 @@ data Expr
   | Gt  Type
   | Ge  Type
 
-  | Store Type Type
-  | Select Type Type
-
   | LUnit
   | LBool Bool
   | LInt Integer
-  | LReal Double
   deriving (Show, Read, Eq, Ord, Data)
 
 infixl 9 :@
@@ -90,13 +86,9 @@ formType = \case
   Gt t        -> t :=> t :=> T.Bool
   Ge t        -> t :=> t :=> T.Bool
 
-  Select t t' -> T.Array t t' :=> t :=> t' :=> T.Array t t'
-  Store t t'  -> T.Array t t' :=> t :=> t'
-
   LUnit       -> T.Unit
   LBool _     -> T.Bool
   LInt _      -> T.Int
-  LReal _     -> T.Real
 
 instance Pretty Expr where
   pretty = \case
@@ -129,9 +121,6 @@ instance Pretty Expr where
     Le _         -> pretty "<="
     Gt _         -> pretty ">"
     Ge _         -> pretty ">="
-
-    Store{}      -> pretty "store"
-    Select{}     -> pretty "select"
 
     LUnit        -> pretty "()"
     LBool b      -> pretty b
