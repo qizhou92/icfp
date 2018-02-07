@@ -125,7 +125,6 @@ instance Pretty Expr where
     LUnit        -> pretty "()"
     LBool b      -> pretty b
     LInt i       -> pretty i
-    LReal r      -> pretty r
     where
       binArg f = if isLit f || isVar f then pretty f else parens (pretty f)
 
@@ -218,7 +217,6 @@ isLit = \case
   LUnit   -> True
   LBool _ -> True
   LInt _  -> True
-  LReal _ -> True
   _       -> False
 
 -- | Is the formula simply a variable?

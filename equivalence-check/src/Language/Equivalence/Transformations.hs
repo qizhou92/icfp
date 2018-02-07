@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Language.Equivalence.Transformations  where
 
 import Language.Equivalence.Types

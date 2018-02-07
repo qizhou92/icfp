@@ -154,7 +154,6 @@ formToAst f =
     F.LBool True        -> mkTrue
     F.LBool False       -> mkFalse
     F.LInt l            -> mkInteger l
-    F.LReal _           -> undefined
     f' :@ a             -> let (f'', as) = gatherApp f' [a]
                            in appToZ3 f'' as
     _ -> undefined
@@ -201,13 +200,9 @@ appToZ3 f args =
     F.Gt _       -> two mkGt
     F.Ge _       -> two mkGe
 
-    F.Store _ _  -> three mkStore
-    F.Select _ _ -> two mkSelect
-
     F.LUnit      -> undefined
     F.LBool b    -> mkBool b
     F.LInt _     -> undefined
-    F.LReal _    -> undefined
     _ :@ _       -> undefined
 
   where
@@ -249,8 +244,6 @@ formFromApp n args range
   | n == "-"        = if length args == 1
                          then F.app2 (F.Sub F.Int) (F.LInt 0) <$> astToExpr (head args)
                          else lift2 (F.Sub F.Int)
-  | n == "select"   = lift2 (F.Select F.Int F.Int)
-  | n == "store"    = lift3 (F.Store F.Int F.Int)
   | otherwise = do
     -- Found a function that is as of yet unknown.
     liftIO $ putStrLn ("applying: " ++ n)
@@ -260,9 +253,6 @@ formFromApp n args range
     let f = F.Var n (F.curryType domain range')
     return $ F.appMany (F.V f) args'
   where lift2 f = F.app2 f <$> astToExpr (head args) <*> astToExpr (args !! 1)
-        lift3 f = F.app3 f <$> astToExpr (head args)
-                           <*> astToExpr (args !! 1)
-                           <*> astToExpr (args !! 2)
         liftMany f = F.appMany f <$> traverse astToExpr args
 
 -- | Convert a Z3 model to the AST-based formula model.
@@ -302,7 +292,6 @@ astToExpr arg = do
          rep <- getNumeralString arg
          case t of
            F.Int  -> return $ F.LInt  $ read rep
-           F.Real -> return $ F.LReal $ read rep
            _       -> error "unknown numeric type"
 
     Z3_APP_AST ->
@@ -332,8 +321,6 @@ typeToSort = \case
   F.Unit       -> mkIntSort
   F.Bool       -> mkBoolSort
   F.Int        -> mkIntSort
-  F.Real       -> mkRealSort
-  F.Array t t' -> join $ mkArraySort <$> typeToSort t <*> typeToSort t'
   _ :=> _      -> undefined
   F.List _     -> undefined
 
@@ -344,12 +331,9 @@ sortToType s = do
     Z3_UNINTERPRETED_SORT  -> error "unsupported sort kind"
     Z3_BOOL_SORT           -> return F.Bool
     Z3_INT_SORT            -> return F.Int
-    Z3_REAL_SORT           -> return F.Real
+    Z3_REAL_SORT           -> error "unsupported sort kind"
     Z3_BV_SORT             -> error "unsupported sort kind"
-    Z3_ARRAY_SORT          -> do
-      d <- sortToType =<< getArraySortDomain s
-      r <- sortToType =<< getArraySortRange s
-      return (F.Array d r)
+    Z3_ARRAY_SORT          -> error "unsupported sort kind"
     Z3_DATATYPE_SORT       -> error "unsupported sort kind"
     Z3_RELATION_SORT       -> error "unsupported sort kind"
     Z3_FINITE_DOMAIN_SORT  -> error "unsupported sort kind"

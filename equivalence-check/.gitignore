@@ -33,6 +33,7 @@ _build
 *.swo
 
 .stack-work/
+*.cabal
 /.stack-work/
 /.vagrant/
 TAGS

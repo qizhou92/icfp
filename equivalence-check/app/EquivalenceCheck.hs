@@ -4,7 +4,7 @@ import Language.Equivalence.Types
 -- import Language.Equivalence.Verify
 import Language.Equivalence.Parser
 import Language.Equivalence.TypeInference
-import Language.Equivalence.RelationalTypes
+-- import Language.Equivalence.RelationalTypes
 import System.Environment
 import System.Exit
 import Data.Maybe (mapMaybe)

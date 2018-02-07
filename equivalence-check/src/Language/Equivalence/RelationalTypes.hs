@@ -1,11 +1,11 @@
 module Language.Equivalence.RelationalTypes where
 
 import Language.Equivalence.TypeInference
+import Language.Equivalence.Types
 import Control.Monad.State
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 
-type TV = String
 data TypeWithId = TVarId TV Int
                  |TIntId Int
                  |TBoolId Int

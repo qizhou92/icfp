@@ -1,0 +1,79 @@
+name: equivalence-check
+version: '0.1.0.0'
+category: Language
+author: nikivazou
+maintainer: nikivazou@gmail.com
+license: MIT
+
+extra-source-files:
+- ChangeLog.md
+
+default-extensions:
+- LambdaCase
+- MultiWayIf
+- DeriveDataTypeable
+- DeriveFunctor
+- DeriveFoldable
+- DeriveTraversable
+- GeneralizedNewtypeDeriving
+- RankNTypes
+- FlexibleContexts
+- FlexibleInstances
+- NoMonomorphismRestriction
+
+build-tools:
+- alex
+- happy
+
+dependencies:
+- base >=4.9 && <5
+- ghc-paths
+- temporary
+- containers
+- parsec
+- parsec-numbers
+- unordered-containers
+- pretty
+- array
+- mtl
+- process
+- monad-loops
+- lens
+- prettyprinter
+- split
+- template-haskell >=2.11
+- syb
+- z3 >=4.1
+- turtle
+- extra
+
+executables:
+  equivalence-check:
+    main: EquivalenceCheck.hs
+    source-dirs: app
+    dependencies: equivalence-check
+
+library:
+  source-dirs: src
+
+  ghc-options: -Wall
+
+  exposed-modules:
+  - Formula
+  - Formula.Z3
+  - Grammar
+  - Language.Equivalence.CHC
+  # - Language.Equivalence.Check
+  - Language.Equivalence.Derivations
+  - Language.Equivalence.Expr
+  - Language.Equivalence.Lexer
+  - Language.Equivalence.Misc
+  - Language.Equivalence.Parser
+  - Language.Equivalence.SimpleCheckInductive
+  - Language.Equivalence.SimpleInferRelationalTypes
+  - Language.Equivalence.SimpleRelationalTypes
+  - Language.Equivalence.Transformations
+  - Language.Equivalence.TypeInference
+  - Language.Equivalence.Types
+  # - Language.Equivalence.InferRelationalTypes
+  - Language.Equivalence.RelationalTypes

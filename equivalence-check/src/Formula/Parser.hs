@@ -53,8 +53,6 @@ atom = try app <|> nonapp
     nonapp = parens parseExpr <|> (V <$> try var) <|> bool <|> (LInt <$> integer)
     app = (res "not"      >> (:@) Not                    <$> nonapp)
       <|> (res "if"       >> appMany (If T.Int)          <$> sequence [nonapp, nonapp, nonapp])
-      <|> (res "store"    >> appMany (Store T.Int T.Int) <$> sequence [nonapp, nonapp, nonapp])
-      <|> (res "select"   >> appMany (Select T.Int T.Int)<$> sequence [nonapp, nonapp])
       <|> (res "distinct" >> appMany (Distinct T.Int)    <$> many1 nonapp)
       <|> (res "and"      >> manyAnd                     <$> many1 nonapp)
       <|> (res "or"       >> manyOr                      <$> many1 nonapp)
@@ -78,16 +76,8 @@ bool = const (LBool True)  <$> res "true"
    <|> const (LBool False) <$> res "false"
 
 typ :: CharParser st Type
-typ = (do res "Arr"
-          _ <- symbol "{"
-          t1 <- typ
-          _ <- symbol ","
-          t2 <- typ
-          _ <- symbol "}"
-          return (T.Array t1 t2))
-  <|> (res "Bool" >> return T.Bool)
+typ = (res "Bool" >> return T.Bool)
   <|> (res "Int"  >> return T.Int)
-  <|> (res "Real" >> return T.Real)
   <|> (res "Unit" >> return T.Unit)
 
 var :: CharParser st Var

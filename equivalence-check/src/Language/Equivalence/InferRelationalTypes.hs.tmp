@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 import qualified Data.Map as Map
 
 
-data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr Type) CHC
+data TemporyResult = TemporyResult Int  (Map.Map (T.CoreExpr,T.CoreExpr) UnfoldPair) (Map.Map T.CoreExpr T.Type) CHC
   deriving (Show,Eq,Ord)
 
 type UnfoldState a = (State TemporyResult) a
@@ -69,7 +69,7 @@ constructUnfoldEdge rootPair e1 e2 = do
   return (filter (\(UnfoldEdge _ list) -> if (length list) > 0 then True else False ) [leftEdge,rightEdge,bothEdge])
 
 buildConstrainsForPair :: UnfoldPair -> T.CoreExpr -> T.CoreExpr -> UnfoldState ()
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt value1) (EInt value2) = do
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EInt value1) (T.EInt value2) = do
   let (TypePoint types _ _) = contextV
   let indexMap =Map.fromList (zip [1 .. (length types)] [3 .. ])
   let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV expressionV [] [1,2] indexMap) (Set.empty))
@@ -79,7 +79,7 @@ buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt 
   mapM (buildConstant indexMap value1 value2 pairId) constrainTypePoint1
   return ()
 
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt value1) (EBool value2) = do
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EInt value1) (T.EBool value2) = do
   let (TypePoint types _ _) = contextV
   let indexMap =Map.fromList (zip [1 .. (length types)] [3 .. ])
   let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV expressionV [] [1,2] indexMap) (Set.empty))
@@ -88,8 +88,7 @@ buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt 
   let constant2 = ExprConstant (ConstantBool value2)
   mapM (buildConstant indexMap value1 value2 pairId) constrainTypePoint1
   return ()
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt value1) (EVar var2) = do
-  do
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EInt value1) (T.EVar var2) = do
   let (TypePoint types _ _) = contextV
   let indexMap =Map.fromList (zip [1 .. (length types)] [3 .. ])
   let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV expressionV [] [1,2] indexMap) (Set.empty))
@@ -98,7 +97,7 @@ buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EInt 
   let constant2 = ExprConstant (ConstantInt value2)
   mapM (buildConstant indexMap value1 value2 pairId) constrainTypePoint1
   return ()
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EBool value1) (EInt value2) = do
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EBool value1) (T.EInt value2) = do
   let (TypePoint types _ _) = contextV
   let indexMap =Map.fromList (zip [1 .. (length types)] [3 .. ])
   let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV expressionV [] [1,2] indexMap) (Set.empty))
@@ -107,7 +106,7 @@ buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EBool
   let constant2 = ExprConstant (ConstantInt value2)
   mapM (buildConstant indexMap value1 value2 pairId) constrainTypePoint1
   return ()
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EBool value1) (EBool value2) = do
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EBool value1) (T.EBool value2) = do
   let (TypePoint types _ _) = contextV
   let indexMap =Map.fromList (zip [1 .. (length types)] [3 .. ])
   let correspondingTypePoints1 =Set.toList (execState (collectNewCorespondingTypePoint contextV expressionV [] [1,2] indexMap) (Set.empty))
@@ -116,10 +115,10 @@ buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EBool
   let constant2 = ExprConstant (ConstantBool value2)
   mapM (buildConstant indexMap value1 value2 pairId) constrainTypePoint1
   return ()
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EBool value1) (EVar var2) = undefined
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EVar var1) (EInt value2) = undefined
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EVar var1) (EBool value2) = undefined
-buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (EVar var1) (EVar var2) = undefined
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EBool value1) (T.EVar var2) = undefined
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EVar var1) (T.EInt value2) = undefined
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EVar var1) (T.EBool value2) = undefined
+buildConstrainsForPair (UnfoldPair contextV expressionV _ _ _ _ pairId _) (T.EVar var1) (T.EVar var2) = undefined
 
 buildConstant :: (Map.Map Int Int) -> Expr -> Expr -> Int ->(TypePoint,TypePoint) -> UnfoldState ()
 buildConstant indexMap constant1 constant2 pairId (t1,t2)= do
@@ -289,11 +288,12 @@ collectNewCorespondingTypePoint t1@(TypePoint _ edgeList1 _) t2@(TypePoint _ edg
   mapM (addCorrespondingTypePoint dropList1 dropList2 indexMap) validPairs
   return ()
 
-addCorrespondingTypePoint :: [Int] -> [Int] -> (Map.Map Int Int)-> (TypeEdge,TypeEdge) ->(State (Set.Set (TypePoint,TypePoint))) ()
+addCorrespondingTypePoint :: [Int] -> [Int] -> (Map.Map Int Int)-> (TypeEdge,TypeEdge) ->(State (Set.Set (TypePoint,TypePoint))) undefined
 addCorrespondingTypePoint  dropList1 dropList2 indexMap ((TypeEdge _ _ list1), (TypeEdge _ _ list2)) = do
   let pairTypePoint = zip list1 list2
   mapM (\(t1,t2)-> collectCorespondingTypePoint t1 t2 dropList1 dropList2 indexMap) pairTypePoint
   return ()
+  undefined
 
 
 twoEdgeListSame :: TypeEdge -> TypeEdge -> [Int] -> [Int] -> (Map.Map Int Int) -> Bool
