@@ -1,0 +1,3 @@
+write tests for type inference
+refactor type inferece
+  merge operation which combines semantics of unify and type inference?

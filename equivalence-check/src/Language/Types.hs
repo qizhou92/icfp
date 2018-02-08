@@ -12,7 +12,6 @@ import qualified Data.Map as M
 import           Data.Monoid
 import           Data.Text.Prettyprint.Doc hiding ((<>))
 
-import           Text.Printf (printf)
 import           GHC.Exts(IsString(..))
 
 type Program = [Bind]
@@ -67,6 +66,7 @@ instance Pretty CoreExpr where
     ELam x e         -> p "\\" <> p x <+> p "->" <+> p e
     EFix x e         -> p "fix " <+> p x <+> p e
     ENil             -> p "[]"
+    ECon x y         -> parens (p "con" <+> p x <+> p y)
     EMatch e n x y c ->
       p "match" <+> p e <+> p "with" <+>
         braces (p "Nil ->" <+> p n <> p "; Cons" <+> p x <+> p y <+> p "->" <+> p c)
@@ -115,12 +115,6 @@ instance IsString CoreExpr where
 
 instance Plated CoreExpr where
   plate = uniplate
-
-bindString :: Bind -> String
-bindString (x, e) = printf "let %s =\n  %s" (show x) (exprString e)
-
-progString :: Program -> String
-progString xes = unlines (bindString <$> xes)
 
 exprList :: [CoreExpr] -> CoreExpr
 exprList = foldr (EBin Cons) ENil
