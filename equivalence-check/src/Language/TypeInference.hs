@@ -18,7 +18,7 @@ types :: Program -> Either String [(Var, Scheme)]
 types prog =
   case evalState (runExceptT (act prog)) 0 of
     Left  err -> Left err
-    Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- M.toList $ tyEnv env]
+    Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- M.toList $ getTypeEnv env]
    where
      act = foldM (\env (x,e) -> insertEnv env x <$> ti env (resugarMatch e)) initEnv
 
@@ -32,9 +32,9 @@ initEnv = TypeEnv $ M.fromList
 
 insertEnv :: TypeEnv -> Var -> TypeResult -> TypeEnv
 insertEnv env x (TypeResult _ t _) 
-  = TypeEnv (M.insert (EVar x) (generalize env t) (tyEnv env))
+  = TypeEnv (M.insert (EVar x) (generalize env t) (getTypeEnv env))
 
-newtype TypeEnv = TypeEnv {tyEnv :: Map CoreExpr Scheme}
+newtype TypeEnv = TypeEnv { getTypeEnv :: Map CoreExpr Scheme}
 
 instance Monoid TypeEnv where
   mempty = TypeEnv mempty
@@ -90,10 +90,10 @@ unify (TArr t1 t2) (TArr t3 t4) = do
   s2 <- unify (apply s1 t2) (apply s1 t4)
   pure (s2 <> s1)
 unify (TVar a) t = varAsgn (TVar a) t
-unify t (TVar a) = varAsgn (TVar a) t 
+unify t (TVar a) = varAsgn (TVar a) t
+unify (TList a) (TList b) = unify a b
 unify TInt TInt = pure mempty
 unify TBool TBool = pure mempty
-unify (TList a) (TList b) = unify a b 
 unify t1 t2 = throwError ("types do not unify: " ++ show t1 ++ " vs ." ++ show t2 ++"\n")
 
 varAsgn :: Type -> Type -> HM Subst
@@ -118,7 +118,7 @@ freshTVar :: HM Type
 freshTVar = do
   s <- get
   put (s+1)
-  pure (TVar ("newTypeVariable" ++ show s))
+  pure (TVar ("__tv" ++ show s))
 
 data TypeResult = TypeResult Subst Type (Map CoreExpr Type)
   deriving(Show)
@@ -140,7 +140,7 @@ ti tEnv expr@(EBin op expr1 expr2) = do
   TypeResult s1 t1 m1 <- ti tEnv expr1
   TypeResult s2 t2 m2 <- ti tEnv expr2
   tv <- freshTVar
-  opType <- instantiate $ getOp op
+  opType <- instantiate $ opScheme op
   s3 <- unify (TArr t1 (TArr t2 tv)) opType
   let tnew = apply s3 tv
   let m3 = M.insert expr tnew (m1 <> m2)
@@ -153,23 +153,22 @@ ti tEnv expr@(EIf expr1 expr2 expr3) = do
   s4 <- unify t1 TBool
   s5 <- unify t2 t3
   let tnew = apply s5 t2
-  let m5 = M.insert expr tnew (m1 <> m2 <> m3)
-  let newSubSet = mconcat [s5, s4, s3, s2, s1]
-  pure (TypeResult newSubSet tnew m5)
+  let m = M.insert expr tnew (m1 <> m2 <> m3)
+  pure (TypeResult (mconcat [s5, s4, s3, s2, s1]) tnew m)
 
-ti (TypeEnv env) expr@(ELet var1 expr1 expr2) = do
-  TypeResult s1 t1 m1 <- ti (TypeEnv env) expr1
-  let (TypeEnv env') = apply s1 (TypeEnv env)
+ti tEnv expr@(ELet var1 expr1 expr2) = do
+  TypeResult s1 t1 m1 <- ti tEnv expr1
+  let (TypeEnv env') = apply s1 tEnv
   let t'  = generalize (TypeEnv env') t1
   TypeResult s2 t2 m2 <- ti  (TypeEnv (M.insert (EVar var1) t' env')) expr2
   let m3 = M.union m1 m2
   let m4 = M.insert expr t2 m3
   pure (TypeResult (s1 <> s2) t2 m4) 
 
-ti (TypeEnv env) expr@(EApp expr1 expr2) = do
+ti tEnv expr@(EApp expr1 expr2) = do
   tv <- freshTVar
-  TypeResult s1 t1 m1 <- ti (TypeEnv env) expr1
-  TypeResult s2 t2 m2 <- ti (apply s1 (TypeEnv env)) expr2
+  TypeResult s1 t1 m1 <- ti tEnv expr1
+  TypeResult s2 t2 m2 <- ti (apply s1 tEnv) expr2
   s3 <- unify (apply s2 t1) (TArr t2 tv)
   let m3 = M.union m1 m2
   let tnew = apply s3 tv
@@ -208,22 +207,22 @@ ti γ@(TypeEnv env) expr@(EMatch e e1 x y e2) = do
   pure (TypeResult s texpr m)
 
 -- for Eq and Ne, it is not accurate 
-getOp :: Binop -> Scheme
-getOp = \case
-  Plus  -> binType TInt TInt TInt
-  Minus -> binType TInt TInt TInt
-  Mul   -> binType TInt TInt TInt
-  Div   -> binType TInt TInt TInt
+opScheme :: Binop -> Scheme
+opScheme = \case
+  Plus  -> binScheme TInt TInt TInt
+  Minus -> binScheme TInt TInt TInt
+  Mul   -> binScheme TInt TInt TInt
+  Div   -> binScheme TInt TInt TInt
   Eq    -> Forall [a] (TArr a (TArr a TBool)) where a = TVar "a"
   Ne    -> Forall [a] (TArr a (TArr a TBool)) where a = TVar "a"
-  Lt    -> binType TInt TInt TBool
-  Le    -> binType TInt TInt TBool
-  And   -> binType TBool TBool TBool
-  Or    -> binType TBool TBool TBool
+  Lt    -> binScheme TInt TInt TBool
+  Le    -> binScheme TInt TInt TBool
+  And   -> binScheme TBool TBool TBool
+  Or    -> binScheme TBool TBool TBool
   Cons  -> Forall [a] (a `TArr` (TList a `TArr` TList a)) where a = TVar "a"
 
-binType :: Type -> Type -> Type -> Scheme
-binType t1 t2 t3 = Forall [] (TArr t1 (TArr t2 t3))
+binScheme :: Type -> Type -> Type -> Scheme
+binScheme t1 t2 t3 = Forall [] (TArr t1 (TArr t2 t3))
 
 getPairFresh :: HM (Type, Type)
 getPairFresh = (,) <$> freshTVar <*> freshTVar

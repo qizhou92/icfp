@@ -7,17 +7,16 @@ import           Data.Data (Data)
 
 import           GHC.Exts( IsString(..) )
 import           Text.Printf (printf)
-import           Text.PrettyPrint.HughesPJ hiding ((<>))
 import           Control.Exception
 import           Data.Typeable
 import qualified Data.List as L
 import           System.Exit
--- import           Language.Equivalence.Misc
--- import           Language.Equivalence.Expr hiding (Var)
 
-import Data.Monoid
-import qualified Data.Set as S 
-import qualified Data.Map as Map
+import           Data.Monoid
+import           Data.Set (Set)
+import qualified Data.Set as S
+import           Data.Map (Map)
+import qualified Data.Map as M
 
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
@@ -140,26 +139,28 @@ instance Show Value where
   show = valueString
 
 binopString :: Binop -> String
-binopString Plus  = "+"
-binopString Minus = "-"
-binopString Mul   = "*"
-binopString Div   = "/"
-binopString Eq    = "="
-binopString Ne    = "!="
-binopString Lt    = "<"
-binopString Le    = "<="
-binopString And   = "&&"
-binopString Or    = "||"
-binopString Cons  = ":"
+binopString = \case
+  Plus  -> "+"
+  Minus -> "-"
+  Mul   -> "*"
+  Div   -> "/"
+  Eq    -> "="
+  Ne    -> "!="
+  Lt    -> "<"
+  Le    -> "<="
+  And   -> "&&"
+  Or    -> "||"
+  Cons  -> ":"
 
 valueString :: Value -> String
-valueString (VInt i)        = printf "%d" i
-valueString (VBool b)       = printf "%s" (show b)
-valueString (VClos env x v) = printf "<<%s, \\%s -> %s>>" (envString env) (show x) (show v)
-valueString (VPair v w)     = printf "(%s : %s)" (show v) (show w)
-valueString (VErr s)        = printf "ERROR: %s" s
-valueString VNil            = "[]"
-valueString (VPrim _)       = "<<primitive-function>>"
+valueString = \case
+  VInt i        -> printf "%d" i
+  VBool b       -> printf "%s" (show b)
+  VClos env x v -> printf "<<%s, \\%s -> %s>>" (envString env) (show x) (show v)
+  VPair v w     -> printf "(%s : %s)" (show v) (show w)
+  VErr s        -> printf "ERROR: %s" s
+  VNil          -> "[]"
+  VPrim _       -> "<<primitive-function>>"
 
 envString :: Env -> String
 envString env = printf "{ %s }" (L.intercalate ", " bs)
@@ -209,63 +210,41 @@ exprList = foldr (EBin Cons) ENil
 valueList :: [Value] -> Value
 valueList = foldr VPair VNil
 
-
-isFix :: CoreExpr -> Bool 
+isFix :: CoreExpr -> Bool
 isFix (ELet x ex _) =  x `S.member` freeVars ex
-isFix _             = False 
+isFix _             = False
 
-freeVars :: CoreExpr -> S.Set Var
-freeVars (EVar v)       = S.singleton v
-freeVars (EInt _)       = mempty
-freeVars (EBool _)      = mempty
-freeVars ENil           = mempty
-freeVars (EBin _ e1 e2) = freeVars e1 <> freeVars e2 
-freeVars (EIf e e1 e2)  = freeVars e <> freeVars e1 <> freeVars e2 
-freeVars (ELet x ex e)  = S.filter (/= x) (freeVars ex <> freeVars e)
-freeVars (EApp e1 e2)   = freeVars e1 <> freeVars e2 
-freeVars (ELam x e)     = S.filter (/= x) (freeVars e)
-freeVars (EFix x e)     = S.filter (/= x) (freeVars e)
-freeVars (EMatch e en x y ec) 
-  = freeVars e <> freeVars en <> S.filter (\v -> (v /= x && v /= y)) (freeVars ec)
+-- | The free variables in an expression.
+freeVars :: CoreExpr -> Set Var
+freeVars = snd . freeVarsAndMap
 
-getFreeVarsMap :: CoreExpr -> Map.Map CoreExpr [Var]
-getFreeVarsMap e@(EVar v) = Map.singleton e [v]
-getFreeVarsMap e@(EBin _ e1 e2) = do
-  let leftMap = getFreeVarsMap e1
-  let rightMap = getFreeVarsMap e2
-  let allVars = (leftMap Map.! e1) ++ (rightMap Map.! e2)
-  Map.insert e allVars (Map.union leftMap rightMap)
-getFreeVarsMap e@(EIf e1 e2 e3) = do
-  let map1 = getFreeVarsMap e1
-  let map2 = getFreeVarsMap e2
-  let map3 = getFreeVarsMap e3
-  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2) ++ (map3 Map.! e3)
-  Map.insert e allVars (Map.union (Map.union map1 map2) map3)
-getFreeVarsMap e@(ELet x e1 e2) = do
-  let map1 = getFreeVarsMap e1
-  let map2 = getFreeVarsMap e2
-  let allVars = filter (/=x) ((map1 Map.! e1) ++ (map2 Map.! e2))
-  Map.insert e allVars (Map.union map1 map2)
-getFreeVarsMap e@(EApp e1 e2) = do
-  let map1 = getFreeVarsMap e1
-  let map2 = getFreeVarsMap e2
-  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2)
-  Map.insert e allVars (Map.union map1 map2)
-getFreeVarsMap e@(ELam x e1) = do
-  let map1 = getFreeVarsMap e1
-  let allVars = filter (/= x) (map1 Map.! e1)
-  Map.insert e allVars map1 
-getFreeVarsMap e@(EFix x e1) = do 
-  let map1 = getFreeVarsMap e1
-  let allVars = filter (/= x) (map1 Map.! e1)
-  Map.insert e allVars map1 
-getFreeVarsMap e@(EMatch e1 e2 x y e3) = do
-  let map1 = getFreeVarsMap e1
-  let map2 = getFreeVarsMap e2
-  let map3 = getFreeVarsMap e3
-  let allVars = (map1 Map.! e1) ++ (map2 Map.! e2) ++(filter (\v -> (v /= x && v /= y)) (map3 Map.! e3))
-  Map.insert e allVars (Map.union (Map.union map1 map2) map3)
-getFreeVarsMap e = Map.singleton e []
+-- | A mapping of all subexpressions to their free variables.
+freeVarsMap :: CoreExpr -> Map CoreExpr (Set Var)
+freeVarsMap = fst . freeVarsAndMap
+
+freeVarsAndMap :: CoreExpr -> (Map CoreExpr (Set Var), Set Var)
+freeVarsAndMap = para (\e acc ->
+  let (ms, vss) = unzip acc
+      -- In general, expression free variables include all free variables from
+      -- subexpressions.
+      vs = mconcat vss
+      m = mconcat ms
+      vs' = case e of
+        -- In the case of a variable, add that variable as a free variable.
+        EVar v               -> S.insert v vs
+        -- In the case of 'let', 'lambda', and 'fix' expressions, variables
+        -- which are bound are no longer free.
+        ELet v _ _           -> S.delete v vs
+        ELam v _             -> S.delete v vs
+        EFix v _             -> S.delete v vs
+        -- The match expression is the most complex. Remove the bound variables
+        -- from the 'cons' case, but keep all free variables from the matched
+        -- expression and the 'nil' case.
+        EMatch e en v1 v2 ec ->
+          freeVars e <> freeVars en <> S.delete v1 (S.delete v2 (freeVars ec))
+        -- All other expressions propogate the transitive closure.
+        _                    -> vs
+  in (M.insert e vs' m, vs'))
 
 subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
 subst (x,e) (EVar v)

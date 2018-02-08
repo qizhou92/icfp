@@ -20,4 +20,3 @@ extra-include-dirs:
 
 extra-lib-dirs:
 - /usr/local/lib
-
