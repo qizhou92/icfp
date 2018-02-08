@@ -22,6 +22,7 @@ newtype Var = Var String
 instance Pretty Var where pretty (Var v) = pretty v
 
 type TV = String
+
 data Type
   = TVar TV
   | TInt
@@ -35,8 +36,11 @@ data Type
   deriving (Eq, Ord, Show, Data)
 instance Plated Type where plate = uniplate
 
+types :: Data a => Traversal' a Type
+types = biplate
+
 data Scheme = Forall [Type] Type
-  deriving (Show)
+  deriving (Show, Data)
 
 data CoreExpr
   = ENil
@@ -71,6 +75,9 @@ instance Pretty CoreExpr where
       p "match" <+> p e <+> p "with" <+>
         braces (p "Nil ->" <+> p n <> p "; Cons" <+> p x <+> p y <+> p "->" <+> p c)
     where p = pretty
+
+instance IsString CoreExpr where fromString = EVar . Var
+instance Plated CoreExpr where plate = uniplate
 
 data Binop = Plus | Minus | Mul | Div | Eq | Ne | Lt | Le | And | Or | Cons
   deriving (Eq, Ord, Show, Data)
@@ -109,12 +116,6 @@ findBind [] _ = error "findBind: Not found"
 mkPairs :: [String] -> [(Var, Var)]
 mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
 mkPairs _            = []
-
-instance IsString CoreExpr where
-  fromString = EVar . Var
-
-instance Plated CoreExpr where
-  plate = uniplate
 
 exprList :: [CoreExpr] -> CoreExpr
 exprList = foldr (EBin Cons) ENil

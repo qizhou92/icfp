@@ -5,6 +5,7 @@ import           Control.Monad.Except
 import           Control.Monad.State
 import           Control.Monad.Reader
 
+import           Data.Data (Data)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Set (Set)
@@ -12,10 +13,9 @@ import qualified Data.Set as S
 import           Data.Monoid ((<>))
 
 import           Language.Types
-import           Language.Transformations
 
-types :: Program -> Either InferenceError [(Var, Scheme)]
-types prog =
+programTypes :: Program -> Either InferenceError [(Var, Scheme)]
+programTypes prog =
   case evalState (runExceptT (act prog)) 0 of
     Left  err -> Left err
     Right env -> Right $ listToFix [(x,s) | (EVar x, s) <- M.toList $ getTypeEnv env]
@@ -232,3 +232,30 @@ inferType :: CoreExpr -> Either InferenceError (Map CoreExpr Type)
 inferType expr = do
   TypeResult subset _ mapResult <- evalState (runExceptT (ti (TypeEnv M.empty) (resugarMatch expr))) 0
   pure $ listToFix (M.map (apply subset) mapResult)
+
+resugarMatch :: CoreExpr -> CoreExpr
+resugarMatch = rewrite (\case
+  EIf cond e1 e2 -> do
+    e <- isCheckNil cond
+    (x, y, ec) <- isConsMatch e e2
+    pure (EMatch e e1 x y ec)
+  _ -> Nothing)
+  where
+    isCheckNil = \case
+      EBin Eq ENil x -> Just x
+      EBin Eq x ENil -> Just x
+      _ -> Nothing
+
+    hd = EVar (Var "head")
+    tl = EVar (Var "tail")
+
+    isConsMatch xs (ELet x takeHead (ELet y takeTail e))
+      | takeHead == EApp hd xs , takeTail == EApp tl xs = Just (x, y, e)
+    isConsMatch xs (ELet y takeTail (ELet x takeHead e)) 
+      | takeHead == EApp hd xs , takeTail == EApp tl xs = Just (x, y, e)
+    isConsMatch _ _ = Nothing
+
+listToFix :: Data a => a -> a
+listToFix = types %~ rewrite (\case
+  TList t -> Just $ TFix "VList" (TPlus TNil (TProduct t (TVar "VList")))
+  _ -> Nothing)

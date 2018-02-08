@@ -10,25 +10,28 @@ import Data.List  (isPrefixOf)
 parseProg :: String -> Program
 parseProg = undefined
 
-main :: IO ExitCode
-main = equivalenceCheck =<< makeConfig =<< getArgs
+-- main :: IO ExitCode
+-- main = equivalenceCheck =<< makeConfig =<< getArgs
 
-equivalenceCheck :: Config -> IO ExitCode
-equivalenceCheck cfg = do
-  prog <- makeProgram cfg
-  putStrLn ("************** Program ************** \n" ++ show prog)
-  putStrLn ("************** Types ************** \n"   ++ show (types prog))
-  -- res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
-  -- putStrLn (unlines (show <$> res))
-  exitWith ExitSuccess
+main :: IO ()
+main = putStrLn "Not Equivalent -- temporary"
 
-makeProgram :: Config -> IO Program
-makeProgram cfg = parseProg <$> readFile (cfgFile cfg)
+-- equivalenceCheck :: Config -> IO ExitCode
+-- equivalenceCheck cfg = do
+--   prog <- makeProgram cfg
+--   putStrLn ("************** Program ************** \n" ++ show prog)
+--   putStrLn ("************** Types ************** \n"   ++ show (types prog))
+--   -- res   <- mapM (uncurry verify) (goalsToPrograms (eqProgram eqEnv) <$> eqGoals eqEnv)
+--   -- putStrLn (unlines (show <$> res))
+--   exitWith ExitSuccess
 
-_makeEqEnv :: Config -> IO EqEnv
-_makeEqEnv cfg = do
-  str  <- readFile (cfgFile cfg)
-  return $ EqEnv (parseProg str) (queries str ++ cfgQueries cfg)
+-- makeProgram :: Config -> IO Program
+-- makeProgram cfg = parseProg <$> readFile (cfgFile cfg)
+
+-- _makeEqEnv :: Config -> IO EqEnv
+-- _makeEqEnv cfg = do
+--   str  <- readFile (cfgFile cfg)
+--   return $ EqEnv (parseProg str) (queries str ++ cfgQueries cfg)
 
 queries :: String -> [(Var, Var)]
 queries = mapMaybe stringQuery . lines
