@@ -8,6 +8,9 @@ license: MIT
 extra-source-files:
 - ChangeLog.md
 
+extra-include-dirs:
+- /usr/local/include
+
 default-extensions:
 - LambdaCase
 - MultiWayIf
