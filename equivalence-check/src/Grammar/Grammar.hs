@@ -12,16 +12,21 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Text.Prettyprint.Doc
 
-import Formula hiding (Rule)
+import Formula hiding (Production)
 
--- An identifier which should be completely unique per location.
-type Symbol = Int
+class Symbol s where
+  generate :: s -> String
+  interpret :: String -> s
 
-data Production = Production
-  { _productionSymbol :: Symbol
-  , _productionVars :: [Var]
+instance Symbol Int where
+  generate = show
+  interpret = read
+
+data Nonterminal sym = Nonterminal
+  { _nonterminalSymbol :: sym
+  , _nonterminalVars :: [Var]
   } deriving (Show, Read, Eq, Ord, Data)
-makeLenses ''Production
+makeLenses ''Nonterminal
 
 data Category = L | R
   deriving (Show, Read, Eq, Ord, Data)
@@ -29,32 +34,32 @@ data Category = L | R
 instance Pretty Category where
   pretty = pretty . show
 
--- It is crucial that every variable in a production location over a rule is unique.
-data Rule = Rule
-  { _ruleCategory :: Category
-  , _ruleLHS :: Production
-  , _ruleBody :: Expr
-  , _ruleRHS :: [Production]
+-- It is crucial that every variable in a nonterminal location over a production is unique.
+data Production sym = Production
+  { _productionCategory :: Category
+  , _productionLHS :: Nonterminal sym
+  , _productionBody :: Expr
+  , _productionRHS :: [Nonterminal sym]
   } deriving (Show, Read, Eq, Ord, Data)
-makeLenses ''Rule
+makeLenses ''Production
 
-data Grammar = Grammar
-  { _grammarStart :: Symbol
-  , _grammarRules :: [Rule]
+data Grammar sym = Grammar
+  { _grammarStart :: sym
+  , _grammarProductions :: [Production sym]
   } deriving (Show, Read, Eq, Ord, Data)
 makeLenses ''Grammar
 
-instance Pretty Grammar where
+instance Pretty sym => Pretty (Grammar sym) where
   pretty (Grammar start rs) = pretty start <> pretty "\n" <> vsep (map pretty rs)
 
--- An identifier which groups different instances of the same production location.
+-- An identifier which groups different instances of the same nonterminal location.
 type ControlID = Int
 
-instance Pretty Production where
-  pretty (Production sym vs) = pretty sym <> pretty vs
+instance Pretty sym => Pretty (Nonterminal sym) where
+  pretty (Nonterminal sym vs) = pretty sym <> pretty vs
 
-instance Pretty Rule where
-  pretty (Rule ct lhs body rhs) =
+instance Pretty sym => Pretty (Production sym) where
+  pretty (Production ct lhs body rhs) =
     mconcat [ pretty ct
             , pretty lhs
             , pretty ": "
@@ -62,49 +67,49 @@ instance Pretty Rule where
             , pretty " | "
             , pretty rhs ]
 
-cardinality :: Symbol -> [Rule] -> Int
-cardinality sym = length . filter (\r -> _productionSymbol (_ruleLHS r) == sym)
+cardinality :: Eq sym => sym -> [Production sym] -> Int
+cardinality sym = length . filter (\r -> _nonterminalSymbol (_productionLHS r) == sym)
 
-instances :: [Rule] -> Set Symbol
-instances = S.fromList . map (_productionSymbol . _ruleLHS)
+instances :: Ord sym => [Production sym] -> Set sym
+instances = S.fromList . map (_nonterminalSymbol . _productionLHS)
 
--- | Delete the rules for the instance.
-delete :: Symbol -> [Rule] -> [Rule]
-delete sym = filter (\r -> _productionSymbol (_ruleLHS r) /= sym)
+-- | Delete the productions for the instance.
+delete :: Ord sym => sym -> [Production sym] -> [Production sym]
+delete sym = filter (\r -> _nonterminalSymbol (_productionLHS r) /= sym)
 
--- | Collect the rules whose nonterminal match the predicate.
-rulesFor :: Symbol -> [Rule] -> [Rule]
-rulesFor sym = filter (\r -> _productionSymbol (_ruleLHS r) == sym)
+-- | Collect the productions whose nonterminal match the predicate.
+productionsFor :: Ord sym => sym -> [Production sym] -> [Production sym]
+productionsFor sym = filter (\r -> _nonterminalSymbol (_productionLHS r) == sym)
 
-rulesWith :: Symbol -> [Rule] -> [Rule]
-rulesWith sym = filter (\r -> sym `elem` map (view productionSymbol) (r ^. ruleRHS))
+productionsWith :: Ord sym => sym -> [Production sym] -> [Production sym]
+productionsWith sym = filter (\r -> sym `elem` map (view nonterminalSymbol) (r ^. productionRHS))
 
-type Clones = [Set Symbol]
+type Clones sym = [Set sym]
 
-clone :: Symbol -> Symbol -> Clones -> Clones
+clone :: Ord sym => sym -> sym -> Clones sym -> Clones sym
 clone i j (cs:css) = if i `elem` cs then S.insert j cs:css else cs:clone i j css
 clone i j [] = [S.fromList [i, j]]
 
-cloneFor :: Symbol -> Clones -> Set Symbol
+cloneFor :: Ord sym => sym -> Clones sym -> Set sym
 cloneFor i (cs:css) = if i `elem` cs then cs else cloneFor i css
 cloneFor i [] = S.singleton i
 
-predecessors :: [Rule] -> Symbol -> Set Symbol
+predecessors :: Ord sym => [Production sym] -> sym -> Set sym
 predecessors rs s =
-  S.fromList $ concatMap (toListOf (ruleRHS . traverse . productionSymbol)) (rulesFor s rs)
+  S.fromList $ concatMap (toListOf (productionRHS . traverse . nonterminalSymbol)) (productionsFor s rs)
 
-successors :: Grammar -> Symbol -> Set Symbol
+successors :: Ord sym => Grammar sym -> sym -> Set sym
 successors g s =
-  S.fromList $ map (view (ruleLHS . productionSymbol)) (rulesWith s (g ^. grammarRules))
+  S.fromList $ map (view (productionLHS . nonterminalSymbol)) (productionsWith s (g ^. grammarProductions))
 
-visit :: MonadState (Set Symbol) m => a -> (Symbol -> m a) -> Symbol -> m a
+visit :: (Ord sym, MonadState (Set sym) m) => a -> (sym -> m a) -> sym -> m a
 visit def f sym = do
   visited <- get
   if sym `elem` visited
   then pure def
   else modify (S.insert sym) >> f sym
 
-descendants :: Grammar -> Symbol -> Set Symbol
+descendants :: Ord sym => Grammar sym -> sym -> Set sym
 descendants g s = evalState (desc s) S.empty
   where
     desc = visit S.empty (\sym -> do
@@ -112,20 +117,20 @@ descendants g s = evalState (desc s) S.empty
       ss' <- mapM desc (S.toList ss)
       return (S.unions $ ss : ss'))
 
-productions :: (Applicative f, Data a) => (Production -> f Production) -> a -> f a
-productions = biplate
+nonterminals :: (Data sym, Applicative f, Data a) => (Nonterminal sym -> f (Nonterminal sym)) -> a -> f a
+nonterminals = biplate
 
-allSymbols :: (Applicative f, Data a) => (Symbol -> f Symbol) -> a -> f a
+allSymbols :: (Applicative f, Data a, Data sym) => (sym -> f sym) -> a -> f a
 allSymbols = biplate
 
-symbols :: Data a => a -> Set Symbol
+symbols :: (Data a, Data sym, Ord sym) => a -> Set sym
 symbols = S.fromList . toListOf allSymbols
 
-categorize :: [Rule] -> Map Category [Rule]
-categorize = foldr (\r -> M.insertWith (++) (r ^. ruleCategory) [r]) M.empty
+categorize :: [Production sym] -> Map Category [Production sym]
+categorize = foldr (\r -> M.insertWith (++) (r ^. productionCategory) [r]) M.empty
 
-lhsSymbol :: Rule -> Symbol
-lhsSymbol = view (ruleLHS . productionSymbol)
+lhsSymbol :: Production sym -> sym
+lhsSymbol = view (productionLHS . nonterminalSymbol)
 
-rhsSymbols :: Rule -> Set Symbol
-rhsSymbols = S.fromList . toListOf (ruleRHS . traverse . productionSymbol)
+rhsSymbols :: Ord sym => Production sym -> Set sym
+rhsSymbols = S.fromList . toListOf (productionRHS . traverse . nonterminalSymbol)

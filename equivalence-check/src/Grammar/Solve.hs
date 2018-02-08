@@ -18,7 +18,7 @@ import           Grammar.Unwind
 import           Grammar.Synthesize
 import           Grammar.Chc
 
-solve :: Clones -> Grammar -> Expr -> IO (Int, Either Model (Map Symbol (Expr, Expr)))
+solve :: Clones Int -> Grammar Int -> Expr -> IO (Int, Either Model (Map Int (Expr, Expr)))
 solve cs g f = loop 1 (cs, g)
   where
     loop iters (clones, g') = interpolate g' f >>= \case
@@ -32,20 +32,20 @@ solve cs g f = loop 1 (cs, g)
     onInductive iters g' clones m ind = do
       let indS = M.keysSet $ M.filter id ind
       let invs = synthesizeInvariants indS clones g' m
-      m <- traverse simpBoth invs
-      pure (iters, Right m)
+      m' <- traverse simpBoth invs
+      pure (iters, Right m')
 
     simpBoth (x, y) = (,) <$> Z3.superSimplify x <*> Z3.superSimplify y
 
-interpolate :: Grammar -> Expr -> IO (Either Model (Map Symbol Expr))
+interpolate :: Grammar Int -> Expr -> IO (Either Model (Map Int Expr))
 interpolate g' q =
-  runSystem (F.Query [app terminal] (LBool True) q : map clause (g ^. grammarRules))
+  runSystem (F.Query [app terminal] (LBool True) q : map clause (g ^. grammarProductions))
   where
     g = nonrecursive g'
-    terminal = view ruleLHS (head $ rulesFor (g ^. grammarStart)
-                                             (g ^. grammarRules)) & vars %~ unaliasedVar
+    terminal = view productionLHS (head $ productionsFor (g ^. grammarStart)
+                                                         (g ^. grammarProductions)) & vars %~ unaliasedVar
 
-inductive :: Clones -> Grammar -> Map Symbol Expr -> IO (Map Symbol Bool)
+inductive :: Clones Int -> Grammar Int -> Map Int Expr -> IO (Map Int Bool)
 inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
   where
     descs sym =
@@ -54,7 +54,7 @@ inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
           cds = S.toList $ S.intersection cs ds
       in map (\cd -> M.findWithDefault (LBool True) cd m) cds
 
-    ind :: Symbol -> StateT (Map Symbol Bool) IO Bool
+    ind :: Int -> StateT (Map Int Bool) IO Bool
     ind sym = do
       memo <- get
       case M.lookup sym memo of
@@ -69,11 +69,11 @@ inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
               ]
 
     indByPred sym =
-      let ps = predecessors (g ^. grammarRules) sym
-          backTars = map lhsSymbol (backRules g)
+      let ps = predecessors (g ^. grammarProductions) sym
+          backTars = map lhsSymbol (backProductions g)
       in if | null ps -> pure True
             | sym `elem` backTars -> pure False
             | otherwise ->
-              let cats = M.elems (categorize (g ^. grammarRules))
+              let cats = M.elems (categorize (g ^. grammarProductions))
                   cps = map (`predecessors` sym) cats
               in anyM (allM ind . S.toList) cps

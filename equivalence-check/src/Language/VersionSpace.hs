@@ -6,11 +6,17 @@ import qualified Data.Map as M
 
 import           Language.Types
 
-newtype VersionSpace = VersionSpace { getVersionSpace :: Map (Type, Type) [(Type, Type)] }
+type VersionSpace = VersionSpace' ()
+newtype VersionSpace' a = VersionSpace { getVersionSpace :: Map (Type, Type) [VersionSpaceContent a] }
   deriving (Show, Read, Eq, Ord, Data)
 
-emptyVersionSpace :: VersionSpace
+data VersionSpaceContent a
+  = Leaf a
+  | Edge (Type, Type)
+  deriving (Show, Read, Eq, Ord, Data)
+
+emptyVersionSpace :: VersionSpace' a
 emptyVersionSpace = VersionSpace M.empty
 
-mkVersionSpace :: Type -> Type -> VersionSpace
-mkVersionSpace = undefined
+mkVersionSpace :: Type -> Type -> VersionSpace' (Type, Type)
+mkVersionSpace t1 t2 = undefined
