@@ -38,7 +38,6 @@ class Tranformable a where
   mapExpr :: (CoreExpr -> CoreExpr) -> a -> a
   mapExpr _ x = x 
 
-
 instance Tranformable Scheme where
   mapSort f (Forall ts t) = Forall (map f ts) (f t) 
 
