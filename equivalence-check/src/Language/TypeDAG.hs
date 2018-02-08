@@ -32,10 +32,56 @@ buildNewTypeNode coreExpr1 coreExpr2 = do
   return (TypeDAGNode VersionSpace VersionSpace coreExpr1 coreExpr2 (leftEdge++rightEdge++allEdge) idN)
 
 buildLeftEdge :: CoreExpr -> CoreExpr -> (State BuildState) [TypeDAGEdge]
-buildLeftEdge = undefined
+buildLeftEdge (EBin _ e1 e2) e = do
+ subNode1 <- buildTypeDAG e1 e
+ subNode2 <- buildTypeDAG e2 e
+ return ([(TypeDAGEdge SL [subNode1,subNode2])])
+
+buildLeftEdge (EIf e1 e2 e3) e = do
+  subNode1 <- buildTypeDAG e1 e
+  subNode2 <- buildTypeDAG e2 e
+  subNode3 <- buildTypeDAG e3 e
+  return ([(TypeDAGEdge SL [subNode1,subNode2,subNode3])])
+
+buildLeftEdge (EApp e1 e2) e = do
+  subNode1 <- buildTypeDAG e1 e
+  subNode2 <- buildTypeDAG e2 e
+  return ([(TypeDAGEdge SL [subNode1,subNode2])])
+
+buildLeftEdge (ELam _ e1) e = do
+  subNode1 <- buildTypeDAG e1 e
+  return ([(TypeDAGEdge SL [subNode1])])
+
+buildLeftEdge _ _ = return []
 
 buildRightEdge :: CoreExpr -> CoreExpr -> (State BuildState) [TypeDAGEdge]
-buildRightEdge = undefined
+buildRightEdge e (EBin _ e1 e2) = do
+ subNode1 <- buildTypeDAG e e1
+ subNode2 <- buildTypeDAG e e2
+ return ([(TypeDAGEdge SR [subNode1,subNode2])])
+
+buildRightEdge e (EIf e1 e2 e3) = do
+  subNode1 <- buildTypeDAG e e1
+  subNode2 <- buildTypeDAG e e2
+  subNode3 <- buildTypeDAG e e3
+  return ([(TypeDAGEdge SR [subNode1,subNode2,subNode3])])
+
+buildRightEdge e (EApp e1 e2)  = do
+  subNode1 <- buildTypeDAG e e1
+  subNode2 <- buildTypeDAG e e2
+  return ([(TypeDAGEdge SR [subNode1,subNode2])])
+
+buildRightEdge e (ELam _ e1)  = do
+  subNode1 <- buildTypeDAG e e1
+  return ([(TypeDAGEdge SR [subNode1])])
+
+buildRightEdge _ _ = return []
 
 buildAllEdge :: CoreExpr -> CoreExpr -> (State BuildState) [TypeDAGEdge]
-buildAllEdge = undefined
+buildAllEdge (EMatch e1 e2 _ _ e3) (EMatch e4 e5 _ _ e6) = do
+  subNode1 <- buildTypeDAG e1 e4
+  subNode2 <- buildTypeDAG e2 e5
+  subNode3 <- buildTypeDAG e3 e6
+  return [(TypeDAGEdge SA [subNode1,subNode2,subNode3])]
+
+buildAllEdge _ _ = return []
