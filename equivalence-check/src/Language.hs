@@ -7,3 +7,4 @@ module Language
 import Language.Types
 import Language.TypeInference
 import Language.VersionSpace
+import Language.TypeDAG
