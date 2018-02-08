@@ -1,3 +1,3 @@
 module Language.VersionSpace where
 
-data VersionSpace
+data VersionSpace = VersionSpace
