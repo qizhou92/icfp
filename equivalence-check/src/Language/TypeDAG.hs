@@ -24,12 +24,12 @@ buildTypeDAG coreExpr1 coreExpr2 = do
 
 buildNewTypeNode :: CoreExpr -> CoreExpr -> (State BuildState) TypeDAGNode
 buildNewTypeNode coreExpr1 coreExpr2 = do
-  (BuildState visitedMap id) <- get
+  (BuildState visitedMap idN) <- get
   leftEdge <- buildLeftEdge coreExpr1 coreExpr2
   rightEdge <- buildRightEdge coreExpr1 coreExpr2
   allEdge <- buildAllEdge coreExpr1 coreExpr2
-  put (BuildState visitedMap id+1)
-  return (VersionSpace VersionSpace coreExpr1 coreExpr2 (leftEdge++rightEdge++allEdge) id)
+  put (BuildState visitedMap (idN+1))
+  return (TypeDAGNode VersionSpace VersionSpace coreExpr1 coreExpr2 (leftEdge++rightEdge++allEdge) idN)
 
 buildLeftEdge :: CoreExpr -> CoreExpr -> (State BuildState) [TypeDAGEdge]
 buildLeftEdge = undefined
