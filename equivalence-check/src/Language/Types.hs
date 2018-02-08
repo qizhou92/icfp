@@ -33,7 +33,7 @@ data Type
   | TFix TV Type
   | TNil
   | TList Type
-  deriving (Eq, Ord, Show, Data)
+  deriving (Show, Read, Eq, Ord, Data)
 instance Plated Type where plate = uniplate
 
 types :: Data a => Traversal' a Type

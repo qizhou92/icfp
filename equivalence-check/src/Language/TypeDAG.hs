@@ -29,7 +29,7 @@ buildNewTypeNode coreExpr1 coreExpr2 = do
   rightEdge <- buildRightEdge coreExpr1 coreExpr2
   allEdge <- buildAllEdge coreExpr1 coreExpr2
   put (BuildState visitedMap (idN+1))
-  return (TypeDAGNode VersionSpace VersionSpace coreExpr1 coreExpr2 (leftEdge++rightEdge++allEdge) idN)
+  return (TypeDAGNode emptyVersionSpace emptyVersionSpace coreExpr1 coreExpr2 (leftEdge++rightEdge++allEdge) idN)
 
 buildLeftEdge :: CoreExpr -> CoreExpr -> (State BuildState) [TypeDAGEdge]
 buildLeftEdge (EBin _ e1 e2) e = do
