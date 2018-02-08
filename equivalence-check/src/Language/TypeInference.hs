@@ -55,11 +55,11 @@ instance Substitutable Type where
   -- | Apply a substitution table to the type by transitively applying to all
   -- type subexpressions. Type variables are looked up in the table while fix
   -- expressions remove their variable from the table (due to binding).
-  apply (Subst s) x = runReader (rewriteM sub x) s
+  apply (Subst s) x = runReader (sub x) s
     where sub = \case
-            t@TVar{} -> M.lookup t <$> ask
-            TFix t1 t2 -> fmap (TFix t1) <$> local (M.delete (TVar t1)) (sub t2)
-            _ -> pure Nothing
+            t@TVar{} -> M.findWithDefault t t <$> ask
+            TFix t1 t2 -> TFix t1 <$> local (M.delete (TVar t1)) (sub t2)
+            t -> t & plate %%~ sub
 
   -- | To compute the free variables, combine the sets from all subexpressions.
   -- Variables add a free variable whereas fix expressions bind one.

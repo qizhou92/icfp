@@ -2,6 +2,8 @@
 module Language.Types where
 
 import           Control.Lens
+import           Control.Monad.Reader
+
 import           Data.Data.Lens
 import           Data.Data (Data)
 
@@ -240,40 +242,35 @@ freeVarsAndMap = para (\e acc ->
         -- The match expression is the most complex. Remove the bound variables
         -- from the 'cons' case, but keep all free variables from the matched
         -- expression and the 'nil' case.
-        EMatch e en v1 v2 ec ->
-          freeVars e <> freeVars en <> S.delete v1 (S.delete v2 (freeVars ec))
+        EMatch tar nc v1 v2 cc ->
+          freeVars tar <> freeVars nc <> S.delete v1 (S.delete v2 (freeVars cc))
         -- All other expressions propogate the transitive closure.
         _                    -> vs
   in (M.insert e vs' m, vs'))
 
-subst :: (Var, CoreExpr) -> CoreExpr -> CoreExpr
-subst (x,e) (EVar v)
-  | x == v        
-  = e 
-  | otherwise
-  = EVar v 
-subst _ e@(EInt _)      = e
-subst _ e@(EBool _)      = e
-subst _ e@ENil           = e
-subst su (EBin b e1 e2) = EBin b (subst su e1) (subst su e2)
-subst su (EIf e e1 e2)  = EIf (subst su e) (subst su e1) (subst su e2)
-subst su@(y,_) (ELet x ex e)
-  | x == y 
-  = ELet x ex e 
-  | otherwise
-  = ELet x (subst su ex) (subst su e)
-subst su (EApp e1 e2)   
-  = EApp (subst su e1) (subst su e2) 
-subst su@(y,_) (ELam x e)     
-  | x == y 
-  = ELam x e 
-  | otherwise
-  = ELam x (subst su e)
-subst su@(y,_) (EFix x e)     
-  | x == y 
-  = EFix x e 
-  | otherwise
-  = EFix x (subst su e)
-subst su@(z,_) (EMatch e e1 x y e2) 
-  = EMatch (subst su e) (subst su e1) x y 
-           (if (x == z || y == z) then e2 else subst su e2)
+-- | Substitute variables by corresponding expressions.
+subst :: Map Var CoreExpr -> CoreExpr -> CoreExpr
+subst m x = runReader (sub x) m
+  where
+    protect v e = local (M.delete v) (sub e)
+    sub = \case
+      -- If the variable is to be substituted, do so.
+      EVar v -> M.findWithDefault (EVar v) v <$> ask
+      -- 'let', 'lambda', 'fix', and 'match' expressions guard against the
+      -- substitution of their bound variable(s).
+      (ELet v e1 e2) -> ELet v <$> protect v e1 <*> protect v e2
+      (ELam v e) -> ELam v <$> protect v e
+      (EFix v e) -> EFix v <$> protect v e
+      EMatch tar nc v1 v2 cc ->
+        EMatch <$> sub tar
+               <*> sub nc
+               <*> pure v1
+               <*> pure v2
+               <*> local (M.delete v1 . M.delete v2) (sub cc)
+      -- In all other cases, recursively substitute over subexpressions.
+      e -> e & plate %%~ sub
+
+test :: CoreExpr
+test = ELam (Var "x") (EBin Plus (EVar (Var "x")) (EInt 3))
+
+test2 = subst (M.singleton (Var "x") (EInt 5)) test
