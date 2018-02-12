@@ -1,22 +1,16 @@
 module Language.VersionSpace where
 
+import           Control.Monad.State
+
 import           Data.Data (Data)
 import           Data.Map (Map)
 import qualified Data.Map as M
 
 import           Language.Types
+import           Grammar
 
-type VersionSpace = VersionSpace' ()
-newtype VersionSpace' a = VersionSpace { getVersionSpace :: Map (Type, Type) [VersionSpaceContent a] }
-  deriving (Show, Read, Eq, Ord, Data)
+type VersionSpace = Grammar (Int, Int)
 
-data VersionSpaceContent a
-  = Leaf a
-  | Edge (Type, Type)
-  deriving (Show, Read, Eq, Ord, Data)
-
-emptyVersionSpace :: VersionSpace' a
-emptyVersionSpace = VersionSpace M.empty
-
-mkVersionSpace :: Type -> Type -> VersionSpace' (Type, Type)
-mkVersionSpace t1 t2 = undefined
+mkVersionSpace :: Type -> Type -> VersionSpace
+mkVersionSpace t1 t2 =
+  undefined
