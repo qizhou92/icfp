@@ -18,19 +18,19 @@ type Program = [Bind]
 type Bind    = (Var, CoreExpr)
 
 newtype Var = Var String
-  deriving (Show, Eq, Ord, Data)
+  deriving (Show, Read, Eq, Ord, Data)
 instance Pretty Var where pretty (Var v) = pretty v
 
 type TV = String
 
 data Type
-  = TVar TV
+  = TVar Var
   | TInt
   | TBool
   | TArr Type Type
   | TPlus Type Type
   | TProduct Type Type
-  | TFix TV Type
+  | TFix Var Type
   | TNil
   | TList Type
   deriving (Show, Read, Eq, Ord, Data)
@@ -40,7 +40,7 @@ types :: Data a => Traversal' a Type
 types = biplate
 
 data Scheme = Forall [Type] Type
-  deriving (Show, Data)
+  deriving (Show, Read, Eq, Ord, Data)
 
 data CoreExpr
   = ENil
@@ -56,7 +56,7 @@ data CoreExpr
   | EApp CoreExpr CoreExpr
   | ELam Var CoreExpr
   | EFix Var CoreExpr
-  deriving (Eq, Show, Ord, Data)
+  deriving (Show, Read, Eq, Ord, Data)
 
 instance Pretty CoreExpr where
   pretty = \case
@@ -80,7 +80,7 @@ instance IsString CoreExpr where fromString = EVar . Var
 instance Plated CoreExpr where plate = uniplate
 
 data Binop = Plus | Minus | Mul | Div | Eq | Ne | Lt | Le | And | Or | Cons
-  deriving (Eq, Ord, Show, Data)
+  deriving (Show, Read, Eq, Ord, Data)
 
 instance Pretty Binop where
   pretty = pretty . \case
