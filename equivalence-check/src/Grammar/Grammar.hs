@@ -17,11 +17,11 @@ import Formula hiding (Rule)
 -- An identifier which should be completely unique per location.
 type Symbol = Int
 
-data Production = Production
-  { _productionSymbol :: Symbol
-  , _productionVars :: [Var]
+data Nonterminal = Nonterminal
+  { _nonterminalSymbol :: Symbol
+  , _nonterminalVars :: [Var]
   } deriving (Show, Read, Eq, Ord, Data)
-makeLenses ''Production
+makeLenses ''Nonterminal
 
 data Category = L | R
   deriving (Show, Read, Eq, Ord, Data)
@@ -29,12 +29,12 @@ data Category = L | R
 instance Pretty Category where
   pretty = pretty . show
 
--- It is crucial that every variable in a production location over a rule is unique.
+-- It is crucial that every variable in a nonterminal location over a rule is unique.
 data Rule = Rule
   { _ruleCategory :: Category
-  , _ruleLHS :: Production
+  , _ruleLHS :: Nonterminal
   , _ruleBody :: Expr
-  , _ruleRHS :: [Production]
+  , _ruleRHS :: [Nonterminal]
   } deriving (Show, Read, Eq, Ord, Data)
 makeLenses ''Rule
 
@@ -47,11 +47,11 @@ makeLenses ''Grammar
 instance Pretty Grammar where
   pretty (Grammar start rs) = pretty start <> pretty "\n" <> vsep (map pretty rs)
 
--- An identifier which groups different instances of the same production location.
+-- An identifier which groups different instances of the same nonterminal location.
 type ControlID = Int
 
-instance Pretty Production where
-  pretty (Production sym vs) = pretty sym <> pretty vs
+instance Pretty Nonterminal where
+  pretty (Nonterminal sym vs) = pretty sym <> pretty vs
 
 instance Pretty Rule where
   pretty (Rule ct lhs body rhs) =
@@ -63,21 +63,21 @@ instance Pretty Rule where
             , pretty rhs ]
 
 cardinality :: Symbol -> [Rule] -> Int
-cardinality sym = length . filter (\r -> _productionSymbol (_ruleLHS r) == sym)
+cardinality sym = length . filter (\r -> _nonterminalSymbol (_ruleLHS r) == sym)
 
 instances :: [Rule] -> Set Symbol
-instances = S.fromList . map (_productionSymbol . _ruleLHS)
+instances = S.fromList . map (_nonterminalSymbol . _ruleLHS)
 
 -- | Delete the rules for the instance.
 delete :: Symbol -> [Rule] -> [Rule]
-delete sym = filter (\r -> _productionSymbol (_ruleLHS r) /= sym)
+delete sym = filter (\r -> _nonterminalSymbol (_ruleLHS r) /= sym)
 
 -- | Collect the rules whose nonterminal match the predicate.
 rulesFor :: Symbol -> [Rule] -> [Rule]
-rulesFor sym = filter (\r -> _productionSymbol (_ruleLHS r) == sym)
+rulesFor sym = filter (\r -> _nonterminalSymbol (_ruleLHS r) == sym)
 
 rulesWith :: Symbol -> [Rule] -> [Rule]
-rulesWith sym = filter (\r -> sym `elem` map (view productionSymbol) (r ^. ruleRHS))
+rulesWith sym = filter (\r -> sym `elem` map (view nonterminalSymbol) (r ^. ruleRHS))
 
 type Clones = [Set Symbol]
 
@@ -91,11 +91,11 @@ cloneFor i [] = S.singleton i
 
 predecessors :: [Rule] -> Symbol -> Set Symbol
 predecessors rs s =
-  S.fromList $ concatMap (toListOf (ruleRHS . traverse . productionSymbol)) (rulesFor s rs)
+  S.fromList $ concatMap (toListOf (ruleRHS . traverse . nonterminalSymbol)) (rulesFor s rs)
 
 successors :: Grammar -> Symbol -> Set Symbol
 successors g s =
-  S.fromList $ map (view (ruleLHS . productionSymbol)) (rulesWith s (g ^. grammarRules))
+  S.fromList $ map (view (ruleLHS . nonterminalSymbol)) (rulesWith s (g ^. grammarRules))
 
 visit :: MonadState (Set Symbol) m => a -> (Symbol -> m a) -> Symbol -> m a
 visit def f sym = do
@@ -112,8 +112,8 @@ descendants g s = evalState (desc s) S.empty
       ss' <- mapM desc (S.toList ss)
       return (S.unions $ ss : ss'))
 
-productions :: (Applicative f, Data a) => (Production -> f Production) -> a -> f a
-productions = biplate
+nonterminals :: (Applicative f, Data a) => (Nonterminal -> f Nonterminal) -> a -> f a
+nonterminals = biplate
 
 allSymbols :: (Applicative f, Data a) => (Symbol -> f Symbol) -> a -> f a
 allSymbols = biplate
@@ -125,7 +125,7 @@ categorize :: [Rule] -> Map Category [Rule]
 categorize = foldr (\r -> M.insertWith (++) (r ^. ruleCategory) [r]) M.empty
 
 lhsSymbol :: Rule -> Symbol
-lhsSymbol = view (ruleLHS . productionSymbol)
+lhsSymbol = view (ruleLHS . nonterminalSymbol)
 
 rhsSymbols :: Rule -> Set Symbol
-rhsSymbols = S.fromList . toListOf (ruleRHS . traverse . productionSymbol)
+rhsSymbols = S.fromList . toListOf (ruleRHS . traverse . nonterminalSymbol)

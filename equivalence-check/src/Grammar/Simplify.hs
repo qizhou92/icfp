@@ -37,12 +37,12 @@ inlineRule :: MonadVocab m => Rule -> [Rule] -> m [Rule]
 inlineRule (Rule _ lhs body rhs) g =
   delete sym <$> mapM (\(Rule cats lhs' f rhs') -> uncurry (Rule cats lhs') <$> repRHS (f, rhs')) g
   where
-    sym = lhs ^. productionSymbol
+    sym = lhs ^. nonterminalSymbol
     repRHS (f, ps) = repRHS' ([], f, ps)
     repRHS' (acc, f, p:ps) =
-      if (p ^. productionSymbol) == sym
+      if (p ^. nonterminalSymbol) == sym
       then do
-        (f', ps') <- freshen (M.fromList $ zip (lhs ^. productionVars ) (p ^. productionVars)) (body, rhs)
+        (f', ps') <- freshen (M.fromList $ zip (lhs ^. nonterminalVars ) (p ^. nonterminalVars)) (body, rhs)
         repRHS' (ps' ++ acc, mkAnd f f', ps)
       else repRHS' (p : acc, f, ps)
     repRHS' (acc, f, []) = pure (f, acc)
@@ -55,14 +55,14 @@ disjoin (Grammar start rs)  = Grammar start $ foldr disjoinCandidate rs candidat
     -- a map from all instances in a rule to corresponding rules
     instMap = foldr addInstEntry M.empty rs
     addInstEntry r@(Rule ct lhs _ rhs) =
-      M.insertWith (++) (ct, map (view productionSymbol) (lhs : rhs)) [r]
+      M.insertWith (++) (ct, map (view nonterminalSymbol) (lhs : rhs)) [r]
 
 disjoinRules :: [Rule] -> Rule
 disjoinRules rules =
   let rs = map rename rules in
   first & ruleBody .~ manyOr (map _ruleBody rs)
   where
-    prodVars r = concatMap _productionVars (_ruleLHS r : _ruleRHS r)
+    prodVars r = concatMap _nonterminalVars (_ruleLHS r : _ruleRHS r)
     first = head rules
     rename r =
       let m = M.fromList (zip (prodVars r) (prodVars first))

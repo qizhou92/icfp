@@ -1,8 +1,11 @@
 module Language.TypeDAG where
 import Language.Types
-import Language.VersionSpace
 import Control.Monad.State
 import qualified Data.Map as Map
+
+data VersionSpace = VersionSpace
+
+emptyVersionSpace = VersionSpace
 
 data BuildState = BuildState (Map.Map (CoreExpr,CoreExpr) TypeDAGNode) Int
 

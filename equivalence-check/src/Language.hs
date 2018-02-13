@@ -1,10 +1,10 @@
 module Language
   ( module Language.Types
   , module Language.TypeInference
-  , module Language.VersionSpace
+  , module Language.HORT
   ) where
 
 import Language.Types
 import Language.TypeInference
-import Language.VersionSpace
+import Language.HORT
 import Language.TypeDAG

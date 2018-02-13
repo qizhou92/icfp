@@ -26,7 +26,7 @@ synthesizeInvariants ind cs (Grammar start rs) m = evalState (rec L start) S.emp
                            L -> single (original sym) f (LBool True)
                            R -> single (original sym) (LBool True) f
            in do ms <- mapM (\(Rule ct _ _ rhs) ->
-                   merges <$> mapM (rec ct . view productionSymbol) rhs) (rulesFor sym rs)
+                   merges <$> mapM (rec ct . view nonterminalSymbol) rhs) (rulesFor sym rs)
                  pure $ merges (m':ms))
 
     single sym l r = M.singleton sym (l, r)
@@ -54,7 +54,7 @@ validate (Grammar start rs) q m = do
 
     vRule (Rule dir lhs f rhs) = mkImpl (manyAnd (f : map (insProd dir) rhs)) (insProd dir lhs)
 
-    insProd dir (Production sym vs) =
+    insProd dir (Nonterminal sym vs) =
       let fs = exprsFor sym
       in case dir of
         L -> instantiate vs (fst fs)
