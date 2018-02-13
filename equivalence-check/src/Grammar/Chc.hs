@@ -22,6 +22,6 @@ runSystem clauses = runExceptT (interpretModel <$> Z3.solveChc clauses)
 clause :: Rule -> Chc
 clause (Rule _ lhs f rhs) = F.Rule (map app rhs) f (app lhs)
 
-app :: Production -> App
-app (Production sym vs) = mkApp ("R" ++ show sym) vs
+app :: Nonterminal -> App
+app (Nonterminal sym vs) = mkApp ("R" ++ show sym) vs
 
