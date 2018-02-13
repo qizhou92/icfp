@@ -9,8 +9,7 @@ import qualified Data.Map as M
 import           Language.Types
 import           Grammar
 
-type VersionSpace = Grammar (Int, Int)
+type VersionSpace = VersionSpace
 
-mkVersionSpace :: Type -> Type -> VersionSpace
-mkVersionSpace t1 t2 =
-  undefined
+emptyVersionSpace :: VersionSpace
+emptyVersionSpace = VersionSpace
