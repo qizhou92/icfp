@@ -56,14 +56,14 @@ types.
       % the empty map of expressions has relational type true
       \Gamma \judges \emptyset : \emptyset } \qquad
     % vars:
-    \inference[ VARS ]{ }{ %
+    \inference[ VARS ]{ x \in X }{ %
       \Gamma \judges P \mapsto X : %
       \Gamma(x)[ X \mapsto P ] } \\
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
       \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ c } : \tau \joinctr_p (p = c) } \qquad
+      \Gamma \judges \upd{ E }{ p }{ c } : \tau \joinctr_p c } \qquad
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
@@ -72,7 +72,7 @@ types.
         e_0, e_1 } : \tau }{ %
       \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
       \tau \joinctr_p %
-      (p = \leftopchild \cons p \oplus \rightopchild \cons p) } \\
+      (\leftopchild \cons p \oplus \rightopchild \cons p) } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
@@ -83,7 +83,7 @@ types.
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
-      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
+      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' &
       % get type of argument that is the parameter type,
       \Gamma \judges \upd{E}{p}{e_1} : \tau }{
       % return the result type
@@ -94,16 +94,14 @@ types.
       \Gamma \judges %
       \upd{E}{\leftchild \cons p, \rightchild \cons p}{ e_0, e_1 } : %
       \tau }{ % then type of pair is
-      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } : \times_p \tau } \qquad
+      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
+      \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } \qquad
     % let:
     \inference[ LET ]{
       % get type of bound expression,
-      \Gamma \judges \upd{ E }{p}{ e_0 } : \times_p \tau \\
+      \Gamma \judges \upd{ E }{p}{ e_0 } : \times_{x, y}^p \tau &
       % get type of result under context that binds to x and y,
-      \Gamma, x, y : %
-      \replace{ \tau }{ %
-        \leftchild \cons p, \rightchild \cons p }{ x, y } \judges %
-      e_1 : \tau' }{
+      \Gamma, x, y : \tau \judges e_1 : \tau' }{
       % then complete let expression has type
       \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : \tau' } \\
     % left injection:
@@ -111,26 +109,26 @@ types.
       % get type of the nested exp,
       \Gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma \judges \upd{E}{p}{ \injl\ e} : \tau +_p \tau' } \qquad
+      \Gamma \judges \upd{E}{p}{ \injl\ e} : %
+      \tau +_{p, p}^p \tau' } \qquad
     % right injection:
     \inference[ RIGHT ]{
       % get type of the nested exp,
       \Gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma \judges \upd{E}{p}{ \injr\ e} : \tau' +_p \tau } \\
+      \Gamma \judges \upd{E}{p}{ \injr\ e} : %
+      \tau' +_{p, p}^p \tau } \\
     % match:
     \inference[ MATCH ]{
       % get type of matched exp,
-      \Gamma \judges \upd{E}{p}{e_0} : \tau +_p \tau' \\
+      \Gamma \judges \upd{E}{p}{e_0} : \tau +_{x, y}^p \tau' \\
       % get type of left branch under context that binds x to left op,
-      \Gamma, \cc{x} : \replace{ \tau }{p}{ \cc{x} } \judges %
-      \upd{E}{p}{e_1} : \tau'' \\
+      \Gamma, x : \tau \judges \upd{E}{p}{e_1} : \tau'' \\
       % get type of right branch under context that binds y to right op,
-      \Gamma, \cc{y} : \replace{ \tau' }{p}{ \cc{y} } \judges %
-      \upd{E}{p}{e_2} : \tau'' }{
+      \Gamma, y : \tau' \judges \upd{E}{p}{e_2} : \tau'' }{
       % then type of match exp is type of both branches,
       \Gamma \judges %
-      \upd{E}{p}{ \matchexp{e_0}{\cc{x}}{e_1}{\cc{y}}{e_2} } : %
+      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : %
       \tau'' } \qquad
     % fixpoint:
     \inference[ FIX ]{
