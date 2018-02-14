@@ -9,7 +9,7 @@ equivalence of programs.
 In \autoref{sec:infer-rel-types}, we present an algorithm for
 inferring such types.
 
-\subsection{Equivalence proofs as relational types}
+\subsection{Relational properties as relational types}
 \label{sec:rel-types}
 %
 In this section, we describe a space of types over collections of
@@ -24,120 +24,97 @@ types.
 
 \subsubsection{A space of relational types}
 \label{sec:rel-type-space}
-%
-\sys, given programs $P_0$ and $P_1$, attempts to verify that $P_0
-\equiv P_1$ by synthesizing a proof that $(P_0, P_1)$ has a relational
-type of equivalent programs.
 
-% define relational types:
-Relational types describe sets of tuples of values, each of which may
-be a higher-order values.
-%
-\BH{define type positions (in background?)}
-%
-\begin{defn}
-  \label{defn:rel-type}
-  For $T \in \types^{*}$, $P_0, P_1 \subseteq ?? \times \typepos$, the
-  space of relational types of $P_0$ in $T$ over $P_1$, denoted
-  $\reltypes{ T }{ P_0 }{ P_1 }$, is the smallest space that satisfies
-  the following conditions:
-  % case: nil type is a relational type
-  \textbf{(1)} $\nilrel \in \reltypes{ T }{ P_0 }{ P_1 }$;
-  % case: constructed relational types from relational types:
-  \textbf{(2)} for $P_B, P_F \subseteq \typepos{ T }$ the extensions
-  of $P_0$ that are positions of base and function types, %
-  $\tau \in \reltypes{ T }{ P_F }{ P_1 \union P_B }$, and %
-  $\varphi \in \formulas{ P_1 \union P_B \union P_F }$, it holds that
-  $(\tau, \varphi) \in \reltypespos{ T }{ P_0 }{ P_1 }$.
-\end{defn}
-%
-For $T \in \types^{*}$, the relational types over $T$ are denoted
-$\reltypestypes{ T } = \reltypespos{ T }{ ?? \times \epsilon }{
-  \emptyset }$.
-%
-\BH{clean up so that type position only points into a type that
-  actually has the position}
-%
-The space of relational types over all sequences of types is denoted
-$\reltypes = \bigunion_{T \in \types^{*} } \reltypestypes{T}$.
+\BH{define space of type positions}
 
-\BH{give relational type of higher-order expressions from running
-  example}
+\BH{define relational types, parameterizd on base symbols}
 
-\BH{define the equivalence for any pair of base types}
-%
-For each $\tau \in \types$, there is a relational type $\tau_{\equiv}
-\in \reltypestypes{ [ \tau, \tau] }$ such that for all $e_0, e_1 \in
-\stlc$, if $e_0 \equiv e_1$, then $e_0$ paired with $e_1$ have type
-$\tau_{\equiv}$.
-%
-\BH{define the equivalence type for each type}
+\BH{define context relational type: base symbols are variables}
 
-% 
-The definition of when a collection of expressions has a relational
-type, and the connection between equivalence the each base type's
-equivalence type, is given in \autoref{sec:rel-type-sys}.
+\BH{define context}
 
-\BH{define intersection of relational types}
+\BH{define expression positions: only need to record pairs and base operations}
 
-\subsubsection{A system for relational types}
+\BH{define indexed expressions as partial map from expression
+  positions to expressions}
+
+\BH{define result relational type: base symbols are expression
+  positions}
+
+\subsubsection{A relational type system}
 \label{sec:rel-type-sys}
+
 % rules for determining if expression sequences have a relational type:
 \begin{figure}
   \centering
   \begin{gather*}
-    % rule for a constant:
+    % vars:
+    \inference[ VARS ]{ %
+      \cc{x} \in \domain(\Gamma) }{ %
+      \Gamma \judges P \mapsto X : %
+      \Gamma(\cc{x})[ X = P ] } \qquad
+    % constant:
     \inference[ CONST ]{ %
-      \Gamma \judges E : \tau }{ %
-      \Gamma \judges \elts{ c } \union E : %
-      \tau \land \resvar{c} = c }
-    % rule for a variable:
-    \inference[ VAR ]{ %
-      \Gamma \judges E : \tau }{ %
-      \Gamma \judges \elts{ x } \union E : %
-      \tau \land \resvar{x} \equiv x } \\
-    % rule: expression is an op:
-    \inference[ OP ]{ 
+      % remainder has type tau,
+      \Gamma \judges E : \tau & %
+      % tau is subtype under constraint that p is c
+      \tau \subtype_{ p = \cc{c} } \tau' }{ %
+      \Gamma \judges \upd{ E }{ p }{ \cc{c} } : \tau' } \\
+    % base operation:
+    \inference[ OP ]{ %
+      % remainder has type tau,
       \Gamma \judges %
-      \elts{ e_0, e_1 } \union E : \tau }{ %
-      \Gamma \judges \elts{ e \equiv e_0 \oplus e_1 } \union E : %
-      \tau \land (\resvar{e} = \resvar{e_0} \oplus \resvar{e_1}) } \\
-    % rule: expression is an if-then-else:
-    \inference[ ITE ]{ %
-      \Gamma \judges %
-      \elts{ e_0, e_1, e_2 } \union E : \tau }{ %
-      \Gamma \judges \add{ %
-        (e \equiv \ite{ e_0 }{ e_1 }{ e_2 }) }{ E } : %
-      \tau \land ((\resvar{e_0} = \true \land %
-      \resvar{e} \equiv \resvar{e_1}) \lor %
-      (\resvar{e_0} = \false \land %
-      \resvar{e} \equiv \resvar{e_2})) } \\
-    % rule: expressions contain an abstraction:
-    \inference[ ABS ]{ \Gamma, \tau \judges %
-      \add{ e' }{ E } : \tau' }{ %
-      \Gamma \judges \add{ (e \equiv \lambda x.\ e') }{ E } : %
-      (\tau \rightarrow \tau') \land \param{ e } \equiv x }
-    % rule: expression is an application:
+      \upd{ E }{ \leftopchild \cons p, %
+        \rightopchild \cons p}{ %
+        e_0, e_1 } : \tau \\ %
+      % tau is subtype under constraint that p is c
+      \tau \subtype_{ p = \leftopchild \cons p \oplus \rightopchild \cons p }^{ \leftopchild \cons p, \rightopchild \cons p}
+      \tau' }{ %
+      \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : \tau' } \qquad
+    % abstraction:
+    \inference[ ABS ]{ 
+      % extend the context and typecheck the body,
+      \Gamma, x : \tau \judges \upd{ E }{ p }{ e } : \tau' \\
+      % project the result to remove x,
+      \tau' \subtype^x \tau'' }{ %
+      % type of abstraction is
+      \Gamma \judges \upd{ E }{ p }{ \lambda x. e } : %
+      \tau \to_p \tau'' } \\
+    % application:
     \inference[ APP ]{ %
-      % get type of all component expressions,
-      \Gamma \judges \elts{ e_0, e_1 } \union E : \tau }{ %
-      \Gamma \judges \add{ (e \equiv e_0\ e_1) }{ E } \judges %
-      \tau \land \param{ e_0 } \equiv \resvar{ e_1 } \land %
-      \resvar{e} \equiv \resvar{e_0} } \\
-    % rule: expression is a fixpoint:
-    \inference[ FIX ]{ %
-      \Gamma, \tau \judges \add{ e' }{ E } : \tau }{ %
-      \Gamma \judges \add{ e \equiv \fix{ f }{ e' } }{ E } : %
-      \tau \land (\resvar{e} \equiv f) } \\
-    % rule: subtyping:
-    \inference[ SUB ]{ %
-      \Gamma \judges E : \tau & \tau \subtype \tau'
-    }{ \Gamma \judges E : \tau' } 
-    % rule: empty set of expressions:
-    \inference[ EMPTY ]{ }{ %
-      \Gamma \judges \emptyset : \Gamma } %
+      % get type of abstraction,
+      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
+      % get type of argument that is the parameter type,
+      \Gamma \judges \upd{E}{p}{e_1} : \tau }{
+      % return the result type
+      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \qquad
+    % pairing:
+    \inference[ PAIR ]{
+      % get type of both expressions,
+      \Gamma \judges %
+      \upd{E}{\leftchild \cons p, \rightchild \cons p}{ e_0, e_1 } : %
+      \tau }{ % then type of pair is
+      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } : \tau^p } \\
+    % let:
+    \inference[ LET ]{
+      % get type of bound expression,
+      \Gamma \judges \upd{ E }{p}{ e_0 } : \tau^p &
+      % project out x and y,
+      \tau' \subtype^{\cc{x}, \cc{y}} \tau'' \\
+      % get type of result under context that binds to x and y,
+      \Gamma, \cc{x}, \cc{y} : %
+      \replace{ \tau }{ l \cons p, r \cons p }{\cc{x}, \cc{y}} \judges %
+      e_1 : \tau' }{
+      % then complete let expression has type
+      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : \tau'' }
+    % left injection:
+    % right injection:
+    % match:
+    % fixpoint:
   \end{gather*}
   \caption{A proof system for relational types.
+    %
+    \BH{update}
     %
     Metavariable $c$ ranges over $\const$, %
     $x$ ranges over $\vars$, %
@@ -147,9 +124,29 @@ equivalence type, is given in \autoref{sec:rel-type-sys}.
     $\Gamma$ ranges over $\ctxs$. }
   \label{fig:reltypes-rules}
 \end{figure}
+
+
+      % % extend assumed type at p and rebind to position
+      % \typarampos \cons_p \replace{ \tau }{ x }{ p } \union
+      % % combined with relational type that extends result at p with
+      % \tyrespos \cons_p \tau' 
+    
+% define judgment:
+We now define a typing system that assigns indexed expressions to
+result relational types.
 %
-\BH{define subtyping relation}
+For $E \in \posexps$, $\tau \in \restypes$, and $\Gamma \in \ctxs$,
+the fact that $E$ has $\tau$ under $\Gamma$ is denoted
+$\Gamma \judges E : \tau$.
+
+% walk through the inference rules:
+The typing relation is inductively defined by a finite set of
+inference rules, a selection of which are given in
+\autoref{fig:reltypes-rules}.
 %
+Each rule partially defines the typing relation over positional
+expressions $E$ based on the structure of an arbitrary binding in $E$.
+
 Relational types are associated with sets of program expressions to
 prove that the expressions satisfy relational properties.
 %
