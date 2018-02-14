@@ -7,4 +7,3 @@ module Language
 import Language.Types
 import Language.TypeInference
 import Language.HORT
-import Language.TypeDAG
