@@ -46,6 +46,7 @@ dependencies:
 - z3 >=4.1
 - turtle
 - extra
+- fixplate
 
 executables:
   equivalence-check:

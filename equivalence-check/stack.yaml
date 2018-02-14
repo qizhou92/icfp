@@ -10,6 +10,7 @@ packages:
 extra-deps:
 - parsec-numbers-0.1.0
 - prettyprinter-1.1.1
+- fixplate-0.1.7
 
 flags: {}
 
