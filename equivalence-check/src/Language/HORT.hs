@@ -4,14 +4,9 @@ import           Control.Monad.State
 import           Data.Data (Data)
 import           Data.Tree
 
-<<<<<<< HEAD
-import Grammar
-import Formula hiding (Rule)
-=======
 import           Language.Types
 import           Grammar
 import qualified Formula as F
->>>>>>> 8345b47603a438ce3d1b5885d92e26545f68f065
 
 newtype HORT = HORT { getHORT :: Tree Nonterminal }
   deriving (Show, Read, Eq, Data)
@@ -21,10 +16,9 @@ newtype HORT = HORT { getHORT :: Tree Nonterminal }
 subtype :: HORT -> HORT -> [Rule]
 subtype = undefined
 
-
-buildSubType :: Category -> (Tree Nonterminal) -> (Tree Nonterminal) -> [Rule]
+buildSubType :: Category -> Tree Nonterminal -> Tree Nonterminal -> [Rule]
 buildSubType category (Node n1 subTrees1) (Node n2 subTrees2) = do
-  let rule = Rule category n2 (LBool True) [n1]
+  let rule = Rule category n2 (F.LBool True) [n1]
   let rules = concat (zipWith (buildSubType category) subTrees2 subTrees1)
   rule:rules 
 
