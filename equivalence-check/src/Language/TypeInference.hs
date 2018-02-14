@@ -29,7 +29,8 @@ type Ctxt = Map Var Type
 type Infer a = StateT InferenceState (Either InferenceError) a
 
 typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' Type)
-typeCheck e = evalStateT (contextualize e >>= infer >>= resolve) (InferenceState 0 M.empty)
+typeCheck e = evalStateT (contextualize e >>= infer >>= resolve)
+  (InferenceState 0 M.empty)
 
 -- | When two types are the same, ensure they are eventually the same. This involves
 -- failing when two known types are not the same and adding additional constraints
