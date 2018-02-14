@@ -147,6 +147,9 @@ appMany = foldl (:@)
 mkImpl :: Expr -> Expr -> Expr
 mkImpl = app2 Impl
 
+mkAdd :: Type -> Expr -> Expr -> Expr
+mkAdd t = app2 (Add t)
+
 mkAnd :: Expr -> Expr -> Expr
 mkAnd x@(Ge t1 :@ x1 :@ y1) y@(Le t2 :@ x2 :@ y2)
   | t1 == t2 && x1 == x2 && y1 == y2 = Eql t1 :@ x1 :@ y1
