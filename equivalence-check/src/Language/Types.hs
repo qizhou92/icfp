@@ -39,6 +39,12 @@ data Type
   deriving (Show, Read, Eq, Ord, Data)
 instance Plated Type where plate = uniplate
 
+isPrimitiveType :: Type -> Bool
+isPrimitiveType TInt = True
+isPrimitiveType TBool = True
+isPrimitiveType (TArr _ _) = False
+isPrimitiveType _ = error "currently not support (isPrimitiveType in Types.hs)"
+
 types :: Data a => Traversal' a Type
 types = biplate
 
@@ -164,6 +170,8 @@ instance Pretty Binop where
 -- isFix :: CoreExpr -> Bool
 -- isFix (ELet x ex _) =  x `S.member` freeVars ex
 -- isFix _             = False
+
+
 
 freeVars :: CoreExpr -> Attr CoreExpr' (Set Var)
 freeVars = synthetise (\case
