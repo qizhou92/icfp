@@ -74,12 +74,10 @@ types.
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
-      \Gamma, x : \tau \judges \upd{ E }{ p }{ e } : \tau' \\
-      % project the result to remove x,
-      \tau' \subtype^x \tau'' }{ %
+      \Gamma, x : \tau \judges \upd{ E }{ p }{ e } : \tau' }{ %
       % type of abstraction is
       \Gamma \judges \upd{ E }{ p }{ \lambda x. e } : %
-      \tau \to_p \tau'' } \\
+      \tau \to_p \tau' } \\
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
@@ -94,23 +92,66 @@ types.
       \Gamma \judges %
       \upd{E}{\leftchild \cons p, \rightchild \cons p}{ e_0, e_1 } : %
       \tau }{ % then type of pair is
-      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } : \tau^p } \\
+      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } : \times_p \tau } \\
     % let:
     \inference[ LET ]{
       % get type of bound expression,
-      \Gamma \judges \upd{ E }{p}{ e_0 } : \tau^p &
-      % project out x and y,
-      \tau' \subtype^{\cc{x}, \cc{y}} \tau'' \\
+      \Gamma \judges \upd{ E }{p}{ e_0 } : \times_p \tau \\
       % get type of result under context that binds to x and y,
       \Gamma, \cc{x}, \cc{y} : %
       \replace{ \tau }{ l \cons p, r \cons p }{\cc{x}, \cc{y}} \judges %
       e_1 : \tau' }{
       % then complete let expression has type
-      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : \tau'' }
+      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : \tau'' } \qquad
     % left injection:
+    \inference[ LEFT ]{
+      % get type of the nested exp,
+      \Gamma \judges \upd{E}{p}{ e } : \tau }{
+      % lift type at the left to sum,
+      \Gamma \judges \upd{E}{p}{ \injl\ e} : \tau +_p \tau' } \\
     % right injection:
+    \inference[ RIGHT ]{
+      % get type of the nested exp,
+      \Gamma \judges \upd{E}{p}{ e } : \tau }{
+      % lift type at the left to sum,
+      \Gamma \judges \upd{E}{p}{ \injr\ e} : \tau' +_p \tau } \\
     % match:
+    \inference[ MATCH ]{
+      % get type of matched exp,
+      \Gamma \judges \upd{E}{p}{e_0} : \tau +_p \tau' \\
+      % get type of left branch under context that binds x to left op,
+      \Gamma, \cc{x} : \replace{ \tau }{p}{ \cc{x} } \judges %
+      \upd{E}{p}{e_1} : \tau'' \\
+      % get type of right branch under context that binds y to right op,
+      \Gamma, \cc{y} : \replace{ \tau' }{p}{ \cc{y} } \judges %
+      \upd{E}{p}{e_2} : \tau'' }{
+      % then type of match exp is type of both branches,
+      \Gamma \judges %
+      \upd{E}{p}{ \matchexp{e_0}{\cc{x}}{e_1}{\cc{y}}{e_2} } : %
+      \tau''
+    }
     % fixpoint:
+    \inference[ FIX ]{
+      % get type of body under context that binds symbol to tau,
+      \Gamma, f : \tau \judges \upd{ E }{ p }{ e } : \tau' \\
+      % constrain that tau' with result renamed to f is subtype of tau,
+      \replace{ \tau' }{ p }{ f } \subtype \tau
+    }{ %
+      \Gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau' } \\
+    % unfold:
+    \inference[ UNFOLD ]{
+      % if expressions have tau unfolded at p,
+      \Gamma \judges E : \unfold{\tau}{p} }{ 
+      % then expressions have folded type
+      \Gamma \judges E : \tau }
+    % subtype:
+    \inference[ SUB ]{
+      % if expressions have tau,
+      \Gamma \judges E : \tau \\
+      % and tau subtypes tau',
+      \tau \subtype \tau' }{ %
+      % then expressions have type tau'
+      \Gamma \judges E : \tau' }
   \end{gather*}
   \caption{A proof system for relational types.
     %

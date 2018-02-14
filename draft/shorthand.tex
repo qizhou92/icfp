@@ -117,6 +117,10 @@
 
 \newcommand{\immsubders}[1]{\mathsf{ImmSubs}[ #1 ]}
 
+\newcommand{\injl}{\cc{injl}}
+
+\newcommand{\injr}{\cc{injr}}
+
 \newcommand{\instrules}[1]{\mathsf{InstRules}[ #1 ]}
 
 \newcommand{\instrulepreds}[1]{\mathsf{InstPreds}[ #1 ]}
@@ -144,6 +148,8 @@
 \newcommand{\leftopchild}{l_{\oplus}}
 
 \newcommand{\letexp}[4]{\cc{let (} #1 \cc{,} #2 \cc{)=} #3 \cc{ in } #4}
+
+\newcommand{\matchexp}[5]{\cc{match } #1 \cc{ with } #2 \cc{->} #3 \cc{|} #4 \cc{->} #5}
 
 \newcommand{\nilrel}{\mathsf{NilRel}}
 
@@ -258,6 +264,8 @@
 \newcommand{\types}{\mathsf{Types}}
 
 \newcommand{\tyrespos}{\nu}
+
+\newcommand{\unfold}[2]{#1\uparrow^{#2}}
 
 \newcommand{\unfoldings}[1]{\mathsf{Unfoldings}[ #1 ]}
 
