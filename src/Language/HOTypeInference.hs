@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes #-}
 module Language.HOTypeInference where
 
 import           Control.Monad.Except
@@ -86,30 +87,40 @@ infer = fmap (annMap snd . annZip) .
       -- HO s, t' <: t, s <: s', A ~ e : s' -> t', A ~ e' : s
       -- --------------------------------------------
       -- A ~ e e' : t
-      EApp st s -> do
-        (s', t') <- safeSplit st
+      EApp st s ->
         if isPrim s
-        then undefined
+        then
+          let tv = valueOf t
+              sv = valueOf s
+              stv = valueOf st
+              sta = argumentOf st
+          in iconstrain t [st, s] [F.expr| $sta = $sv && $tv = $stv|]
         else do
+          (s', t') <- safeSplit st
           t' <: t
           s <: s'
 
       ELam _ t' -> t' <: t
+        -- TODO properly constrain argument to free variable
 
       EBin op r s ->
         let rv = valueOf r
             sv = valueOf s
             tv = valueOf t
             f = case op of
-              Plus -> F.mkEql F.Int tv (F.mkAdd F.Int rv sv)
+              Plus -> [F.expr|$tv = $rv + $sv|]
               _ -> undefined
         in iconstrain t [r, s] f
 
       EInt i ->
-        iconstrain t [] (F.mkEql F.Int (valueOf t) (F.LInt $ toInteger i))
+        let tv = valueOf t
+            i' = F.LInt $ toInteger i
+        in iconstrain t [] [F.expr|$tv = $i'|]
 
       EBool b ->
-        iconstrain t [] (F.mkEql F.Bool (valueOf t) (F.LBool b))
+        let tv = valueOf t
+            b' = F.LBool b
+        in iconstrain t [] [F.expr|$tv = $b'|]
 
       ENil -> undefined
       EIf{} -> undefined

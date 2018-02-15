@@ -34,6 +34,10 @@ valueOf hort1 = do
  let (Nonterminal _ vars) = nonterminal
  F.V (last vars)
 
+-- | Given a higher order refinement type, fetch the formula (variable) which
+-- represents the argument of the expression.
+argumentOf :: HORT -> F.Expr
+argumentOf = undefined
 
 -- | Whether or not this type is primitive.
 isPrim :: HORT -> Bool
