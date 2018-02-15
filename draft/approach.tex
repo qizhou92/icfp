@@ -33,12 +33,8 @@ types.
 
 \BH{define context}
 
-\BH{define positioned expressions: only need to record pairs and base
-  operations. Examples: the empty map, mapping from positions to
-  variables}
-
-\BH{define indexed expressions as partial map from expression
-  positions to expressions}
+\BH{define positioned expressions. Examples: the empty map, mapping
+  from positions to variables}
 
 \BH{define result relational type: base symbols are variables
   expression positions. Example: the empty relational type}
@@ -98,9 +94,36 @@ associated.
 %
 
 
-\BH{define refinement}
+% define refinement
+For $\tau \in \reltypes$, symbol $x$, and base term $t$,
+%
+\BH{background: define base terms}
+%
+the \emph{refinement} of $\tau$ for $x$ and $t$ extends $\tau$ with
+base value $x$ set to $t$.
+%
+I.e., the refinement of $\tau$ for $x$ and $t$ is $\tau$ with each
+refinement predicate $P$ replaced with the following predicate:
+%
+\begin{itemize}
+\item % co-variant:
+  If $P$ is covariant, then $P \land x = t$;
+\item % contra-variant:
+  If $P$ is contravariant, then $x = t \implies P$;
+\item % bi-variant:
+  If $P$ is bivariant, then $P$.
+\end{itemize}
+%
+For each $y \in \vars$, the refinement of $\tau$ for $x$ and $y$ is
+defined as follows.
+%
+\BH{complete}
 
-\BH{define equivalence extension}
+% extend to sequences of positions and program variables:
+For $\tau \in \reltypes$, positions $P = p_0, \ldots, p_n$ and program
+variables $X = x_0, \ldots, x_n$, the sequence of joins
+$(\ldots(\tau \joinctr_{p_0} x_0) \joinctr \ldots) \joinctr_{p_n} x_n$
+is denoted $\tau \joinctr_{P} X$.
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
@@ -112,117 +135,122 @@ associated.
     % empty:
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma \judges \emptyset : \emptyset } \qquad
-    % vars:
-    \inference[ VARS ]{ }{ %
-      \Gamma, x : \tau \judges P \mapsto X \concat [ x ] \concat X' : %
-      \tau \joinctr (P \equiv X \concat [ x ] \concat X') } \\
+      \Gamma, \gamma \judges \emptyset : \gamma } \qquad
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
-      \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ c } : \tau \joinctr_p c } \qquad
+      \Gamma, \gamma \judges E : \tau }{ %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ c } : %
+      \tau \joinctr_p c } \\
+    % vars:
+    \inference[ VAR ]{ %
+      \Gamma, \gamma \judges E : \tau }{ %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ a } : %
+      \tau \joinctr_{p} a } \qquad
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
-      \Gamma \judges %
+      \Gamma, \gamma \judges %
       \upd{ E }{ \leftopchild \cons p, \rightopchild \cons p}{ %
         e_0, e_1 } : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
       \tau \joinctr_p %
       (\leftopchild \cons p \oplus \rightopchild \cons p) } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
-      \Gamma, x : \tau \judges \upd{ E }{ p }{ e } : \tau' }{ %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
-      \Gamma \judges \upd{ E }{ p }{ \lambda x. e } : %
-      \tau \to_p \tau' } \qquad
+      \Gamma, \gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
+      \gamma \to_p \tau } \qquad
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
-      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' &
+      \Gamma, \gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
       % get type of argument that is the parameter type,
-      \Gamma \judges \upd{E}{p}{e_1} : \tau }{
+      \Gamma, \gamma \judges \upd{E}{p}{e_1} : \tau }{
       % return the result type
-      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \\
+      \Gamma, \gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \\
     % pairing:
     \inference[ PAIR ]{
       % get type of both expressions,
-      \Gamma \judges %
+      \Gamma, \gamma \judges %
       \upd{E}{\leftchild \cons p, \rightchild \cons p}{ e_0, e_1 } : %
       \tau }{ % then type of pair is
-      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
+      \Gamma, \gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
       \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } \qquad
     % let:
     \inference[ LET ]{
       % get type of bound expression,
-      \Gamma \judges \upd{ E }{p}{ e_0 } : \times_{x, y}^p \tau &
+      \Gamma, \gamma \judges \upd{ E }{p}{ e_0 } : \times_{x, y}^p \gamma' &
       % get type of result under context that binds to x and y,
-      \Gamma, x, y : \tau \judges e_1 : \tau' }{
+      \Gamma, \gamma' \judges e_1 : \tau' }{
       % then complete let expression has type
-      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : \tau' } \\
+      \Gamma, \gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
+      \tau' } \\
     % left injection:
     \inference[ LEFT ]{
       % get type of the nested exp,
-      \Gamma \judges \upd{E}{p}{ e } : \tau }{
+      \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma \judges \upd{E}{p}{ \injl\ e} : %
+      \Gamma, \gamma \judges \upd{E}{p}{ \injl\ e} : %
       \tau +_{p, p}^p \tau' } \qquad
     % right injection:
     \inference[ RIGHT ]{
       % get type of the nested exp,
-      \Gamma \judges \upd{E}{p}{ e } : \tau }{
+      \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma \judges \upd{E}{p}{ \injr\ e} : %
+      \Gamma, \gamma \judges \upd{E}{p}{ \injr\ e} : %
       \tau' +_{p, p}^p \tau } \\
     % match:
     \inference[ MATCH ]{
       % get type of matched exp,
-      \Gamma \judges \upd{E}{p}{e_0} : \tau +_{x, y}^p \tau' \\
+      \Gamma, \gamma \judges \upd{E}{p}{e_0} : %
+      \gamma' +_{x, y}^p \gamma'' \\
       % get type of left branch under context that binds x to left op,
-      \Gamma, x : \tau \judges \upd{E}{p}{e_1} : \tau'' \\
+      \Gamma, \gamma' \judges \upd{E}{p}{e_1} : \tau'' &
       % get type of right branch under context that binds y to right op,
-      \Gamma, y : \tau' \judges \upd{E}{p}{e_2} : \tau'' }{
+      \Gamma, \gamma'' \judges \upd{E}{p}{e_2} : \tau'' }{
       % then type of match exp is type of both branches,
-      \Gamma \judges %
+      \Gamma, \gamma \judges %
       \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : %
       \tau'' } \qquad
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
-      \Gamma, f : \tau \judges \upd{ E }{ p }{ e } : \tau' \\
+      \upd{ \Gamma }{ f }{ \tau }, \gamma \judges %
+      \upd{ E }{ p }{ e } : \tau' \\
       % constrain that tau' with result renamed to f is subtype of tau,
       \replace{ \tau' }{ p }{ f } \subtype \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau' } \\
+      \Gamma, \gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau' } \\
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
-      \Gamma \judges E : \unfold{\tau}{p} }{ 
+      \Gamma, \gamma \judges E : \unfold{\tau}{p} }{ 
       % then expressions have folded type
-      \Gamma \judges E : \tau } \qquad
+      \Gamma, \gamma \judges E : \tau } \qquad
     % subtype:
     \inference[ SUB ]{
       % if expressions have tau,
-      \Gamma \judges E : \tau &
+      \Gamma, \gamma \judges E : \tau &
       % and tau subtypes tau',
       \tau \subtype \tau' }{ %
       % then expressions have type tau'
-      \Gamma \judges E : \tau' }
+      \Gamma, \gamma \judges E : \tau' }
   \end{gather*}
   \caption{A typing system for relational types.
     %
     Metavariable %
-    $\Gamma$ ranges over constants, %
-    $E$ ranges over positional expressions, %
+    $\gamma$ ranges over contexual relational types, %
+    $\Gamma$ ranges over contexts, %
+    $E$ ranges over positioned expressions, %
     $p$ ranges over expression positions, %
     $e$ ranges over expressions, %
     $\tau$ ranges over relational types, %
-    $P$ ranges over sequences of expression positions, %
-    $X$ ranges over sequences of program variables, %
     $c$ ranges over constants, %
-    $x$, $y$, and $f$ range over program variables, and %
-    $q$ ranges over type positions.}
+    $x$ and $y$ range over abstraction variables, %
+    $f$ ranges over fixpoint variables, and %
+    $a$ ranges over variables. }
   \label{fig:reltypes-rules}
 \end{figure}
 
@@ -236,33 +264,32 @@ expressions, along with rules that define the typing relation for
 special cases of positonal expressions and for assigning relational
 least-fixed-point types and using the subtype relation.
 % empty:
-Rule~EMPTY establishes that the empty positional expression map has
-the empty relational type.
+Rule~EMPTY establishes that under contextual relational type $\gamma$,
+the empty positioned expressions have type $\gamma$.
 
-% variables:
-Rule~VARS establishes that under a context that binds variable $x$ to
-relational type $\tau$, the positional expressions that map positions
-$P$ to variables $X \concat [ x ] \concat X'$ have as a type $\tau$
-extended to set $P$ equivalent to $X \concat [ x ] \concat X'$.
 % const:
-Rule~CONST establishes that if positioned expressions have type
+Rule~CONST establishes that if positioned expressions $E$ have type
 $\tau$, then $E$ extended to bind position $p$ to constant $c$ have
 type $\tau$ refined to set $p$ to $c$.
+% variables:
+Rule~VARS establishes that if $E$ have type $\tau$, then $E$ extended
+to bind $p$ to variable $a$ have type $\tau$ refined to set $p$ to
+$x$.
 % op:
 Rule~OP establishes that if $E$ extended to bind positoins
 $\leftopchild \cons p$ and $\rightopchild \cons p$ to expressions
 $e_0$ and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
-$e_0 \oplus e_1$ has type $\tau$ refined to set $p$ to
+$e_0 \oplus e_1$ have type $\tau$ refined to set $p$ to
 $\leftopchild \cons p \oplus \rightopchild \cons p$.
 
 % abs:
 Rules~ABS and APP are defined using the relational function type
 operator.
 %
-Rule~ABS establishes that if, under context $\Gamma$ extended to bind
-variable $x$ to relational type $\tau$, $E$ extended to bind $p$ to
-expression $e$ has type $\tau'$, then under $\Gamma$, $E$ extended to
-bind $p$ to $\lambda x. e$ is a relational function from $\tau$ to
+Rule~ABS establishes that if, under contextual relational type
+$\gamma$, $E$ extended to bind $p$ to expression $e$ have type $\tau$,
+then under contextual relational type $\gamma'$, $E$ extended to bind
+$p$ to $\lambda x. e$ is a relational function from $\gamma$ to
 $\tau'$ at $p$.
 % app:
 Rule~APP establishes that if %
@@ -282,12 +309,12 @@ is the relational product of $\tau$ from $\leftchild \cons p$ and
 $\rightchild \cons p$ to $p$.
 % let:
 Rule~LET establishes that if %
-\textbf{(1)} under $\Gamma$, $E$ extended to bind $p$ to $e_0$ is the
-relational product of $\tau$ from variables $x$ and $y$ to $p$;
+\textbf{(1)} under $\gamma$, $E$ extended to bind $p$ to $e_0$ is the
+relational product of $\gamma'$ from variables $x$ and $y$ to $p$;
 %
-\textbf{(2)} under $\Gamma$ extended to bind $x$ and $y$ to $\tau$,
-$e_1$ has type $\tau'$, then $E$ extended to bind $p$ to
-$\letexp{x}{y}{e_0}{e_1}$ has type $\tau'$.
+\textbf{(2)} under $\gamma'$, $e_1$ has type $\tau'$, then under
+$\gamma$, $E$ extended to bind $p$ to $\letexp{x}{y}{e_0}{e_1}$ has
+type $\tau'$.
 
 % relational sum:
 Rules~LEFT, RIGHT, and MATCH are defined using the relational sum type
@@ -301,23 +328,22 @@ and $p$ to $p$.
 Rule~RIGHT is defined symmetrically to Rule~LEFT.
 % match:
 Rule~MATCH establishes that if %
-\textbf{(1)} under $\Gamma$, $E$ extended to bind $p$ to $e_0$ is a
-relational from of $\tau$ and $\tau'$ from variables $x$ and $y$ to
-$p$;
+\textbf{(1)} under $\gamma$, $E$ extended to bind $p$ to $e_0$ is a
+relational sum of $\gamma'$ and $\gamma''$ from variables $x$ and $y$
+to $p$;
 % 
-\textbf{(2)} under $\Gamma$ extended to bind $x$ to $\tau$, $E$
-extended to bind $p$ to $e_1$ has type $\tau''$; and
+\textbf{(2)} under $\gamma'$, $E$ extended to bind $p$ to $e_1$ has
+type $\tau''$; and
 %
-\textbf{(3)} under $\Gamma$ extended to bind $y$ to $\tau'$, $E$
-extended to bind $p$ to $e_2$ also has type $\tau''$, then $E$
-extended to bind $p$ to $\matchexp{e_0}{x}{e_1}{y}{e_2}$ has type
-$\tau''$.
+\textbf{(3)} under $\gamma''$, $E$ extended to bind $p$ to $e_2$ also
+has type $\tau''$, then under $\gamma$, $E$ extended to bind $p$ to
+$\matchexp{e_0}{x}{e_1}{y}{e_2}$ has type $\tau''$.
 
 % fix:
 Rule~FIX establishes that if %
 \textbf{(1)} under $\Gamma$ extended to bind $f$ to $\tau$, $E$
 extended to bind $p$ to $e$ has type $\tau'$; and %
-\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of $\tau'$,
+\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of $\tau$,
 then under $\Gamma$, $E$ extended to bind $p$ to $\fix{f}{e}$ has type
 $\tau'$.
 % unfold:
