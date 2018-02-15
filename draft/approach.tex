@@ -130,6 +130,10 @@ defined as follows.
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
       \Gamma, \gamma \judges \cdot : \gamma } \qquad
+    \inference[ FVAR ]{ }{
+      % the empty map of expressions has relational type true
+      \Gamma, f : \gamma, \gamma' \judges p \mapsto f : %
+      \Gamma(f) \joinctr_{p} f} \qquad
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
@@ -260,6 +264,10 @@ least-fixed-point types and using the subtype relation.
 % empty:
 Rule~EMPTY establishes that under contextual relational type $\gamma$,
 the empty positioned expressions have type $\gamma$.
+% fixpoint var:
+Rule~FVAR establishes that under context $\Gamma$, the positioned
+expression that maps only position $p$ to fixpoint variable $f$ has
+type $\Gamma(f)$ refined to set $p$ to $f$.
 
 % const:
 Rule~CONST establishes that if positioned expressions $E$ have type
