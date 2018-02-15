@@ -137,36 +137,11 @@ instance Pretty Binop where
     Or    -> "||"
     Cons  -> ":"
 
--- data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
---   deriving Show
+prettyCtxt :: Show b => Ann CoreExpr' b a -> String
+prettyCtxt (Ann ctx _) = show ctx
 
--- data EqEnv = EqEnv
---   { eqProgram :: Program
---   , eqGoals   :: [(Var, Var)]
---   }
-
--- goalsToPrograms :: Program -> (Var, Var) -> (Bind, Bind)
--- goalsToPrograms bs (x1, x2) = ((x1, findBind bs x1), (x2, findBind bs x2))
-
--- findBind :: Program -> Var -> CoreExpr
--- findBind ((x,e):bs) y
---   | x == y    = e
---   | otherwise = findBind bs y
--- findBind [] _ = error "findBind: Not found"
-
--- mkPairs :: [String] -> [(Var, Var)]
--- mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
--- mkPairs _            = []
-
--- exprList :: [CoreExpr] -> CoreExpr
--- exprList = foldr (EBin Cons) ENil
-
--- isFix :: CoreExpr -> Bool
--- isFix (ELet x ex _) =  x `S.member` freeVars ex
--- isFix _             = False
-
-freeVars :: CoreExpr -> Attr CoreExpr' (Set Var)
-freeVars = synthetise (\case
+freeVars :: Attr CoreExpr' a -> Attr (Ann CoreExpr' a) (Set Var)
+freeVars = synthetise (\(Ann _ e) -> case e of
   -- In the case of a variable, add that variable as a free variable.
   EVar v              -> S.singleton v
   -- In the case of 'let', 'lambda', and 'fix' expressions, variables
@@ -211,3 +186,32 @@ freeVars = synthetise (\case
 --                <*> pure ()
 --       -- In all other cases, recursively substitute over subexpressions.
 --       e -> e & plate %%~ sub
+--
+-- data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
+--   deriving Show
+
+-- data EqEnv = EqEnv
+--   { eqProgram :: Program
+--   , eqGoals   :: [(Var, Var)]
+--   }
+
+-- goalsToPrograms :: Program -> (Var, Var) -> (Bind, Bind)
+-- goalsToPrograms bs (x1, x2) = ((x1, findBind bs x1), (x2, findBind bs x2))
+
+-- findBind :: Program -> Var -> CoreExpr
+-- findBind ((x,e):bs) y
+--   | x == y    = e
+--   | otherwise = findBind bs y
+-- findBind [] _ = error "findBind: Not found"
+
+-- mkPairs :: [String] -> [(Var, Var)]
+-- mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
+-- mkPairs _            = []
+
+-- exprList :: [CoreExpr] -> CoreExpr
+-- exprList = foldr (EBin Cons) ENil
+
+-- isFix :: CoreExpr -> Bool
+-- isFix (ELet x ex _) =  x `S.member` freeVars ex
+-- isFix _             = False
+

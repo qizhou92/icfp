@@ -4,9 +4,10 @@ import           Control.Monad.Except
 import           Control.Monad.State
 import           Control.Monad.Writer
 
-import           Data.Data (Data)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Attributes
 
@@ -40,21 +41,28 @@ isearch x ctxt =
     Nothing -> throwError (UnboundError x)
     Just t' -> pure t'
 
+iconstrain :: HORT -> [HORT] -> F.Expr -> Infer ()
+iconstrain h b c = tell (constrain h b c)
+
 -- | Generate grammar rules which force the first type to be a subtype of
 -- the second.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
 (<:) s t = tell (subtype s t)
 
 -- | Generate a new higher order relational type for every
-giveType :: Attr CoreExpr' ([F.Var], Type) -> Infer (Attr CoreExpr' HORT)
-giveType = fmap unAttrib . traverse (uncurry fresh) . Attrib
+giveType :: Attr CoreExpr' (Map Var Type, [Var], Type) -> Infer (Attr CoreExpr' HORT)
+giveType = fmap unAttrib . traverse (\(m, vs, t) -> fresh m vs t) . Attrib
 
 -- | Annotate each subexpression with the context which maps variables
 -- to their corresponding context.
 contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
 contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
-  ELam x _ -> M.insert x t ctxt
+  ELam x _ -> if isPrim t then ctxt else M.insert x t ctxt
   _ -> ctxt) M.empty
+
+addFreeVars :: Attr CoreExpr' (Map Var Type, Type)
+            -> Attr CoreExpr' (Map Var Type, [Var], Type)
+addFreeVars = annZipWith (\(m, t) vs -> (m, S.toList vs, t)) . freeVars
 
 -- | Given an expression where every subexpression has a higher order relational
 -- type and has access to the correct context, generate constraints which
@@ -62,8 +70,14 @@ contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
 -- type to the parent expression.
 infer :: Attr CoreExpr' (HORT, Ctxt) -> Infer (Attr CoreExpr' HORT)
 infer = fmap (annMap snd . annZip) .
-  synthetiseM (\(Ann (t, ctxt) e) -> case e of
-      EVar x -> isearch x ctxt
+  synthetiseM (\(Ann (t, ctxt) e) -> do
+    case e of
+      EVar x ->
+        if isPrim t
+        then iconstrain t [] (F.LBool True)
+        else do
+          t' <- isearch x ctxt
+          t' <: t
 
       -- prim s, t' <: t, A ~ e : s -> t', A ~ e' : s
       -- --------------------------------------------
@@ -79,32 +93,37 @@ infer = fmap (annMap snd . annZip) .
         else do
           t' <: t
           s <: s'
-          pure t
 
-      ELam x t' -> do
-        s <- isearch x ctxt
-        undefined -- ??
+      ELam _ t' -> t' <: t
 
       EBin op r s ->
-        let f = case op of
-              Plus -> F.mkAdd F.Int (valueOf r) (valueOf s)
+        let rv = valueOf r
+            sv = valueOf s
+            tv = valueOf t
+            f = case op of
+              Plus -> F.mkEql F.Int tv (F.mkAdd F.Int rv sv)
               _ -> undefined
-        in do
-        tell (constrain t [r, s] f)
-        pure t
+        in iconstrain t [r, s] f
 
-      EInt i -> do
-        tell (constrain t [] (F.mkEql F.Int (valueOf t) (F.LInt $ toInteger i)))
-        pure t
+      EInt i ->
+        iconstrain t [] (F.mkEql F.Int (valueOf t) (F.LInt $ toInteger i))
 
-      EBool b -> do
-        tell (constrain t [] (F.mkEql F.Bool (valueOf t) (F.LBool b)))
-        pure t
+      EBool b ->
+        iconstrain t [] (F.mkEql F.Bool (valueOf t) (F.LBool b))
+
+      ENil -> undefined
+      EIf{} -> undefined
+      EMatch{} -> undefined
+      ECon{} -> undefined
+      ELet{} -> undefined
+      EFix{} -> undefined
+    pure t
     )
 
-typeConstraints :: Attr CoreExpr' ([F.Var], Type) -> Either InferenceError Grammar
+typeConstraints :: Attr CoreExpr' (Map Var Type, Type) -> Either InferenceError Grammar
 typeConstraints e =
-  let ac = runExceptT (evalStateT (infer =<< contextualize <$> giveType e) 0)
+  let e' = infer =<< contextualize <$> giveType (addFreeVars e)
+      ac = runExceptT (evalStateT e' 0)
   in case runWriter ac of
     (Left err, _) -> Left err
     (Right _, rs) -> Right (Grammar undefined rs)

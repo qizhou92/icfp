@@ -3,6 +3,8 @@ module Language.HORT where
 import           Control.Monad.State
 import           Data.Data (Data)
 import           Data.Tree
+import           Data.Map (Map)
+import qualified Data.Map as M
 
 import           Language.Types
 import           Grammar
@@ -33,7 +35,7 @@ isPrim = undefined
 
 -- | Given a list of free variables and a basic type, construct
 -- a higher order refinement type.
-fresh :: MonadState Int m => [F.Var] -> Type -> m HORT
+fresh :: MonadState Int m => Map Var Type -> [Var] -> Type -> m HORT
 fresh = undefined
 
 -- | Split a refinement type at the arrow position.

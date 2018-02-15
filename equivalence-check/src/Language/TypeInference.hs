@@ -28,7 +28,7 @@ type Ctxt = Map Var Type
 
 type Infer a = StateT InferenceState (Either InferenceError) a
 
-typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' Type)
+typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' (Ctxt, Type))
 typeCheck e = evalStateT (contextualize e >>= infer >>= resolve)
   (InferenceState 0 M.empty)
 
@@ -62,12 +62,13 @@ unify t1 t2
 -- | Given an expression where each subexpression is annotated with its type,
 -- use the type table to replace type variables by their equivalent type, when
 -- possible.
-resolve :: Attr CoreExpr' Type -> Infer (Attr CoreExpr' Type)
+resolve :: Attr CoreExpr' (Ctxt, Type) -> Infer (Attr CoreExpr' (Ctxt, Type))
 resolve = fmap unAttrib . traverse resolve' . Attrib
   where
-    resolve' = \case
+    resolve' = _2 %%~ res
+    res = \case
       TVar x -> M.findWithDefault (TVar x) x <$> use typeTable
-      TArr s t -> TArr <$> resolve' s <*> resolve' t
+      TArr s t -> TArr <$> res s <*> res t
       t -> pure t
 
 -- | Create a new type variable.
@@ -87,18 +88,15 @@ contextualize = inheritM (\e ctxt -> case e of
   _ -> pure ctxt
   ) M.empty
 
-prettyCtxt :: Show b => Ann CoreExpr' b a -> String
-prettyCtxt (Ann ctx _) = show ctx
-
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not
 -- be fully resolved, and may instead refer to type variables.
-infer :: Attr CoreExpr' Ctxt -> Infer (Attr CoreExpr' Type)
-infer = fmap (annMap snd . annZip) .
+infer :: Attr CoreExpr' Ctxt -> Infer (Attr CoreExpr' (Ctxt, Type))
+infer = fmap annZip .
   -- By using generics, each subexpression has been replaced by its type.
   synthetiseM (\(Ann ctxt e) -> case e of
   -- A => IntLit : Int
-  EInt i -> pure TInt
+  EInt _ -> pure TInt
 
   -- A => BoolLit : Bool
   EBool _ -> pure TBool
