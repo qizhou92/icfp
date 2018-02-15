@@ -1,4 +1,4 @@
-module Formula.Parser where
+module Language.Parser where
 
 import           Data.Functor.Identity
 

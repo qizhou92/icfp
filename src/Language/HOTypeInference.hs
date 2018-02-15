@@ -48,8 +48,7 @@ iconstrain h b c = tell (constrain h b c)
 -- | Generate grammar rules which force the first type to be a subtype of
 -- the second.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
--- (<:) s t = tell (subtype s t)
-(<:) = undefined
+(<:) s t = tell (subtype s t)
 
 -- | Generate a new higher order relational type for every
 giveType :: Attr CoreExpr' (Map Var Type, [Var], Type) -> Infer (Attr CoreExpr' HORT)
@@ -79,7 +78,7 @@ infer = fmap (annMap snd . annZip) .
         then
           let tv = valueOf t
               vx = F.Var (getVar x) (F.exprType tv)
-          in iconstrain t [] [F.expr|$tv = @vx|]
+          in tell (constrainForPrimitive t [] [F.expr|$tv = @vx|])
         else do
           t' <- isearch x ctxt
           t' <: t
@@ -91,7 +90,7 @@ infer = fmap (annMap snd . annZip) .
               sv = valueOf s
               stv = valueOf st
               sta = argumentOf st
-          in iconstrain t [st, s] [F.expr| $sta = $sv && $tv = $stv|]
+          in tell (constrainForAppPrimitive t [st, s] [F.expr| $sta = $sv && $tv = $stv|])
         else do
           (s', t') <- safeSplit st
           t' <: t
@@ -99,12 +98,12 @@ infer = fmap (annMap snd . annZip) .
 
       ELam x t' ->
         if x `M.member` ctxt -- x is HO
-        then 
+        then do
           (_ , t'') <- safeSplit t
           t' <: t''
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)
-           in iconstrain t [t'] [F.expr|ta = vx|]
+           in tell (constraintForLamPrimitive t [t'] [F.expr|$ta = @vx|])
 
       EBin op r s ->
         let rv = valueOf r
@@ -122,25 +121,25 @@ infer = fmap (annMap snd . annZip) .
               And   -> [F.expr|$tv = ($rv && $sv)|]
               Or    -> [F.expr|$tv = ($rv || $sv)|]
               Cons  -> undefined
-        in iconstrain t [r, s] f
+        in tell (constrainForPrimitive t [r, s] f)
 
       EInt i ->
         let tv = valueOf t
             i' = F.LInt $ toInteger i
-        in iconstrain t [] [F.expr|$tv = $i'|]
+        in tell (constrainForPrimitive t [] [F.expr|$tv = $i'|])
 
       EBool b ->
         let tv = valueOf t
             b' = F.LBool b
-        in iconstrain t [] [F.expr|$tv = $b'|]
+        in tell (constrainForPrimitive t [] [F.expr|$tv = $b'|])
 
       EIf s t' t'' ->
         let sv = valueOf s
             tv = valueOf t
             tv' = valueOf t'
             tv'' = valueOf t''
-        in iconstrain t [s, t', t'']
-          [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|]
+        in tell (constraintForIf t [s, t', t'']
+          [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|])
 
       ENil -> undefined
       EMatch{} -> undefined
@@ -155,4 +154,4 @@ typeConstraints e =
       ac = runExceptT (evalStateT e' 0)
   in case runWriter ac of
     (Left err, _) -> Left err
-    (Right _, rs) -> Right (Grammar undefined rs)
+    (Right _, rs) -> Right (Grammar 0 rs)
