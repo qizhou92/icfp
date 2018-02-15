@@ -75,8 +75,10 @@ infer = fmap (annMap snd . annZip) .
     case e of
       EVar x ->
         if isPrim t
+        -- constrains is result eqauls to the free variable
         then iconstrain t [] (F.LBool True)
         else do
+        -- t is the subtype of t'
           t' <- isearch x ctxt
           t' <: t
 
@@ -95,6 +97,7 @@ infer = fmap (annMap snd . annZip) .
 
       ELam x t' ->
         if x `M.member` ctxt -- x is HO
+        -- t is the subtype of t'
         then t' <: t
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)

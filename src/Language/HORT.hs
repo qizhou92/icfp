@@ -17,8 +17,9 @@ data HORT = HORT
 
 -- | Given a pair of higher order refinement types, generate the grammar rules
 -- which constrain the types.
-subtype :: HORT -> HORT -> [Rule]
-subtype = undefined
+subtype :: Category -> HORT -> HORT -> [Rule]
+subtype category hort1 hort2 = buildSubType category (getHORT hort1) (getHORT hort2)
+  
 
 buildSubType :: Category -> Tree Nonterminal -> Tree Nonterminal -> [Rule]
 buildSubType category (Node n1 subTrees1) (Node n2 subTrees2) =
