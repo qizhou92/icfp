@@ -80,13 +80,6 @@ infer = fmap (annMap snd . annZip) .
           t' <- isearch x ctxt
           t' <: t
 
-      -- prim s, t' <: t, A ~ e : s -> t', A ~ e' : s
-      -- --------------------------------------------
-      -- A ~ e e' : t
-      --
-      -- HO s, t' <: t, s <: s', A ~ e : s' -> t', A ~ e' : s
-      -- --------------------------------------------
-      -- A ~ e e' : t
       EApp st s ->
         if isPrim s
         then
@@ -100,16 +93,29 @@ infer = fmap (annMap snd . annZip) .
           t' <: t
           s <: s'
 
-      ELam _ t' -> t' <: t
-        -- TODO properly constrain argument to free variable
+      ELam x t' ->
+        if x `M.member` ctxt -- x is HO
+        then t' <: t
+        else let ta = argumentOf t
+                 vx = F.Var (getVar x) (F.exprType ta)
+           in iconstrain t [t'] [F.expr|ta = vx|]
 
       EBin op r s ->
         let rv = valueOf r
             sv = valueOf s
             tv = valueOf t
             f = case op of
-              Plus -> [F.expr|$tv = $rv + $sv|]
-              _ -> undefined
+              Plus  -> [F.expr|$tv = $rv + $sv|]
+              Minus -> [F.expr|$tv = $rv - $sv|]
+              Mul   -> [F.expr|$tv = $rv * $sv|]
+              Div   -> [F.expr|$tv = $rv / $sv|]
+              Eq    -> [F.expr|$tv = ($rv = $sv)|]
+              Ne    -> [F.expr|$tv = (not ($rv = $sv))|]
+              Lt    -> [F.expr|$tv = ($rv < $sv)|]
+              Le    -> [F.expr|$tv = ($rv <= $sv)|]
+              And   -> [F.expr|$tv = ($rv && $sv)|]
+              Or    -> [F.expr|$tv = ($rv || $sv)|]
+              Cons  -> undefined
         in iconstrain t [r, s] f
 
       EInt i ->
@@ -122,14 +128,25 @@ infer = fmap (annMap snd . annZip) .
             b' = F.LBool b
         in iconstrain t [] [F.expr|$tv = $b'|]
 
+      EIf s t' t'' ->
+        if isPrim s
+        then
+          let sv = valueOf s
+              tv = valueOf t
+              tv' = valueOf t'
+              tv'' = valueOf t''
+          in iconstrain t [s, t', t'']
+            [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|]
+        else do
+          t' <: t
+          t'' <: t
+
       ENil -> undefined
-      EIf{} -> undefined
       EMatch{} -> undefined
       ECon{} -> undefined
       ELet{} -> undefined
       EFix{} -> undefined
-    pure t
-    )
+    pure t)
 
 typeConstraints :: Attr CoreExpr' (Map Var Type, Type) -> Either InferenceError Grammar
 typeConstraints e =

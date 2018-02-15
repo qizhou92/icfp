@@ -20,7 +20,7 @@ import           GHC.Exts(IsString(..))
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
 
-newtype Var = Var String
+newtype Var = Var { getVar :: String }
   deriving (Show, Read, Eq, Ord, Data)
 instance Pretty Var where pretty (Var v) = pretty v
 

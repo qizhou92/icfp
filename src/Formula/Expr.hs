@@ -57,10 +57,10 @@ instance Monoid Expr where
   mappend = mkAnd
   mempty = LBool True
 
-formType :: Expr -> Type
-formType = \case
+exprType :: Expr -> Type
+exprType = \case
   V v         -> v ^. varType
-  o :@ _      -> case formType o of
+  o :@ _      -> case exprType o of
                    _ :=> t -> t
                    _ -> error "bad function application type"
 

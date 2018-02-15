@@ -224,7 +224,7 @@ formFromApp n args range
     c <- astToExpr (head args)
     e1 <- astToExpr (args !! 1)
     e2 <- astToExpr (args !! 2)
-    return $ F.appMany (F.If (F.formType e1)) [c, e1, e2]
+    return $ F.appMany (F.If (F.exprType e1)) [c, e1, e2]
   | n == "and"      = F.manyAnd  <$> traverse astToExpr args
   | n == "or"       = F.manyOr   <$> traverse astToExpr args
   | n == "+"        = F.manyIAdd <$> traverse astToExpr args
