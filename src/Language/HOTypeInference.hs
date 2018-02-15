@@ -133,17 +133,12 @@ infer = fmap (annMap snd . annZip) .
         in iconstrain t [] [F.expr|$tv = $b'|]
 
       EIf s t' t'' ->
-        if isPrim s
-        then
-          let sv = valueOf s
-              tv = valueOf t
-              tv' = valueOf t'
-              tv'' = valueOf t''
-          in iconstrain t [s, t', t'']
-            [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|]
-        else do
-          t' <: t
-          t'' <: t
+        let sv = valueOf s
+            tv = valueOf t
+            tv' = valueOf t'
+            tv'' = valueOf t''
+        in iconstrain t [s, t', t'']
+          [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|]
 
       ENil -> undefined
       EMatch{} -> undefined
