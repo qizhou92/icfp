@@ -148,7 +148,8 @@ infer = fmap annZip .
     Nothing -> throwError (UnboundError x)
     Just s -> pure (s `TArr` t))
 
-test = ebin Plus (eint 5) $ eapp (elam (Var "x") (evar (Var "x"))) (eint 3)
+test = ebin Plus (eapp (elam (Var "x") (evar (Var "x"))) (eint 3))
+                 $ eapp (elam (Var "x") (evar (Var "x"))) (eint 3)
 
 opType :: Binop -> Infer Type
 opType b
