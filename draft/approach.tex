@@ -44,6 +44,12 @@ types.
 \subsubsection{Operations over relational types}
 \label{sec:rel-type-space}
 
+\BH{define product}
+
+\BH{define sum}
+
+\BH{define unfold}
+
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
 
@@ -56,9 +62,9 @@ types.
       % the empty map of expressions has relational type true
       \Gamma \judges \emptyset : \emptyset } \qquad
     % vars:
-    \inference[ VARS ]{ x \in X }{ %
-      \Gamma \judges P \mapsto X : %
-      \Gamma(x)[ X \mapsto P ] } \\
+    \inference[ VARS ]{ }{ %
+      \Gamma, x : \tau \judges P \mapsto X \concat [ x ] \concat X' : %
+      \tau \joinctr (P \equiv X \concat [ x ] \concat X') } \\
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
@@ -140,7 +146,7 @@ types.
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
-      \Gamma \judges E : \unfold{\tau}{(p, q)} }{ 
+      \Gamma \judges E : \unfold{\tau}{p} }{ 
       % then expressions have folded type
       \Gamma \judges E : \tau } \qquad
     % subtype:
@@ -168,13 +174,106 @@ types.
   \label{fig:reltypes-rules}
 \end{figure}
 
-      % % extend assumed type at p and rebind to position
-      % \typarampos \cons_p \replace{ \tau }{ x }{ p } \union
-      % % combined with relational type that extends result at p with
-      % \tyrespos \cons_p \tau' 
-    
 % define judgment:
-\BH{walk through the rules}
+The typing system is defined by the inductive inference rules given in
+\autoref{fig:reltypes-rules}.
+%
+The inference rules consist of syntax-directed rules that define the
+typing relation for arbitrary expressions in a map of positional
+expressions, along with rules that define the typing relation for
+special cases of positonal expressions and for assigning relational
+least-fixed-point types and using the subtype relation.
+% empty:
+Rule~EMPTY establishes that the empty positional expression map has
+the empty relational type.
+
+% variables:
+Rule~VARS establishes that under a context that binds variable $x$ to
+relational type $\tau$, the positional expressions that map positions
+$P$ to variables $X \concat [ x ] \concat X'$ have as a type $\tau$
+extended to set $P$ equivalent to $X \concat [ x ] \concat X'$.
+% const:
+Rule~CONST establishes that if positioned expressions have type
+$\tau$, then $E$ extended to bind position $p$ to constant $c$ have
+type $\tau$ refined to set $p$ to $c$.
+% op:
+Rule~OP establishes that if $E$ extended to bind positoins
+$\leftopchild \cons p$ and $\rightopchild \cons p$ to expressions
+$e_0$ and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
+$e_0 \oplus e_1$ has type $\tau$ refined to set $p$ to
+$\leftopchild \cons p \oplus \rightopchild \cons p$.
+
+% abs:
+Rules~ABS and APP are defined using the relational function type
+operator.
+%
+Rule~ABS establishes that if, under context $\Gamma$ extended to bind
+variable $x$ to relational type $\tau$, $E$ extended to bind $p$ to
+expression $e$ has type $\tau'$, then under $\Gamma$, $E$ extended to
+bind $p$ to $\lambda x. e$ is a relational function from $\tau$ to
+$\tau'$ at $p$.
+% app:
+Rule~APP establishes that if %
+\textbf{(1)} $E$ extended to bind $p$ to $e_0$ is a relational
+function from $\tau$ to $\tau'$ at $p$ and %
+\textbf{(2)} $E$ extended to bind $p$ to $e_1$ has type $\tau$, then
+$E$ extended to bind $p$ to $e_0$ applied to $e_1$ has type $\tau'$.
+
+% relational prod:
+Rules~PAIR and LET are defined using the relational product type
+operator.
+% pair:
+Rule~PAIR establishes that if $E$ extended to bind
+$\leftchild \cons p$ and $\rightchild \cons p$ to $e_0$ and $e_1$ has
+type $\tau$, then $E$ extended to bind $p$ to $e_0$ paired with $e_1$
+is the relational product of $\tau$ from $\leftchild \cons p$ and
+$\rightchild \cons p$ to $p$.
+% let:
+Rule~LET establishes that if %
+\textbf{(1)} under $\Gamma$, $E$ extended to bind $p$ to $e_0$ is the
+relational product of $\tau$ from variables $x$ and $y$ to $p$;
+%
+\textbf{(2)} under $\Gamma$ extended to bind $x$ and $y$ to $\tau$,
+$e_1$ has type $\tau'$, then $E$ extended to bind $p$ to
+$\letexp{x}{y}{e_0}{e_1}$ has type $\tau'$.
+
+% relational sum:
+Rules~LEFT, RIGHT, and MATCH are defined using the relational sum type
+operator.
+% left:
+Rule~LEFT establishes that if $E$ extended to bind $p$ to $e$ has type
+$\tau$, then $E$ extended to bind $p$ to the left injection of $e$ is
+a relational sum of $\tau$ and any relational type $\tau'$ from $p$
+and $p$ to $p$.
+%
+Rule~RIGHT is defined symmetrically to Rule~LEFT.
+% match:
+Rule~MATCH establishes that if %
+\textbf{(1)} under $\Gamma$, $E$ extended to bind $p$ to $e_0$ is a
+relational from of $\tau$ and $\tau'$ from variables $x$ and $y$ to
+$p$;
+% 
+\textbf{(2)} under $\Gamma$ extended to bind $x$ to $\tau$, $E$
+extended to bind $p$ to $e_1$ has type $\tau''$; and
+%
+\textbf{(3)} under $\Gamma$ extended to bind $y$ to $\tau'$, $E$
+extended to bind $p$ to $e_2$ also has type $\tau''$, then $E$
+extended to bind $p$ to $\matchexp{e_0}{x}{e_1}{y}{e_2}$ has type
+$\tau''$.
+
+% fix:
+Rule~FIX establishes that if %
+\textbf{(1)} under $\Gamma$ extended to bind $f$ to $\tau$, $E$
+extended to bind $p$ to $e$ has type $\tau'$; and %
+\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of $\tau'$,
+then under $\Gamma$, $E$ extended to bind $p$ to $\fix{f}{e}$ has type
+$\tau'$.
+% unfold:
+Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded at $p$,
+then $E$ has type $\tau$.
+% sub:
+Rule~SUB establishes that if $E$ has type $\tau$ a subtype of $\tau'$,
+then $E$ has type $\tau'$.
 
 % types as proving equivalence:
 \BH{deprecated}
