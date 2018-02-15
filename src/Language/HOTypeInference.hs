@@ -48,7 +48,8 @@ iconstrain h b c = tell (constrain h b c)
 -- | Generate grammar rules which force the first type to be a subtype of
 -- the second.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
-(<:) s t = tell (subtype s t)
+-- (<:) s t = tell (subtype s t)
+(<:) = undefined
 
 -- | Generate a new higher order relational type for every
 giveType :: Attr CoreExpr' (Map Var Type, [Var], Type) -> Infer (Attr CoreExpr' HORT)
@@ -75,10 +76,11 @@ infer = fmap (annMap snd . annZip) .
     case e of
       EVar x ->
         if isPrim t
-        -- constrains is result eqauls to the free variable
-        then iconstrain t [] (F.LBool True)
+        then
+          let tv = valueOf t
+              vx = F.Var (getVar x) (F.exprType tv)
+          in iconstrain t [] [F.expr|$tv = @vx|]
         else do
-        -- t is the subtype of t'
           t' <- isearch x ctxt
           t' <: t
 
@@ -97,7 +99,6 @@ infer = fmap (annMap snd . annZip) .
 
       ELam x t' ->
         if x `M.member` ctxt -- x is HO
-        -- t is the subtype of t'
         then t' <: t
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)
