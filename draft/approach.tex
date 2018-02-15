@@ -33,22 +33,74 @@ types.
 
 \BH{define context}
 
-\BH{define expression positions: only need to record pairs and base operations}
+\BH{define positioned expressions: only need to record pairs and base
+  operations. Examples: the empty map, mapping from positions to
+  variables}
 
 \BH{define indexed expressions as partial map from expression
   positions to expressions}
 
-\BH{define result relational type: base symbols are expression
-  positions}
+\BH{define result relational type: base symbols are variables
+  expression positions. Example: the empty relational type}
 
 \subsubsection{Operations over relational types}
 \label{sec:rel-type-space}
+%
+The relational typing relation is defined using operators over
+relational types.
+%
+The operators include generalizations of the type constructors and
+operators over conventional types, generalizations of type operators
+used in refinement type systems, and operators introduced to operate
+over features unique to relational types.
 
-\BH{define product}
+% union as type operator:
+For all relational types $\tau, \tau'$, the union of relational
+predicates in $\tau$ and $\tau'$ (i.e., $\tau \union \tau'$) is a
+relational type.
+% renaming:
+For $\tau \in \reltypes$ and symbols $x$ and $y$, the \emph{renaming}
+from $x$ to $y$ in $\tau$, denoted $\replace{\tau}{x}{y}$, is $\tau$
+with each logical variable of the form $(x, p)$, for $p \in \typepos$,
+with $(x, p)$.
+% position cons:
+For $\tau \in \reltypes$, $f \in \typeposfield$, and symbol $x$, the
+\emph{prepending} of $\tau$ with $f$ at $x$, denoted $f \cons_x \tau$,
+is $\tau$ with each logical variable of the form $(x, p)$, for
+$p \in \typepos$, replaced with $(x, f \cons p)$.
 
-\BH{define sum}
+% define relational product:
+The relational product of relational type $\tau$ from symbols $x$ and
+$y$ to symbol $z$ is a relational type in which each pair of values
+related at $x$ and $y$ in $\tau$ is a value at $z$.
+%
+I.e., the relational product of $\tau$ from $x$ and $y$ to $z$,
+denoted $\times_{x, y}^z \tau$, is
+\[ \replace{ (\tyleftprod \cons_x \tyrightprod \cons_y \tau) }{ x, y }{ p, p }
+\]
 
-\BH{define unfold}
+% define relational sum:
+The relational sum of types $\tau$ and $\tau'$ from symbols $x$ and
+$y$ to $z$ is a relational type in which the disjoint union of values
+related at $x$ and $y$ is a values at $z$.
+%
+I.e., the relational union of $\tau, \tau'$ from $x$ and $y$ to $z$,
+denoted $\tau +_{x, y}^z \tau'$, is
+\[ \replace{ (\tyleftsum \cons_x \tau \union \tyrightsum \cons_y
+    \tau')}{ x, y }{ p, p }
+\]
+
+\BH{define unfolding of fixpoint type}
+%
+The unfolding of $\tau$ at symbol $x$ is $\tau$ with a partially
+unfolded definition of the least-fixpoint type in which $x$ is
+associated.
+%
+
+
+\BH{define refinement}
+
+\BH{define equivalence extension}
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
