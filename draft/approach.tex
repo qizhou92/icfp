@@ -119,12 +119,6 @@ defined as follows.
 %
 \BH{complete}
 
-% extend to sequences of positions and program variables:
-For $\tau \in \reltypes$, positions $P = p_0, \ldots, p_n$ and program
-variables $X = x_0, \ldots, x_n$, the sequence of joins
-$(\ldots(\tau \joinctr_{p_0} x_0) \joinctr \ldots) \joinctr_{p_n} x_n$
-is denoted $\tau \joinctr_{P} X$.
-
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
 
@@ -135,7 +129,7 @@ is denoted $\tau \joinctr_{P} X$.
     % empty:
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma, \gamma \judges \emptyset : \gamma } \qquad
+      \Gamma, \gamma \judges \cdot : \gamma } \qquad
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
@@ -218,11 +212,11 @@ is denoted $\tau \joinctr_{P} X$.
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
-      \upd{ \Gamma }{ f }{ \tau }, \gamma \judges %
-      \upd{ E }{ p }{ e } : \tau' \\
+      \upd{ \Gamma }{ f }{ \gamma' }, \gamma \judges %
+      \upd{ E }{ p }{ e } : \tau \\
       % constrain that tau' with result renamed to f is subtype of tau,
-      \replace{ \tau' }{ p }{ f } \subtype \tau }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau' } \\
+      \replace{ \tau }{ p }{ f } \subtype \gamma' }{ %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
@@ -341,11 +335,11 @@ $\matchexp{e_0}{x}{e_1}{y}{e_2}$ has type $\tau''$.
 
 % fix:
 Rule~FIX establishes that if %
-\textbf{(1)} under $\Gamma$ extended to bind $f$ to $\tau$, $E$
-extended to bind $p$ to $e$ has type $\tau'$; and %
-\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of $\tau$,
-then under $\Gamma$, $E$ extended to bind $p$ to $\fix{f}{e}$ has type
-$\tau'$.
+\textbf{(1)} under $\Gamma$ extended to bind $f$ to $\gamma'$ and
+$\gamma$, $E$ extended to bind $p$ to $e$ has type $\tau$; and %
+\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of
+$\gamma'$, then under $\Gamma$ and $\gamma$, $E$ extended to bind $p$
+to $\fix{f}{e}$ has type $\tau$.
 % unfold:
 Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded at $p$,
 then $E$ has type $\tau$.
