@@ -99,7 +99,9 @@ infer = fmap (annMap snd . annZip) .
 
       ELam x t' ->
         if x `M.member` ctxt -- x is HO
-        then t' <: t
+        then 
+          (_ , t'') <- safeSplit t
+          t' <: t''
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)
            in iconstrain t [t'] [F.expr|ta = vx|]
