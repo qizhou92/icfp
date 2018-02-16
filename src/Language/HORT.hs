@@ -1,3 +1,4 @@
+{-# LANGUAGE QuasiQuotes #-}
 module Language.HORT where
 
 import           Control.Monad.State
@@ -11,7 +12,8 @@ import           Grammar
 import qualified Formula as F
 
 data HORT = HORT
-  { getHORT :: Tree Nonterminal
+  -- the type list is the list of flat basic type
+  { getHORT :: Tree (Nonterminal,[Type])
   , getBasicType :: Type
   } deriving (Show, Read, Eq, Data)
 
@@ -21,9 +23,14 @@ subtype ::HORT -> HORT -> [Rule]
 subtype hort1 hort2 = buildSubType (getHORT hort1) (getHORT hort2)
   
 
-buildSubType :: Tree Nonterminal -> Tree Nonterminal -> [Rule]
-buildSubType (Node n1 subTrees1) (Node n2 subTrees2) =
-  let rule = Rule L n2 (F.LBool True) [n1]
+buildSubType :: Tree (Nonterminal,[Type]) -> Tree (Nonterminal,[Type]) -> [Rule]
+buildSubType (Node (n1,types1) subTrees1) (Node (n2,types2) subTrees2) =
+  let (Nonterminal _ vars1) = n1
+      (Nonterminal _ vars2) = n2
+      dropLength1 = (length vars1) - (length types1)
+      dropLength2 = (length vars2) - (length types2)
+      expr =F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) (drop dropLength1 vars1) (drop dropLength2 vars2))
+      rule = Rule L n2 expr [n1]
       rules = concat (zipWith buildSubType subTrees2 subTrees1)
   in rule : rules
 
@@ -31,7 +38,7 @@ buildSubType (Node n1 subTrees1) (Node n2 subTrees2) =
 -- represents the value of the expression.
 valueOf :: HORT -> F.Expr
 valueOf hort1 = do
- let (Node nonterminal _) = getHORT hort1
+ let (Node (nonterminal,_) _) = getHORT hort1
  let (Nonterminal _ vars) = nonterminal
  F.V (last vars)
 
@@ -39,7 +46,7 @@ valueOf hort1 = do
 -- represents the first argument of the expression and its type is primitive type.
 argumentOf :: HORT -> F.Expr
 argumentOf hort = 
-  let (Node (Nonterminal predicateId _) _) = getHORT hort
+  let (Node ((Nonterminal predicateId _),_) _) = getHORT hort
   in case (getBasicType hort) of
      TArr t1 _ -> case t1 of
                TInt ->F.V (F.Var ("arg" ++ "1#" ++ show predicateId) F.Int)
@@ -65,19 +72,19 @@ fresh freeVarMaps freeVars exprType = do
   tree <- buildTreeNode primitiveVars exprType
   return (HORT tree exprType)
 
-buildTreeNode :: MonadState Int m => [(Var, Type)] -> Type ->m (Tree Nonterminal)
+buildTreeNode :: MonadState Int m => [(Var, Type)] -> Type ->m (Tree (Nonterminal, [Type]))
 buildTreeNode freeVarMaps exprType = do
   let (highOrderTypes, basicTypes) = getCollectType ([], []) exprType
   rootNonterminal <- freeRootPredicate freeVarMaps basicTypes
   subTrees <- mapM buildHighOrderTreeNode highOrderTypes
-  return (Node rootNonterminal subTrees)
+  return (Node (rootNonterminal , basicTypes) subTrees)
 
-buildHighOrderTreeNode :: MonadState Int m => Type ->m (Tree Nonterminal)
+buildHighOrderTreeNode :: MonadState Int m => Type ->m (Tree (Nonterminal, [Type]))
 buildHighOrderTreeNode exprType = do
   let (highOrderTypes, basicTypes) = getCollectType ([], []) exprType
   rootNonterminal <- freePredicate basicTypes
   subTrees <- mapM buildHighOrderTreeNode highOrderTypes
-  return (Node rootNonterminal subTrees)
+  return (Node (rootNonterminal , basicTypes) subTrees)
 
 -- | Given a pair of list of types, the first list is the list of high order types,
 -- the second list is current primitive type
@@ -134,43 +141,63 @@ split hort = case (getBasicType hort) of
 
 constrainForPrimitive :: HORT -> [HORT] -> F.Expr -> [Rule]
 constrainForPrimitive headHort body constraint =
-  let (Node h _) = getHORT headHort
-      bodys = map (\(Node root _) -> root) (map getHORT body)
+  let (Node (h,_) _) = getHORT headHort
+      bodys = map (\(Node (root,_) _) -> root) (map getHORT body)
   in [(Rule L h constraint bodys)]
 
 -- Generate a set of rules which constrains that all higher order refinement types
 -- when it is an app expression and the argument is primitve
 constrainForAppPrimitive :: HORT -> [HORT] -> F.Expr -> [Rule]
 constrainForAppPrimitive headHort body constraint = 
-  let (Node root subTrees) = getHORT headHort
-      (Node abst subTrees2) = getHORT (head body)
-      (Node arg _) = getHORT (last body)
-  in let rule = Rule L root constraint [abst,arg]
-         rules = concat (zipWith (buildSubType) subTrees subTrees2)
-      in rule:rules
+  let (Node (root,types1)  subTrees) = getHORT headHort
+      (Node (abst,types2) subTrees2) = getHORT (head body)
+      (Node (arg,_)  _) = getHORT (last body)
+      (Nonterminal _ vars1) = root
+      (Nonterminal _ vars2) = abst
+      dropLength1 = (length vars1) - (length types1) 
+      dropLength2 = (length vars2) - (length types2) + 1
+      expr = F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) (drop dropLength1 vars1) (drop dropLength2 vars2))
+      rule = Rule L root (F.mkAnd constraint expr) [abst,arg]
+      rules = concat (zipWith (buildSubType) subTrees subTrees2)
+  in rule:rules
 
 -- Generate a set of rules which constrains that all higher order refinement types
 -- when it is an lam expression and the variable is primitve
 constraintForLamPrimitive :: HORT -> [HORT] -> F.Expr -> [Rule]
 constraintForLamPrimitive headHort body constraint =
-  let (Node root subTrees) = getHORT headHort
-      (Node expr subTrees2) = getHORT (head body)
-  in let rule = Rule L root constraint [expr]
-         rules = concat (zipWith (buildSubType) subTrees subTrees2)
-      in rule:rules
+  let (Node (root,types1) subTrees) = getHORT headHort
+      (Node (insideExpr,types2) subTrees2) = getHORT (head body)
+      (Nonterminal _ vars1) = root
+      (Nonterminal _ vars2) = insideExpr
+      dropLength1 = (length vars1) - (length types1) + 1
+      dropLength2 = (length vars2) - (length types2) 
+      allOutuptEqual = F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) (drop dropLength1 vars1) (drop dropLength2 vars2))
+      rule = Rule L root (F.mkAnd constraint allOutuptEqual) [insideExpr]
+      rules = concat (zipWith (buildSubType) subTrees subTrees2)
+  in rule:rules
 
 -- Generate a set of rules which constrains that all higher order refinement types
 -- when it is an if expression
-constraintForIf :: HORT -> [HORT] -> F.Expr -> [Rule]
-constraintForIf headHort body constraint = 
-  let (Node root subTrees) = getHORT headHort
-      (Node condition _ )  = getHORT (head body)
-      (Node true subTrees2) = getHORT (body !! 1)
-      (Node false subTrees3) = getHORT (body !! 2)
-  in let rule = Rule L root constraint [condition,true,false]
-         rules1 = concat (zipWith (buildSubType) subTrees subTrees2)
-         rules2 = concat (zipWith (buildSubType) subTrees subTrees3)
-      in rule:(rules1++rules2)
+constraintForIf :: HORT -> [HORT]  -> [Rule]
+constraintForIf headHort body = 
+  let (Node (root,types) subTrees) = getHORT headHort
+      (Node (condition,_) _ )  = getHORT (head body)
+      (Node (true,_) subTrees2) = getHORT (body !! 1)
+      (Node (false,_) subTrees3) = getHORT (body !! 2)
+      sv = valueOf (head body)
+      (Nonterminal _ vars1) = root
+      (Nonterminal _ vars2) = true
+      (Nonterminal _ vars3) = false
+      dropLength1 = (length vars1) - (length types)
+      dropLength2 = (length vars2) - (length types)
+      dropLength3 = (length vars3) - (length types) 
+      expr1 = F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) (drop dropLength1 vars1) (drop dropLength2 vars2))
+      expr2 = F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) (drop dropLength1 vars1) (drop dropLength3 vars3))
+      constraint = [F.expr|($sv && $expr1) || (not ($sv && $expr2))|]
+      rule = Rule L root constraint [condition,true,false]
+      rules1 = concat (zipWith (buildSubType) subTrees subTrees2)
+      rules2 = concat (zipWith (buildSubType) subTrees subTrees3)
+  in rule:(rules1++rules2)
 
 -- | Generate a set of rules which constrain the higher order refinement types
 -- by the given formula.

@@ -106,10 +106,8 @@ infer = fmap (annMap snd . annZip) .
           t' <: t''
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)
-                 tv = valueOf t
-                 tv' = valueOf t'
            in tell (constraintForLamPrimitive t [t']
-                [F.expr|$ta = @vx && $tv = $tv'|])
+                [F.expr|$ta = @vx |])
 
       EBin op r s ->
         let rv = valueOf r
@@ -140,12 +138,7 @@ infer = fmap (annMap snd . annZip) .
         in tell (constrainForPrimitive t [] [F.expr|$tv = $b'|])
 
       EIf s t' t'' ->
-        let sv = valueOf s
-            tv = valueOf t
-            tv' = valueOf t'
-            tv'' = valueOf t''
-        in tell (constraintForIf t [s, t', t'']
-          [F.expr|($sv && ($tv = $tv')) || (not $sv && ($tv = $tv''))|])
+        tell (constraintForIf t [s, t', t''])
 
       ENil -> undefined
       EMatch{} -> undefined
