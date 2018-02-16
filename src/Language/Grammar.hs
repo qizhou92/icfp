@@ -28,7 +28,14 @@ exprGrammar e =
     Right e' -> typeConstraints e'
 
 test :: String
-test = "(\\x.x+1)5"
+test = "(\\f.\\x.f x)(\\y.y+1)3"
+
+project :: String -> IO ()
+project e =
+  case parse parseExpr "" e of
+    Left e -> print e
+    Right ex -> print (pretty ex)
+
 
 pipeline :: String -> IO ()
 pipeline e =
