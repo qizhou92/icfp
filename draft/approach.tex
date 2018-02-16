@@ -27,21 +27,12 @@ types.
 
 \BH{define space of type positions}
 
-\BH{define relational types, parameterizd on base symbols}
+\BH{define relational types, parameterizd on indices}
 
-\BH{define context relational type: base symbols are variables}
+\BH{declare typing relation: assigns tuple of expressions to
+  relational type}
 
-\BH{define context}
-
-\BH{define positioned expressions. Examples: the empty map, mapping
-  from positions to variables}
-
-\BH{define result relational type: base symbols are variables
-  expression positions. Example: the empty relational type}
-
-\subsubsection{Operations over relational types}
-\label{sec:rel-type-space}
-%
+% walkthrough the operations over types:
 The relational typing relation is defined using operators over
 relational types.
 %
@@ -122,6 +113,19 @@ defined as follows.
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
 
+\BH{define positioned expressions. Examples: the empty map, mapping
+  from positions to variables}
+
+\BH{define result relational type: base symbols are variables
+  expression positions. Example: the empty relational type}
+
+\BH{define contextual relational type: base symbols are variables}
+
+\BH{define context}
+
+\BH{define typing relation over expressions in terms of positioned
+  expressions}
+
 % rules for determining if expression sequences have a relational type:
 \begin{figure}
   \centering
@@ -130,10 +134,6 @@ defined as follows.
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
       \Gamma, \gamma \judges \cdot : \gamma } \qquad
-    \inference[ FVAR ]{ }{
-      % the empty map of expressions has relational type true
-      \Gamma, \gamma \judges p \mapsto f : %
-      \Gamma(f) \joinctr p \equiv f} \qquad
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
@@ -149,11 +149,11 @@ defined as follows.
     \inference[ OP ]{ %
       % remainder has type tau,
       \Gamma, \gamma \judges %
-      E[ \leftopchild \cons p \mapsto e_0, %
-        \rightopchild \cons p \mapsto e_1 ] : \tau }{ %
+      E[ \leftchild \cons p \mapsto e_0, %
+        \rightchild \cons p \mapsto e_1 ] : \tau }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
       \tau \joinctr %
-      p \equiv (\leftopchild \cons p \oplus \rightopchild \cons p) } \\
+      p \equiv \leftchild \cons p \oplus \rightchild \cons p } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
@@ -181,9 +181,10 @@ defined as follows.
     % let:
     \inference[ LET ]{
       % get type of bound expression,
-      \Gamma, \gamma \judges \upd{ E }{p}{ e_0 } : \times_{x, y}^p \gamma' &
+      \Gamma, \gamma \judges \epsilon \mapsto e_0 : %
+      \times_{x, y}^{\epsilon} \gamma' \\
       % get type of result under context that binds to x and y,
-      \Gamma, \gamma' \judges e_1 : \tau }{
+      \Gamma, \gamma' \judges \upd{ E }{ p }{ e_1 } : \tau }{
       % then complete let expression has type
       \Gamma, \gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
       \tau } \\
@@ -204,8 +205,8 @@ defined as follows.
     % match:
     \inference[ MATCH ]{
       % get type of matched exp,
-      \Gamma, \gamma \judges \upd{E}{p}{e_0} : %
-      \gamma' +_{x, y}^p \gamma'' \\
+      \Gamma, \gamma \judges \epsilon \mapsto e_0 : %
+      \gamma' +_{x, y}^\epsilon \gamma'' \\
       % get type of left branch under context that binds x to left op,
       \Gamma, \gamma' \judges \upd{E}{p}{e_1} : \tau &
       % get type of right branch under context that binds y to right op,
@@ -221,8 +222,13 @@ defined as follows.
       % constrain that tau' with result renamed to f is subtype of tau,
       \replace{ \tau }{ p }{ f } \subtype \gamma' }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
+    % fixpoint variable:
+    \inference[ FVAR ]{ }{
+      % the empty map of expressions has relational type true
+      \Gamma, \gamma \judges p \mapsto f : %
+      \Gamma(f) \joinctr p \equiv f} \qquad
     % unfold:
-    \inference[ UNFOLD ]{
+    \inference[ UN ]{
       % if expressions have tau unfolded at p,
       \Gamma, \gamma \judges E : \unfold{\tau}{p} }{ 
       % then expressions have folded type
@@ -264,10 +270,6 @@ least-fixed-point types and using the subtype relation.
 % empty:
 Rule~EMPTY establishes that under contextual relational type $\gamma$,
 the empty positioned expressions have type $\gamma$.
-% fixpoint var:
-Rule~FVAR establishes that under context $\Gamma$, the positioned
-expression that maps only position $p$ to fixpoint variable $f$ has
-type $\Gamma(f)$ refined to set $p$ to $f$.
 
 % const:
 Rule~CONST establishes that if positioned expressions $E$ have type
@@ -279,10 +281,10 @@ to bind $p$ to variable $a$ have type $\tau$ refined to set $p$ to
 $x$.
 % op:
 Rule~OP establishes that if $E$ extended to bind positoins
-$\leftopchild \cons p$ and $\rightopchild \cons p$ to expressions
+$\leftchild \cons p$ and $\rightchild \cons p$ to expressions
 $e_0$ and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
 $e_0 \oplus e_1$ have type $\tau$ refined to set $p$ to
-$\leftopchild \cons p \oplus \rightopchild \cons p$.
+$\leftchild \cons p \oplus \rightchild \cons p$.
 
 % abs:
 Rules~ABS and APP are defined using the relational function type
@@ -311,7 +313,7 @@ is the relational product of $\tau$ from $\leftchild \cons p$ and
 $\rightchild \cons p$ to $p$.
 % let:
 Rule~LET establishes that if %
-\textbf{(1)} under $\gamma$, $E$ extended to bind $p$ to $e_0$ is the
+\textbf{(1)} under $\gamma$, the binding from $p$ to $e_0$ is the
 relational product of $\gamma'$ from variables $x$ and $y$ to $p$;
 %
 \textbf{(2)} under $\gamma'$, $e_1$ has type $\tau$, then under
@@ -330,7 +332,7 @@ and $p$ to $p$.
 Rule~RIGHT is defined symmetrically to Rule~LEFT.
 % match:
 Rule~MATCH establishes that if %
-\textbf{(1)} under $\gamma$, $E$ extended to bind $p$ to $e_0$ is a
+\textbf{(1)} under $\gamma$, the binding from $p$ to $e_0$ is a
 relational sum of $\gamma'$ and $\gamma''$ from variables $x$ and $y$
 to $p$;
 % 
@@ -348,6 +350,11 @@ $\gamma$, $E$ extended to bind $p$ to $e$ has type $\tau$; and %
 \textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of
 $\gamma'$, then under $\Gamma$ and $\gamma$, $E$ extended to bind $p$
 to $\fix{f}{e}$ has type $\tau$.
+% fixpoint var:
+Rule~FVAR establishes that under context $\Gamma$, the positioned
+expression that maps only position $p$ to fixpoint variable $f$ has
+type $\Gamma(f)$ refined to set $p$ to $f$.
+
 % unfold:
 Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded at $p$,
 then $E$ has type $\tau$.
