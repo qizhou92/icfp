@@ -102,8 +102,9 @@ getCollectType (currentHighOrderTypes, basicTypes) currentType = case currentTyp
 freePredicate :: MonadState Int m =>[Type] -> m Nonterminal
 freePredicate types = do
   idNumber <- get
-  let varList =  map (buildFVar idNumber) (zip types [1 ..])
-  let nonterminal = Nonterminal idNumber varList
+  let varList =  map (buildFVar idNumber) (zip (init types) [1 ..])
+  let outputVar = buildOutput idNumber (last types)
+  let nonterminal = Nonterminal idNumber (varList++[outputVar])
   put (idNumber+1)
   return nonterminal
 
@@ -121,6 +122,12 @@ buildFreeVar (Var name, basicType) = case basicType of
   TInt -> F.Var name F.Int
   TBool -> F.Var name F.Bool
   _ -> error "it is not an primitive type  free vars (buildFreeVar in HORT)"
+
+buildOutput :: Int -> Type -> F.Var
+buildOutput predicateId types = case types of 
+  TInt -> F.Var ("output" ++ "#" ++ show predicateId) F.Int
+  TBool -> F.Var ("output" ++ "#" ++ show predicateId) F.Bool
+  _ -> error "this is not a valid type in buildFVar"
 
 buildFVar :: Int -> (Type,Int) -> F.Var
 buildFVar predicateId (types,index) = case types of
