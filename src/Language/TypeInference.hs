@@ -69,7 +69,7 @@ resolve = fmap unAttrib . traverse resolve' . Attrib
       x' <- x & _1 . traverse %%~ res
       x' & _2 %%~ res
     res = \case
-      TVar x -> M.findWithDefault (TVar x) x <$> use typeTable
+      TVar x -> res =<< M.findWithDefault (TVar x) x <$> use typeTable
       TArr s t -> TArr <$> res s <*> res t
       t -> pure t
 

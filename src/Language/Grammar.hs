@@ -11,6 +11,7 @@ import           Text.ParserCombinators.Parsec.Char
 import qualified Text.Parsec.Token as T
 import           Text.Parsec.Language (emptyDef)
 import           Data.Generics.Fixplate.Draw
+import           Data.Generics.Fixplate.Base
 
 import Data.Text.Prettyprint.Doc
 
@@ -43,7 +44,7 @@ pipeline e =
     Left e -> print e
     Right ex -> case exprGrammar ex of
       Left e -> print "error"
-      Right g -> print (pretty g)
+      Right g -> writeFile "tmp" (show $ pretty g)
 
 pipelineSimp :: String -> IO ()
 pipelineSimp e =
@@ -58,6 +59,6 @@ drawTypes :: String -> IO ()
 drawTypes e =
   case parse parseExpr "" e of
     Left e -> print e
-    Right ex -> case addFreeVars <$> TI.typeCheck (uniqueNames ex) of
+    Right ex -> case TI.typeCheck (uniqueNames ex) of
       Left e -> print "error"
-      Right g -> drawTreeWith prettyCtxt g
+      Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
