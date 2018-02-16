@@ -58,7 +58,10 @@ giveType = fmap unAttrib . traverse (\(m, vs, t) -> fresh m vs t) . Attrib
 -- to their corresponding context.
 contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
 contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
-  ELam x _ -> if isPrim t then ctxt else M.insert x t ctxt
+  ELam x _ ->
+    case split t of
+      Just (s, t') -> if isPrim s then ctxt else M.insert x t' ctxt
+      Nothing -> error "lambda has non-arrow type"
   _ -> ctxt) M.empty
 
 addFreeVars :: Attr CoreExpr' (Map Var Type, Type)
@@ -103,7 +106,10 @@ infer = fmap (annMap snd . annZip) .
           t' <: t''
         else let ta = argumentOf t
                  vx = F.Var (getVar x) (F.exprType ta)
-           in tell (constraintForLamPrimitive t [t'] [F.expr|$ta = @vx|])
+                 tv = valueOf t
+                 tv' = valueOf t'
+           in tell (constraintForLamPrimitive t [t']
+                [F.expr|$ta = @vx && $tv = $tv'|])
 
       EBin op r s ->
         let rv = valueOf r

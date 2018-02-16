@@ -15,6 +15,7 @@ import           Data.Generics.Fixplate.Draw
 import Data.Text.Prettyprint.Doc
 
 import           Grammar
+import           Formula (runVocab)
 
 -- | Given an expression, generate a grammar of type constraints which expresses
 -- relationships between the types of subexpressions and the top level expression,
@@ -37,10 +38,19 @@ pipeline e =
       Left e -> print "error"
       Right g -> print (pretty g)
 
+pipelineSimp :: String -> IO ()
+pipelineSimp e =
+  case parse parseExpr "" e of
+    Left e -> print e
+    Right ex -> case exprGrammar ex of
+      Left e -> print "error"
+      Right g -> print (pretty (runVocab (simplify g)))
+
+
 drawTypes :: String -> IO ()
 drawTypes e =
   case parse parseExpr "" e of
     Left e -> print e
-    Right ex -> case TI.typeCheck (uniqueNames ex) of
+    Right ex -> case addFreeVars <$> TI.typeCheck (uniqueNames ex) of
       Left e -> print "error"
       Right g -> drawTreeWith prettyCtxt g

@@ -60,7 +60,8 @@ isPrim hort1 = case getBasicType hort1 of
 -- a higher order refinement type.
 fresh :: MonadState Int m => Map Var Type -> [Var] -> Type -> m HORT
 fresh freeVarMaps freeVars exprType = do
-  let primitiveVars = filter (\(_, basicType) -> isPrimitiveType basicType) (M.toList freeVarMaps)
+  let fvs = map (\v -> (v, freeVarMaps M.! v)) freeVars
+  let primitiveVars = filter (\(_, basicType) -> isPrimitiveType basicType) fvs
   tree <- buildTreeNode primitiveVars exprType
   return (HORT tree exprType)
 

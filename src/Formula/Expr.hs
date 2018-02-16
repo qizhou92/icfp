@@ -148,7 +148,8 @@ mkImpl :: Expr -> Expr -> Expr
 mkImpl = app2 Impl
 
 mkAdd :: Type -> Expr -> Expr -> Expr
-mkAdd t = app2 (Add t)
+mkAdd t (LInt a) (LInt b) = LInt (a + b)
+mkAdd t e e' = app2 (Add t) e e'
 
 mkAnd :: Expr -> Expr -> Expr
 mkAnd x@(Ge t1 :@ x1 :@ y1) y@(Le t2 :@ x2 :@ y2)
@@ -259,17 +260,29 @@ varElim conserve = loop
             execState (
               mapM_ (\case
                   Eql _ :@ V v1 :@ V v2
-                    | v1 `notElem` conserve -> put (Just (v1, v2))
-                    | v2 `notElem` conserve -> put (Just (v2, v1))
+                    | v1 `notElem` conserve -> put (Just (v1, V v2))
+                    | v2 `notElem` conserve -> put (Just (v2, V v1))
+                    | otherwise -> return ()
+                  Eql _ :@ V v :@ e
+                    | isLit e && v `notElem` conserve -> put (Just (v, e))
+                    | otherwise -> return ()
+                  Eql _ :@ e :@ V v
+                    | isLit e && v `notElem` conserve -> put (Just (v, e))
                     | otherwise -> return ()
                   _ -> return ()) (universe f)) Nothing
       in case st of
         Nothing -> f
-        Just (v1, v2) ->
-          loop (clean $ subst (M.singleton v1 v2) f)
+        Just (v, e) ->
+          loop (clean $ esub (M.singleton v e) f)
 
     clean = transform (\case
       Eql t :@ f1 :@ f2 -> mkEql t (clean f1) (clean f2)
       And :@ x :@ y -> mkAnd (clean x) (clean y)
       Or :@ x :@ y -> mkOr (clean x) (clean y)
+      Add t :@ x :@ y -> mkAdd t (clean x) (clean y)
       f -> f)
+
+esub :: Map Var Expr -> Expr -> Expr
+esub m = transform (\case
+  V v -> M.findWithDefault (V v) v m
+  e -> e)
