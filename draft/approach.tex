@@ -132,28 +132,28 @@ defined as follows.
       \Gamma, \gamma \judges \cdot : \gamma } \qquad
     \inference[ FVAR ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma, f : \gamma, \gamma' \judges p \mapsto f : %
-      \Gamma(f) \joinctr_{p} f} \qquad
+      \Gamma, \gamma \judges p \mapsto f : %
+      \Gamma(f) \joinctr p \equiv f} \qquad
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
       \Gamma, \gamma \judges E : \tau }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ c } : %
-      \tau \joinctr_p c } \\
+      \tau \joinctr p \equiv c } \\
     % vars:
     \inference[ VAR ]{ %
       \Gamma, \gamma \judges E : \tau }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ a } : %
-      \tau \joinctr_{p} a } \qquad
+      \tau \joinctr p \equiv a } \qquad
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
       \Gamma, \gamma \judges %
-      \upd{ E }{ \leftopchild \cons p, \rightopchild \cons p}{ %
-        e_0, e_1 } : \tau }{ %
+      E[ \leftopchild \cons p \mapsto e_0, %
+        \rightopchild \cons p \mapsto e_1 ] : \tau }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
-      \tau \joinctr_p %
-      (\leftopchild \cons p \oplus \rightopchild \cons p) } \\
+      \tau \joinctr %
+      p \equiv (\leftopchild \cons p \oplus \rightopchild \cons p) } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
@@ -173,8 +173,9 @@ defined as follows.
     \inference[ PAIR ]{
       % get type of both expressions,
       \Gamma, \gamma \judges %
-      \upd{E}{\leftchild \cons p, \rightchild \cons p}{ e_0, e_1 } : %
-      \tau }{ % then type of pair is
+      E[ \leftchild \cons p \mapsto e_0, %
+      \rightchild \cons p \mapsto e_1 ] : \tau }{
+      % then type of pair is
       \Gamma, \gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
       \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } \qquad
     % let:
@@ -182,10 +183,10 @@ defined as follows.
       % get type of bound expression,
       \Gamma, \gamma \judges \upd{ E }{p}{ e_0 } : \times_{x, y}^p \gamma' &
       % get type of result under context that binds to x and y,
-      \Gamma, \gamma' \judges e_1 : \tau' }{
+      \Gamma, \gamma' \judges e_1 : \tau }{
       % then complete let expression has type
       \Gamma, \gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
-      \tau' } \\
+      \tau } \\
     % left injection:
     \inference[ LEFT ]{
       % get type of the nested exp,
@@ -206,13 +207,12 @@ defined as follows.
       \Gamma, \gamma \judges \upd{E}{p}{e_0} : %
       \gamma' +_{x, y}^p \gamma'' \\
       % get type of left branch under context that binds x to left op,
-      \Gamma, \gamma' \judges \upd{E}{p}{e_1} : \tau'' &
+      \Gamma, \gamma' \judges \upd{E}{p}{e_1} : \tau &
       % get type of right branch under context that binds y to right op,
-      \Gamma, \gamma'' \judges \upd{E}{p}{e_2} : \tau'' }{
+      \Gamma, \gamma'' \judges \upd{E}{p}{e_2} : \tau }{
       % then type of match exp is type of both branches,
       \Gamma, \gamma \judges %
-      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : %
-      \tau'' } \qquad
+      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } \qquad
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
@@ -314,9 +314,9 @@ Rule~LET establishes that if %
 \textbf{(1)} under $\gamma$, $E$ extended to bind $p$ to $e_0$ is the
 relational product of $\gamma'$ from variables $x$ and $y$ to $p$;
 %
-\textbf{(2)} under $\gamma'$, $e_1$ has type $\tau'$, then under
+\textbf{(2)} under $\gamma'$, $e_1$ has type $\tau$, then under
 $\gamma$, $E$ extended to bind $p$ to $\letexp{x}{y}{e_0}{e_1}$ has
-type $\tau'$.
+type $\tau$.
 
 % relational sum:
 Rules~LEFT, RIGHT, and MATCH are defined using the relational sum type
