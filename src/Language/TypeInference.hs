@@ -65,7 +65,9 @@ unify t1 t2
 resolve :: Attr CoreExpr' (Ctxt, Type) -> Infer (Attr CoreExpr' (Ctxt, Type))
 resolve = fmap unAttrib . traverse resolve' . Attrib
   where
-    resolve' = _2 %%~ res
+    resolve' x = do
+      x' <- x & _1 . traverse %%~ res
+      x' & _2 %%~ res
     res = \case
       TVar x -> M.findWithDefault (TVar x) x <$> use typeTable
       TArr s t -> TArr <$> res s <*> res t
