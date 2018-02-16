@@ -24,15 +24,143 @@ types.
 
 \subsubsection{A space of relational types}
 \label{sec:rel-type-space}
+% give overview:
+A relational type is a set of refinement predicates that relate data
+within components of algebraic types, combined with information that
+defines mutual inductive definitions of data.
+%
+Type \emph{fields} identify components types to which algebraic type
+constructors are applied.
+%
+The space of type fields, denoted $\typosfields$, contains
+%
+\begin{itemize}
+\item % data
+  $\tydatafield$, which denotes a data component of a type;
+\item % abstraction:
+  $\typaramfield$ and $\tyresfield$, which denote the parameter and
+  result components of a function type;
+\item % product
+  $\tyleftprod$ and $\tyrightprod$, which denote the left and right
+  components of a product type;
+\item % sum
+  $\tyleftsum$ and $\tyrightsum$, which denote the left and right
+  components of a sum type;
+\item % lfp variable and constructor
+  $\tyvarfield$ and $\tylfp$, which denote a type variable and the
+  type from which a least-fixed-point type is constructed.
+\end{itemize}
+% define positions:
+A type \emph{position} is a finite sequence of type fields;
+%
+i.e., the space of positions is $\typosfields^{*}$.
+%
+\BH{give examples}
 
-\BH{define space of type positions}
+% define variance of type positions
+The variance of a data position denotes if it
+%
+\BH{connect to this some known FP idiom}
+%
+I.e.,
+%
+\begin{itemize}
+\item % base case:
+  $\epsilon$ is covariant;
+\item % case that doesn't change variance:
+  For each $p \in \typosfields^{*}$ and
+  $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
+  $f \cons p$ is co-variant, and if $p$ is contra-variant, then
+  $f \cons p$ is contra-variant.
+\item % abstraction case:
+  For each $p \in \typosfields^{*}$, if $p$ is covariant, then
+  $\typaramfield \cons p$ is contra-variant, and if $p$ is
+  contra-variant, then $\typaramfield \cons p$ is co-variant.
+\end{itemize}
 
-\BH{define relational types, parameterizd on indices}
+% define data positions.
+Each position of a data component type, i.e., a position that begins
+with the field $\tydatafield$, is a \emph{data} position.
 
-\BH{declare typing relation: assigns tuple of expressions to
-  relational type}
+% define relatable type positions
+If two data positions denote data components of a single value of a
+given type, then the positions are \emph{relatable}.
+%
+I.e., %
+\textbf{(1)} for all $p \in \typosfields^{*}$, $\tydatafield \cons p$
+is relatable to $\tydatafield \cons p$; %
+\textbf{(2)} for all $p, q, r \in \typosfields^{*}$,
+$[\tydatafield] \concat r \concat [ \tyleftprod ] \concat p$ is
+relatable to
+$[ \tydatafield ] \concat q \concat [ \tyrightprod ] \concat p$.
+
+% define indexed positions:
+For countable space $I$, the type positions \emph{indexed} by $I$ are
+$I \times \typosfields^{*}$.
+%
+The variance of an indexed position is the variance of its type
+position.
+%
+Two indexed positions are relatable if they are relatable positions of
+an index or positions of distinct indices.
+%
+I.e.,
+%
+\begin{itemize}
+\item % same index:
+  For each $i \in I$ and all $p, q \in \typosfields^{*}$ such that
+  $p$ and $q$ are relatable, $(i, p)$ and $(i, q)$ are relatable.
+\item % distinct indices
+  For all $i \not= j \in I$ and all $p, q \in \typosfields^{*}$,
+  $(i, p)$ and $(j, q)$ are relatable.
+\end{itemize}
+
+% define refinement predicates, variance
+A relational refinement predicate defines a condition over indexed
+data positions.
+%
+I.e., a relational refinement predicate over indices $I$ is a
+refinement predicate $\varphi$ in which all pairs of logical variables
+in $\vocab(\varphi)$ are relatable indexed poisitions of $I$.
+%
+If some indexed position in $\vocab(\varphi)$ is co-variant, then
+$\varphi$ is co-variant;
+%
+if some indexed position in $\vocab(\varphi)$ is contra-variant, then
+$\varphi$ is contra-variant;
+%
+if $\varphi$ is both co-variant and contra-variant, then $\varphi$ is
+bi-variant.
+
+\BH{define mutual fixpoint structure over indices}
+
+% define relational types:
+A relational type over countable space of indices $I$ is a tuple
+consisting of:
+%
+\begin{itemize}
+\item % refinement predicates:
+  A set of relational refinement predicates over $I$.
+\item % defn of mutual fixpoints:
+  A mutual fixpoint structure over $I$.
+\end{itemize}
+%
+The space of relational types over $I$ is denoted $\reltypes{I}$.
+
+% declare typing relation:
+A key contribution of our work is the definition of a typing relation
+from finite tuples of expressions to relational types.
+%
+For $e_0, \ldots, e_n \in \expr$ and
+$\tau \in \reltypes{e_0, \ldots, e_n}$ (in which the indices are the
+expressions $e_0, \ldots, e_n$ themselves), the fact that
+$e_0, \ldots, e_n$ have type $\tau$ will be denoted
+$e_0, \ldots, e_n : \tau$.
+%
+The typing relation is defined in \autoref{sec:rel-type-sys}.
 
 % walkthrough the operations over types:
+\paragraph{Operators over relational types}
 The relational typing relation is defined using operators over
 relational types.
 %
@@ -42,16 +170,16 @@ used in refinement type systems, and operators introduced to operate
 over features unique to relational types.
 
 % union as type operator:
-For all relational types $\tau, \tau'$, the union of relational
-predicates in $\tau$ and $\tau'$ (i.e., $\tau \union \tau'$) is a
-relational type.
+For indices $I$ and all relational types
+$\tau, \tau' \in \reltypes{I}$, the union of relational predicates in
+$\tau$ and $\tau'$ (i.e., $\tau \union \tau'$) is a relational type.
 % renaming:
-For $\tau \in \reltypes$ and symbols $x$ and $y$, the \emph{renaming}
+For $\tau \in \reltypes{I}$ and symbols $x$ and $y$, the \emph{renaming}
 from $x$ to $y$ in $\tau$, denoted $\replace{\tau}{x}{y}$, is $\tau$
 with each logical variable of the form $(x, p)$, for $p \in \typepos$,
 with $(x, p)$.
 % position cons:
-For $\tau \in \reltypes$, $f \in \typeposfield$, and symbol $x$, the
+For $\tau \in \reltypes{I}$, $f \in \typosfields$, and symbol $x$, the
 \emph{prepending} of $\tau$ with $f$ at $x$, denoted $f \cons_x \tau$,
 is $\tau$ with each logical variable of the form $(x, p)$, for
 $p \in \typepos$, replaced with $(x, f \cons p)$.
@@ -82,49 +210,104 @@ denoted $\tau +_{x, y}^z \tau'$, is
 The unfolding of $\tau$ at symbol $x$ is $\tau$ with a partially
 unfolded definition of the least-fixpoint type in which $x$ is
 associated.
-%
-
 
 % define refinement
-For $\tau \in \reltypes$, symbol $x$, and base term $t$,
+A refinement of relational type $\tau$ is $\tau$ extended to model
+information about an index not in $\tau$.
 %
-\BH{background: define base terms}
+Let the space of \emph{base refinement terms} consist of constants and
+operations applied to indexed positions or variables.
 %
-the \emph{refinement} of $\tau$ for $x$ and $t$ extends $\tau$ with
-base value $x$ set to $t$.
-%
-I.e., the refinement of $\tau$ for $x$ and $t$ is $\tau$ with each
-refinement predicate $P$ replaced with the following predicate:
+For indices $I$, $\tau \in \reltypes{I}$, indexed position $p$, and
+base term $t$, the \emph{refinement} of $\tau$ that equates $p$ with
+$t$ is $\tau$ the relational refinement type with indices and fixpoint
+structure identical to $\tau$, and with each refinement predicate
+$\varphi$ replaced with the following predicate:
 %
 \begin{itemize}
 \item % co-variant:
-  If $P$ is covariant, then $P \land x = t$;
+  If $\varphi$ is covariant, then $p = t \land \varphi$;
 \item % contra-variant:
-  If $P$ is contravariant, then $x = t \implies P$;
+  If $\varphi$ is contravariant, then $p = t \implies \varphi$;
 \item % bi-variant:
-  If $P$ is bivariant, then $P$.
+  If $\varphi$ is bi-variant, then $\varphi$.
 \end{itemize}
 %
-For each $y \in \vars$, the refinement of $\tau$ for $x$ and $y$ is
-defined as follows.
+For each $y \in \vars$, the refinement of $\tau$ that equates $x$ and
+$y$ is the relational type with indices and fixpoint structure
+identical to $\tau$, and with reach refinement predicate $\varphi$ of
+$\tau$ replaced with the following predicate:
 %
-\BH{complete}
+\begin{itemize}
+\item % co-variant:
+  If $\varphi$ is co-variant, then
+  $\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p) \land \varphi$.
+\item % contra-variant:
+  If $\varphi$ is contra-variant, then
+  $\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p) \implies \varphi$.
+\item % bi-variant:
+  If $\varphi$ is bi-variant, then $\varphi$.
+\end{itemize}
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
+%
+The typing relation from tuples of expressions to relational types is
+defined as an instance of a typing relation from sub-expressions to
+relational types.
+% define context:
+A \emph{contextual relational type} is a relational type with program
+variables as indices.
+%
+I.e., the space of contextual relational types is
+$\ctxreltypes = \reltypes{\vars}$.
+%
+A \emph{fixpoint relational context} is a map from fixpoint variables
+to contextual relational types.
+%
+I.e., the space of contexts is
+$\ctxs = \fixvars \partto \ctxreltypes$.
 
-\BH{define positioned expressions. Examples: the empty map, mapping
-  from positions to variables}
+% define expression positions:
+An \emph{expression position} partially identifies the position of an
+expression within a larger expression, or within a tuple of
+expressions.
+%
+The space of \emph{expression-position fields} is
+$\expposfields = \elts{ \leftchild, \rightchild }$.
+%
+The space of \emph{expression positions} is
+$\exppos = \expposfields^{*}$.
+%
+The space of \emph{positioned expressions} is
+$\posexps = \exppos \partto \expr$.
+% 
+The space of \emph{positioned relational types} is
+$\posreltypes = \reltypes{\vars \union \exppos}$.
 
-\BH{define result relational type: base symbols are variables
-  expression positions. Example: the empty relational type}
-
-\BH{define contextual relational type: base symbols are variables}
-
-\BH{define context}
-
-\BH{define typing relation over expressions in terms of positioned
-  expressions}
+% define typing relation over expressions in terms of positioned
+% expressions
+For $\Gamma \in \ctxs$, $\gamma \in \ctxreltypes$, $E \in \posexps$,
+and $\tau \in \posreltypes$, the fact that $E$ have relational type
+$\tau$ under $\Gamma$ and $\gamma$ is denoted
+$\Gamma, \gamma \judges E : \tau$;
+%
+the typing relation is defined below.
+%
+The typing relation over expressions is defined in terms of the typing
+relation over positioned expressions.
+%
+In particular, for each $n \in \nats$, let the position encoding of
+$n$ be $\pos{n} = \leftchild \cons \rightchild^{n}$, and let
+$\gamma_{\emptyset}$ denote th unique contextual relational type over
+the empty set of variables.
+%
+Then for all $e_0, \ldots, e_{n - 1} \in \expr$ and
+$\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
+\[ e_0, \ldots, e_{n - 1} : \tau \equiv \cdot, \gamma_{\emptyset}
+  \judges [ \pos{0} \mapsto e_0, \ldots, \pos{n - 1} \mapsto e_{n - 1}
+  ] : \replace{ \tau }{ e_0, \ldots, e_{n - 1} }{ \pos{0}, \ldots,
+    \pos{n - 1} } \]
 
 % rules for determining if expression sequences have a relational type:
 \begin{figure}
@@ -258,9 +441,11 @@ defined as follows.
   \label{fig:reltypes-rules}
 \end{figure}
 
+\BH{update to define all notation as needed}
+
 % define judgment:
-The typing system is defined by the inductive inference rules given in
-\autoref{fig:reltypes-rules}.
+The relation over positioned expressions is defined by the inductive
+inference rules given in \autoref{fig:reltypes-rules}.
 %
 The inference rules consist of syntax-directed rules that define the
 typing relation for arbitrary expressions in a map of positional
@@ -414,10 +599,10 @@ relational types.
       \subexps{\unfoldings{P_1} })$;
   \item
     % context types:
-    $\Gamma : \mathcal{E} \to \reltypes$;
+    \BH{update}
   \item
     % relational types of subexpressions:
-    $T : \mathcal{E} \to \reltypes$
+    \BH{update}
   \end{itemize}
   %
   be such that 
@@ -820,7 +1005,7 @@ interpreted as $\false$.
       $\chkindaux(E$, %
       % and a map from sets of fixpoint expressions to relational
       % types,
-      $F : \mathcal{E} \to \reltypes)$ %
+      $F : \mathcal{E} \to )$ %
       \label{line:chkind-aux-begin} } %
     { % if all of the expressions are atomic,
       \lIf{$E \subseteq \atomics$}{ %

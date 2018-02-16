@@ -47,6 +47,8 @@
 
 \newcommand{\ctrof}[1]{\mathsf{Ctr}[#1]}
 
+\newcommand{\ctxreltypes}{T_R^{\Gamma}}
+
 \newcommand{\ctxs}{\mathsf{Ctxs}}
 
 \newcommand{\cuts}[1]{\mathsf{Cuts}[ #1 ]}
@@ -83,7 +85,11 @@
 
 \newcommand{\explabel}[1]{\mathsf{ExpLbl}[ #1 ]}
 
-\newcommand{\expr}{\mathsf{Exprs}}
+\newcommand{\expposfields}{F_E}
+
+\newcommand{\exppos}{P_E}
+
+\newcommand{\expr}{E}
 
 \newcommand{\exprel}[1]{\mathsf{ExpRel}[ #1 ]}
 
@@ -97,7 +103,7 @@
 
 \newcommand{\fixexps}{\mathsf{Exprs}_{\cc{fix}}}
 
-\newcommand{\fixvars}{\mathsf{FixVars}}
+\newcommand{\fixvars}{X_F}
 
 \newcommand{\fns}{\mathsf{Fns}}
 
@@ -173,7 +179,11 @@
 
 \newcommand{\subtype}{\preceq}
 
+\newcommand{\pos}[1]{p_{#1}}
+
 \newcommand{\posexps}{\mathsf{Exps}}
+
+\newcommand{\posreltypes}{T_R^P}
 
 \newcommand{\prevrule}[1]{\mathsf{Prev}[ #1 ]}
 
@@ -193,7 +203,7 @@
 
 \newcommand{\relctxs}{\mathsf{RelCtxs}}
 
-\newcommand{\reltypes}{T_{R}}
+\newcommand{\reltypes}[1]{T_{R}^{#1}}
 
 \newcommand{\reltypespos}[3]{\mathsf{RelTypes}[ #1, #2, #3 ]}
 
@@ -253,23 +263,31 @@
 
 \newcommand{\tilings}[2]{\mathsf{Tilings}[ #1, #2 ]}
 
+\newcommand{\tydatafield}{D}
+
 \newcommand{\tyleftprod}{\mathsf{l}_{\times}}
 
 \newcommand{\tyleftsum}{\mathsf{l}_{+}}
+
+\newcommand{\tylfp}{\mu}
+
+\newcommand{\typaramfield}{\to_{\alpha}}
 
 \newcommand{\typarampos}{\alpha}
 
 \newcommand{\typepos}{F_T^{*}}
 
-\newcommand{\typeposfield}{F_T}
+\newcommand{\typosfields}{F_T}
 
 \newcommand{\types}{\mathsf{Types}}
 
-\newcommand{\tyrespos}{\nu}
+\newcommand{\tyresfield}{\to_{\nu}}
 
 \newcommand{\tyrightprod}{\mathsf{r}_{\times}}
 
 \newcommand{\tyrightsum}{\mathsf{r}_{+}}
+
+\newcommand{\tyvarfield}{X}
 
 \newcommand{\unfold}[2]{#1\uparrow^{#2}}
 
@@ -283,7 +301,7 @@
 
 \newcommand{\values}{\mathsf{Values}}
 
-\newcommand{\vars}{\mathsf{Vars}}
+\newcommand{\vars}{X}
 
 \newcommand{\verify}{\textsc{Infer}\xspace}
 
@@ -293,7 +311,7 @@
 
 \newcommand{\verifyunfoldingsaux}{\textsc{VerifyUnfoldings}'\xspace}
 
-\newcommand{\vocab}{\mathsf{Vocab}}
+\newcommand{\vocab}{V}
 
 %%% Local Variables: 
 %%% mode: latex
