@@ -22,6 +22,7 @@ data InferenceError
   = UnificationError Type Type
   | UnboundError Var
   | InvalidSplit HORT
+  deriving (Show, Read, Eq)
 
 type Ctxt = Map Var HORT
 
@@ -58,6 +59,7 @@ giveType = fmap unAttrib . traverse (\(m, vs, t) -> fresh m vs t) . Attrib
 -- to their corresponding context.
 contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
 contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
+  EFix x _ -> M.insert x t ctxt
   ELam x _ ->
     case split t of
       Just (s, t') -> if isPrim s then ctxt else M.insert x s ctxt
@@ -140,11 +142,13 @@ infer = fmap (annMap snd . annZip) .
       EIf s t' t'' ->
         tell (constraintForIf t [s, t', t''])
 
+      EFix _ t' -> do
+        t' <: t
+
       ENil -> undefined
       EMatch{} -> undefined
       ECon{} -> undefined
       ELet{} -> undefined
-      EFix{} -> undefined
     pure t)
 
 typeConstraints :: Attr CoreExpr' (Map Var Type, Type) -> Either InferenceError Grammar
