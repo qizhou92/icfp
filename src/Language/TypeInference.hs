@@ -84,6 +84,9 @@ fresh = do
 -- expression variables to type variables.
 contextualize :: CoreExpr -> Infer (Attr CoreExpr' Ctxt)
 contextualize = inheritM (\e ctxt -> case e of
+  Fix (EFix x _) -> do
+    s <- fresh
+    pure (M.insert x s ctxt)
   Fix (ELam x _) -> do
     s <- fresh
     pure (M.insert x s ctxt)
@@ -146,9 +149,11 @@ infer = fmap annZip .
   -- A + (x : s) => e : t
   -- -------------------
   -- A => fix x.e : s -> t
-  EFix x t -> case M.lookup x ctxt of
-    Nothing -> throwError (UnboundError x)
-    Just s -> pure (s `TArr` t))
+  EFix x t -> pure t
+  -- case M.lookup x ctxt of
+  --   Nothing -> throwError (UnboundError x)
+  --   Just s -> pure (s `TArr` t))
+  )
 
 test = ebin Plus (eapp (elam (Var "x") (evar (Var "x"))) (eint 3))
                  $ eapp (elam (Var "x") (evar (Var "x"))) (eint 3)

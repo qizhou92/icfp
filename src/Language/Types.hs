@@ -118,7 +118,7 @@ instance Pretty CoreExpr where
     ELet x e e'      -> vsep [ p "let" <+> p x <+> p "=" <+> e <+> p "in" , e']
     EApp e1 e2       -> parens (e1 <+> e2)
     ELam x e         -> parens (p "\\" <> p x <+> p "->" <+> e)
-    EFix x e         -> p "fix " <+> p x <+> e
+    EFix x e         -> p "fix" <+> p x <+> e
     ENil             -> p "[]"
     ECon x y         -> parens (p "con" <+> x <+> y)
     EMatch e n x y c ->

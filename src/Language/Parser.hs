@@ -13,7 +13,7 @@ lexeme :: Stream s m Char => ParsecT s u m b -> ParsecT s u m b
 lexeme p = do { x <- p; spaces; return x  }
 
 parseExpr :: CharParser st CoreExpr
-parseExpr = lambda <|> ex1
+parseExpr = lambda <|> fix <|> ex1
 
 ex1 :: CharParser st CoreExpr
 ex1 = ex2
@@ -54,6 +54,15 @@ lambda = do
   e <- parseExpr
   pure (elam v e)
 
+fix :: CharParser st CoreExpr
+fix = do
+  res "fix"
+  v <- var
+  char '.'
+  T.whiteSpace lexer
+  e <- parseExpr
+  pure (efix v e)
+
 bool :: CharParser st CoreExpr
 bool = const (ebool True)  <$> res "true"
    <|> const (ebool False) <$> res "false"
@@ -93,7 +102,8 @@ lexer = T.makeTokenParser (emptyDef { T.identStart = letter <|> char '_'
                                                           , "~"
                                                           , "\\", "."
                                                           ]
-                                    , T.reservedNames = [ "not", "distinct"
+                                    , T.reservedNames = [ "fix"
+                                                        , "not", "distinct"
                                                         , "and", "or"
                                                         , "add", "mul"
                                                         , "def"

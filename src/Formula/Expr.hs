@@ -259,16 +259,16 @@ varElim conserve = loop
       let st =
             execState (
               mapM_ (\case
-                  Eql _ :@ V v1 :@ V v2
-                    | v1 `notElem` conserve -> put (Just (v1, V v2))
-                    | v2 `notElem` conserve -> put (Just (v2, V v1))
-                    | otherwise -> return ()
-                  Eql _ :@ V v :@ e
-                    | isLit e && v `notElem` conserve -> put (Just (v, e))
-                    | otherwise -> return ()
-                  Eql _ :@ e :@ V v
-                    | isLit e && v `notElem` conserve -> put (Just (v, e))
-                    | otherwise -> return ()
+                  -- Eql _ :@ V v1 :@ V v2
+                  --   | v1 `notElem` conserve -> put (Just (v1, V v2))
+                  --   | v2 `notElem` conserve -> put (Just (v2, V v1))
+                  --   | otherwise -> return ()
+                  -- Eql _ :@ V v :@ e
+                  --   | isLit e && v `notElem` conserve -> put (Just (v, e))
+                  --   | otherwise -> return ()
+                  -- Eql _ :@ e :@ V v
+                  --   | isLit e && v `notElem` conserve -> put (Just (v, e))
+                  --   | otherwise -> return ()
                   _ -> return ()) (universe f)) Nothing
       in case st of
         Nothing -> f
