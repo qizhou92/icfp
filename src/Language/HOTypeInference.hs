@@ -60,7 +60,7 @@ contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
 contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
   ELam x _ ->
     case split t of
-      Just (s, t') -> if isPrim s then ctxt else M.insert x t' ctxt
+      Just (s, t') -> if isPrim s then ctxt else M.insert x s ctxt
       Nothing -> error "lambda has non-arrow type"
   _ -> ctxt) M.empty
 
