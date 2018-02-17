@@ -46,7 +46,7 @@ isearch x ctxt =
 -- | Generate grammar rules which force the first type to be a subtype of
 -- the second.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
-(<:) s t = tell (subtype s t)
+(<:) s t = tell (subtype (F.LBool True) [] s t)
 
 -- | Generate a new higher order relational type for every
 giveType :: Attr CoreExpr' (Map Var Type, [Var], Type) -> Infer (Attr CoreExpr' HORT)
@@ -80,7 +80,7 @@ infer = fmap (annMap snd . annZip) .
         then
           let tv = valueOf t
               vx = F.Var (getVar x) (F.exprType tv)
-          in tell (constrainForPrimitive t [] [F.expr|$tv = @vx|])
+          in tell (constrainPrimitive t [] [F.expr|$tv = @vx|])
         else do
           t' <- isearch x ctxt
           t' <: t
@@ -92,7 +92,7 @@ infer = fmap (annMap snd . annZip) .
               sv = valueOf s
               stv = valueOf st
               sta = argumentOf st
-          in tell (constrainForAppPrimitive t [st, s] [F.expr| $sta = $sv && $tv = $stv|])
+          in tell (subtype [F.expr|$sta = $sv|] [s] st t)
         else do
           (s', t') <- safeSplit st
           t' <: t
@@ -103,10 +103,10 @@ infer = fmap (annMap snd . annZip) .
         then do
           (_ , t'') <- safeSplit t
           t' <: t''
-        else let ta = argumentOf t
-                 vx = F.Var (getVar x) (F.exprType ta)
-           in tell (constraintForLamPrimitive t [t']
-                [F.expr|$ta = @vx |])
+        else do
+          let ta = argumentOf t
+          let vx = F.Var (getVar x) (F.exprType ta)
+          tell $ subtype [F.expr|$ta = @vx|] [] t' t
 
       EBin op r s ->
         let rv = valueOf r
@@ -124,20 +124,22 @@ infer = fmap (annMap snd . annZip) .
               And   -> [F.expr|$tv = ($rv && $sv)|]
               Or    -> [F.expr|$tv = ($rv || $sv)|]
               Cons  -> undefined
-        in tell (constrainForPrimitive t [r, s] f)
+        in tell (constrainPrimitive t [r, s] f)
 
       EInt i ->
         let tv = valueOf t
             i' = F.LInt $ toInteger i
-        in tell (constrainForPrimitive t [] [F.expr|$tv = $i'|])
+        in tell (constrainPrimitive t [] [F.expr|$tv = $i'|])
 
       EBool b ->
         let tv = valueOf t
             b' = F.LBool b
-        in tell (constrainForPrimitive t [] [F.expr|$tv = $b'|])
+        in tell (constrainPrimitive t [] [F.expr|$tv = $b'|])
 
-      EIf s t' t'' ->
-        tell (constraintForIf t [s, t', t''])
+      EIf s t' t'' -> do
+        let sv = valueOf s
+        tell $ subtype [F.expr|$sv|] [s] t' t
+        tell $ subtype [F.expr|not $sv|] [s] t'' t
 
       EFix _ t' -> t' <: t
 
