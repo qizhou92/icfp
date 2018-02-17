@@ -2,6 +2,7 @@
 module Language.HORT where
 
 import           Control.Monad.State
+import           Control.Monad.Writer
 import           Data.Data (Data)
 import           Data.Tree
 import           Data.Map (Map)
@@ -114,18 +115,17 @@ split hort = case getBasicType hort of
   _ -> error "not a supported type (split in HORT)"
 
 -- | Apply a constraint to `t` where other types may witness the constraint.
--- are primitive
-constrain :: F.Expr -> [HORT] -> HORT -> [Rule]
+constrain :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> m ()
 constrain constraint witnesses t =
   let h = topPredicate t
       ws = map topPredicate witnesses
-  in [Rule L h constraint ws]
+  in tell [Rule L h constraint ws]
 
 -- | Constrain t' to be a subtype of t where a constraint can occur between the types
 -- and other types may witness the constraint.
-subtype :: F.Expr -> [HORT] -> HORT -> HORT -> [Rule]
+subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
 subtype constraint witnesses t' t =
-  buildSubType constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
+  tell $ buildSubType constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
   where
     buildSubType constraint context (Node (n1, types1) subTrees1) (Node (n2, types2) subTrees2) =
       let expr = carryBound (length types1) (length types2) n1 n2
