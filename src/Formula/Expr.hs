@@ -148,7 +148,7 @@ mkImpl :: Expr -> Expr -> Expr
 mkImpl = app2 Impl
 
 mkAdd :: Type -> Expr -> Expr -> Expr
-mkAdd t (LInt a) (LInt b) = LInt (a + b)
+mkAdd _ (LInt a) (LInt b) = LInt (a + b)
 mkAdd t e e' = app2 (Add t) e e'
 
 mkAnd :: Expr -> Expr -> Expr
@@ -257,23 +257,25 @@ varElim conserve = loop
   where
     loop f =
       let st =
-            execState (
-              mapM_ (\case
-                  -- Eql _ :@ V v1 :@ V v2
-                  --   | v1 `notElem` conserve -> put (Just (v1, V v2))
-                  --   | v2 `notElem` conserve -> put (Just (v2, V v1))
-                  --   | otherwise -> return ()
-                  -- Eql _ :@ V v :@ e
-                  --   | isLit e && v `notElem` conserve -> put (Just (v, e))
-                  --   | otherwise -> return ()
-                  -- Eql _ :@ e :@ V v
-                  --   | isLit e && v `notElem` conserve -> put (Just (v, e))
-                  --   | otherwise -> return ()
-                  _ -> return ()) (universe f)) Nothing
+            execState (choose f) Nothing
       in case st of
         Nothing -> f
         Just (v, e) ->
           loop (clean $ esub (M.singleton v e) f)
+
+    choose = \case
+      And :@ e :@ e' -> choose e >> choose e'
+      Eql _ :@ V v1 :@ V v2
+        | v1 `notElem` conserve -> put (Just (v1, V v2))
+        | v2 `notElem` conserve -> put (Just (v2, V v1))
+        | otherwise -> return ()
+      Eql _ :@ V v :@ e
+        | isLit e && v `notElem` conserve -> put (Just (v, e))
+        | otherwise -> return ()
+      Eql _ :@ e :@ V v
+        | isLit e && v `notElem` conserve -> put (Just (v, e))
+        | otherwise -> return ()
+      _ -> return ()
 
     clean = transform (\case
       Eql t :@ f1 :@ f2 -> mkEql t (clean f1) (clean f2)

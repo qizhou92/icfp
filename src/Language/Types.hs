@@ -13,7 +13,7 @@ import           Data.Monoid
 import           Data.Text.Prettyprint.Doc hiding ((<>))
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Morphisms
-import           Data.Generics.Fixplate.Attributes (synthetise)
+import           Data.Generics.Fixplate.Attributes
 
 import           GHC.Exts(IsString(..))
 
