@@ -43,9 +43,6 @@ isearch x ctxt =
     Nothing -> throwError (UnboundError x)
     Just t' -> pure t'
 
-iconstrain :: HORT -> [HORT] -> F.Expr -> Infer ()
-iconstrain h b c = tell (constrain h b c)
-
 -- | Generate grammar rules which force the first type to be a subtype of
 -- the second.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
@@ -142,8 +139,7 @@ infer = fmap (annMap snd . annZip) .
       EIf s t' t'' ->
         tell (constraintForIf t [s, t', t''])
 
-      EFix _ t' -> do
-        t' <: t
+      EFix _ t' -> t' <: t
 
       ENil -> undefined
       EMatch{} -> undefined

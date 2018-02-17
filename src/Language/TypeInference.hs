@@ -155,9 +155,6 @@ infer = fmap annZip .
   --   Just s -> pure (s `TArr` t))
   )
 
-test = ebin Plus (eapp (elam (Var "x") (evar (Var "x"))) (eint 3))
-                 $ eapp (elam (Var "x") (evar (Var "x"))) (eint 3)
-
 opType :: Binop -> Infer Type
 opType b
   | b `elem` [Plus, Minus, Mul, Div] = pure (TInt `TArr` (TInt `TArr` TInt))

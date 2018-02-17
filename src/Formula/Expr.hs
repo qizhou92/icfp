@@ -270,10 +270,10 @@ varElim conserve = loop
         | v2 `notElem` conserve -> put (Just (v2, V v1))
         | otherwise -> return ()
       Eql _ :@ V v :@ e
-        | isLit e && v `notElem` conserve -> put (Just (v, e))
+        | v `notElem` conserve -> put (Just (v, e))
         | otherwise -> return ()
       Eql _ :@ e :@ V v
-        | isLit e && v `notElem` conserve -> put (Just (v, e))
+        | v `notElem` conserve -> put (Just (v, e))
         | otherwise -> return ()
       _ -> return ()
 

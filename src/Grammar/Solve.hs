@@ -18,22 +18,22 @@ import           Grammar.Unwind
 import           Grammar.Synthesize
 import           Grammar.Chc
 
-solve :: Clones -> Grammar -> Expr -> IO (Int, Either Model (Map Symbol (Expr, Expr)))
-solve cs g f = loop 1 (cs, g)
+solve :: Clones -> Grammar -> Expr -> IO (Either Model (Map Symbol (Expr, Expr)))
+solve cs g f = loop (cs, g)
   where
-    loop iters (clones, g') = interpolate g' f >>= \case
-      Left e -> pure (iters, Left e)
+    loop (clones, g') = interpolate g' f >>= \case
+      Left e -> pure (Left e)
       Right m -> do
         ind <- inductive clones g' m
         if M.findWithDefault False (g ^. grammarStart) ind
-        then onInductive iters g' clones m ind
-        else loop (iters+1) $ unwind (M.keysSet $ M.filter not ind) (clones, g')
+        then onInductive g' clones m ind
+        else loop $ unwind (M.keysSet $ M.filter not ind) (clones, g')
 
-    onInductive iters g' clones m ind = do
+    onInductive g' clones m ind = do
       let indS = M.keysSet $ M.filter id ind
       let invs = synthesizeInvariants indS clones g' m
       m <- traverse simpBoth invs
-      pure (iters, Right m)
+      pure (Right m)
 
     simpBoth (x, y) = (,) <$> Z3.superSimplify x <*> Z3.superSimplify y
 
