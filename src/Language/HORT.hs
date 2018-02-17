@@ -128,19 +128,15 @@ split hort = case getBasicType hort of
                 in Just (HORT (head subTrees) t1, HORT (Node root (tail subTrees)) t2)
   _ -> error "not a supported type (split in HORT)"
 
--- Generate a set of rules which constrains that all higher order refinement types
--- are primitive
-constrainPrimitive :: HORT -> [HORT] -> F.Expr -> [Rule]
-constrainPrimitive headHort body constraint =
-  let (Node (h,_) _) = getHORT headHort
-      bodys = map ((\(Node (root,_) _) -> root) . getHORT) body
-  in [Rule L h constraint bodys]
+-- | Apply a constraint to `t` where other types may witness the constraint.
+constrain :: F.Expr -> [HORT] -> HORT -> [Rule]
+constrain constraint witnesses t =
+  let h = topPredicate t
+      ws = map topPredicate witnesses
+  in [Rule L h constraint ws]
 
-topPredicate :: HORT -> Nonterminal
-topPredicate = (\(Node (c, _) _) -> c) . getHORT
-
--- | Given a pair of higher order refinement types, generate the grammar rules
--- which constrain the types.
+-- | Constrain t' to be a subtype of t where a constraint can occur between the types
+-- and other types may witness the constraint.
 subtype :: F.Expr -> [HORT] -> HORT -> HORT -> [Rule]
 subtype constraint witnesses t' t =
   buildSubType constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
@@ -150,14 +146,17 @@ subtype constraint witnesses t' t =
           rule = Rule L n2 (constraint `F.mkAnd` expr) (n1:context)
           rules = subTreeRules subTrees2 subTrees1
       in rule : rules
+    -- Construct constraints for the subtrees.
     subTreeRules st1 st2 = concat (zipWith (buildSubType (F.LBool True) []) st1 st2)
+    -- Copy the bound variables from one type to the other.
+    carryBound numBound1 numBound2 (Nonterminal _ vars1) (Nonterminal _ vars2) =
+      let toTake = min numBound1 numBound2 in
+      F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|])
+        (lastN toTake vars1)
+        (lastN toTake vars2))
 
-carryBound :: Int -> Int -> Nonterminal -> Nonterminal -> F.Expr
-carryBound numBound1 numBound2 (Nonterminal _ vars1) (Nonterminal _ vars2) =
-  let toTake = min numBound1 numBound2 in
-  F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|])
-    (lastN toTake vars1)
-    (lastN toTake vars2))
+topPredicate :: HORT -> Nonterminal
+topPredicate = (\(Node (c, _) _) -> c) . getHORT
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs

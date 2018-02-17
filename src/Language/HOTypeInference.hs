@@ -80,7 +80,7 @@ infer = fmap (annMap snd . annZip) .
         then
           let tv = valueOf t
               vx = F.Var (getVar x) (F.exprType tv)
-          in tell (constrainPrimitive t [] [F.expr|$tv = @vx|])
+          in tell (constrain [F.expr|$tv = @vx|] [] t)
         else do
           t' <- isearch x ctxt
           t' <: t
@@ -124,17 +124,17 @@ infer = fmap (annMap snd . annZip) .
               And   -> [F.expr|$tv = ($rv && $sv)|]
               Or    -> [F.expr|$tv = ($rv || $sv)|]
               Cons  -> undefined
-        in tell (constrainPrimitive t [r, s] f)
+        in tell (constrain f [r, s] t)
 
       EInt i ->
         let tv = valueOf t
             i' = F.LInt $ toInteger i
-        in tell (constrainPrimitive t [] [F.expr|$tv = $i'|])
+        in tell (constrain [F.expr|$tv = $i'|] [] t)
 
       EBool b ->
         let tv = valueOf t
             b' = F.LBool b
-        in tell (constrainPrimitive t [] [F.expr|$tv = $b'|])
+        in tell (constrain [F.expr|$tv = $b'|] [] t)
 
       EIf s t' t'' -> do
         let sv = valueOf s
