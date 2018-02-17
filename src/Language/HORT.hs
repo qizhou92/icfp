@@ -13,7 +13,7 @@ import qualified Formula as F
 
 data HORT = HORT
   -- the type list is the list of flat basic type
-  { getHORT :: Tree (Nonterminal,[Type])
+  { getHORT :: Tree (Nonterminal, [Type])
   , getBasicType :: Type
   } deriving (Show, Read, Eq, Data)
 
@@ -29,14 +29,10 @@ valueOf hort1 = do
 -- represents the first argument of the expression and its type is primitive type.
 argumentOf :: HORT -> F.Expr
 argumentOf hort =
-  let (Node (Nonterminal predicateId _, _) _) = getHORT hort
+  let (Node (Nonterminal pid _, _) _) = getHORT hort
   in case getBasicType hort of
-     TArr t1 _ ->
-       case t1 of
-         TInt -> F.V (F.Var ("arg" ++ "1#" ++ show predicateId) F.Int)
-         TBool -> F.V (F.Var ("arg" ++ "1#" ++ show predicateId) F.Bool)
-         _ -> error "this type is not support (argumentOf in HORT)"
-     _ -> error "this type is not support (argumentOf in HORT)"
+     TArr t _ -> F.V $ mkArg pid (t, 1)
+     _ -> error "this type is not supported (argumentOf in HORT)"
 
 -- | Whether or not this type is primitive.
 isPrim :: HORT -> Bool
@@ -44,7 +40,7 @@ isPrim hort1 = case getBasicType hort1 of
   TInt ->  True
   TBool -> True
   TArr _ _ -> False
-  _ -> error "this type should not in HORT"
+  _ -> error "this type should not be in HORT"
 
 -- | Given a list of free variables and a basic type, construct
 -- a higher order refinement type.
@@ -58,14 +54,14 @@ fresh freeVarMaps freeVars exprType = do
 buildTreeNode :: MonadState Int m => [(Var, Type)] -> Type ->m (Tree (Nonterminal, [Type]))
 buildTreeNode freeVarMaps exprType = do
   let (highOrderTypes, basicTypes) = collectTypes ([], []) exprType
-  rootNonterminal <- freeRootPredicate freeVarMaps basicTypes
+  rootNonterminal <- mkPredicate freeVarMaps basicTypes
   subTrees <- mapM buildHighOrderTreeNode highOrderTypes
   return (Node (rootNonterminal , basicTypes) subTrees)
 
 buildHighOrderTreeNode :: MonadState Int m => Type ->m (Tree (Nonterminal, [Type]))
 buildHighOrderTreeNode exprType = do
   let (highOrderTypes, basicTypes) = collectTypes ([], []) exprType
-  rootNonterminal <- freePredicate basicTypes
+  rootNonterminal <- mkHOPredicate basicTypes
   subTrees <- mapM buildHighOrderTreeNode highOrderTypes
   return (Node (rootNonterminal , basicTypes) subTrees)
 
@@ -80,44 +76,33 @@ collectTypes (currentHighOrderTypes, basicTypes) currentType = case currentType 
       TInt -> collectTypes (currentHighOrderTypes, basicTypes++[TInt]) t2
       TBool -> collectTypes (currentHighOrderTypes, basicTypes++[TBool]) t2
       TArr _ _ -> collectTypes (currentHighOrderTypes++[t1], basicTypes) t2
-      _ -> error "this type should not in collectTypes 2"
-  _ -> error "this type should not in collectTypes 1"
+      _ -> error "this type should not be in collectTypes 2"
+  _ -> error "this type should not be in collectTypes 1"
 
-freePredicate :: MonadState Int m =>[Type] -> m Nonterminal
-freePredicate types = do
+mkHOPredicate :: MonadState Int m => [Type] -> m Nonterminal
+mkHOPredicate = mkPredicate []
+
+mkPredicate :: MonadState Int m => [(Var,Type)] -> [Type] -> m Nonterminal
+mkPredicate freeVarsWithType types = do
   idNumber <- get
-  let varList =  map (buildFVar idNumber) (zip (init types) [1 ..])
-  let outputVar = buildOutput idNumber (last types)
-  let nonterminal = Nonterminal idNumber (varList++[outputVar])
+  let varList = map (mkArg idNumber) (zip (init types) [1 ..])
+  let outputVar = mkOut idNumber (last types)
+  let freeVarList = map mkFreeVar freeVarsWithType
+  let nonterminal = Nonterminal idNumber (freeVarList ++ varList ++ [outputVar])
   put (idNumber+1)
   return nonterminal
 
-freeRootPredicate :: MonadState Int m =>[(Var,Type)] -> [Type] -> m Nonterminal
-freeRootPredicate freeVarsWithType types = do
-  idNumber <- get
-  let varList =  map (buildFVar idNumber) (zip types [1 ..])
-  let freeVarList = map buildFreeVar freeVarsWithType
-  let nonterminal = Nonterminal idNumber (freeVarList ++ varList)
-  put (idNumber+1)
-  return nonterminal
-
-buildFreeVar :: (Var,Type) -> F.Var
-buildFreeVar (Var name, basicType) = case basicType of
+mkFreeVar :: (Var, Type) -> F.Var
+mkFreeVar (Var name, t) = case t of
   TInt -> F.Var name F.Int
   TBool -> F.Var name F.Bool
-  _ -> error "it is not an primitive type  free vars (buildFreeVar in HORT)"
+  _ -> error "it is not an primitive type  free vars (mkFreeVar in HORT)"
 
-buildOutput :: Int -> Type -> F.Var
-buildOutput predicateId types = case types of 
-  TInt -> F.Var ("output" ++ "#" ++ show predicateId) F.Int
-  TBool -> F.Var ("output" ++ "#" ++ show predicateId) F.Bool
-  _ -> error "this is not a valid type in buildFVar"
+mkOut :: Int -> Type -> F.Var
+mkOut pid t = mkFreeVar (Var ("out#" ++ show pid), t)
 
-buildFVar :: Int -> (Type,Int) -> F.Var
-buildFVar predicateId (types,index) = case types of
-  TInt -> F.Var ("arg" ++ show index ++ "#" ++ show predicateId) F.Int
-  TBool -> F.Var ("arg" ++ show index ++ "#" ++ show predicateId) F.Bool
-  _ -> error "this is not a valid type in buildFVar"
+mkArg :: Int -> (Type,Int) -> F.Var
+mkArg pid (t, idx) = mkFreeVar (Var ("arg" ++ show idx ++ "#" ++ show pid), t)
 
 -- | Split a refinement type at the arrow position.
 split :: HORT -> Maybe (HORT, HORT)
@@ -129,6 +114,7 @@ split hort = case getBasicType hort of
   _ -> error "not a supported type (split in HORT)"
 
 -- | Apply a constraint to `t` where other types may witness the constraint.
+-- are primitive
 constrain :: F.Expr -> [HORT] -> HORT -> [Rule]
 constrain constraint witnesses t =
   let h = topPredicate t
