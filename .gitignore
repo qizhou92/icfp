@@ -47,3 +47,4 @@ css/
 .dir-locals.el
 *.pdf
 *.aux
+*.dot

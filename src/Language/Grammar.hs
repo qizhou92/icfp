@@ -51,7 +51,7 @@ pipeline e =
     Left e -> print e
     Right ex -> case exprGrammar ex of
       Left e -> print e
-      Right g -> writeFile "tmp" (show $ pretty g)
+      Right g -> plot "tmp" g
 
 pipelineSimp :: String -> IO ()
 pipelineSimp e =
@@ -59,7 +59,7 @@ pipelineSimp e =
     Left e -> print e
     Right ex -> case exprGrammar ex of
       Left e -> print "error"
-      Right g -> print (pretty (runVocab (simplify g)))
+      Right g -> plot "simp" (runVocab (simplify g))
 
 
 drawTypes :: String -> IO ()
