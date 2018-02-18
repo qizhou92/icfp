@@ -12,6 +12,7 @@ import           Data.List (partition)
 import           Language.Types
 import           Grammar
 import qualified Formula as F
+import           Formula (MonadVocab, fetch, fresh)
 
 data HORT = HORT
   -- the type list is the list of flat basic type
@@ -42,20 +43,18 @@ isPrim = isPrimitiveType . getBasicType
 
 -- | Given a list of free variables and a basic type, construct
 -- a higher order refinement type.
-fresh :: MonadState Int m => Map Var Type -> [Var] -> Type -> m HORT
-fresh varTypes freeVars exprType = do
+freshType :: MonadState Int m => Map Var Type -> [Var] -> Type -> m HORT
+freshType varTypes freeVars exprType = do
   let fvs = map (\v -> (v, varTypes M.! v)) freeVars
   let primFvs = filter (\(_, basicType) -> isPrimitiveType basicType) fvs
   HORT <$> mkTree primFvs exprType <*> pure exprType
   where
-    mkTree :: MonadState Int m => [(Var, Type)] -> Type -> m (Tree (Nonterminal, [Type]))
     mkTree primFreeVars exprType = do
       let (prims, hots) = partition isPrimitiveType $ flattenType exprType
       pred <- mkPredicate primFreeVars prims
       subTrees <- mapM (mkTree []) hots
       return (Node (pred, prims) subTrees)
 
-    mkPredicate :: MonadState Int m => [(Var, Type)] -> [Type] -> m Nonterminal
     mkPredicate freeVarsWithType types = do
       idNumber <- get
       let varList = map (mkArg idNumber) (zip (init types) [1 ..])
@@ -65,8 +64,7 @@ fresh varTypes freeVars exprType = do
       put (idNumber+1)
       return nonterminal
 
-    mkOut :: Int -> Type -> F.Var
-    mkOut pid t = mkFreeVar (Var ("out#" ++ show pid), t)
+    mkOut pid t = mkFreeVar (Var ("out_" ++ show pid), t)
 
 flattenType :: Type -> [Type]
 flattenType = \case
@@ -81,7 +79,7 @@ mkFreeVar (Var name, t) = case t of
   _ -> error "it is not an primitive type  free vars (mkFreeVar in HORT)"
 
 mkArg :: Int -> (Type,Int) -> F.Var
-mkArg pid (t, idx) = mkFreeVar (Var ("arg" ++ show idx ++ "#" ++ show pid), t)
+mkArg pid (t, idx) = mkFreeVar (Var ("arg" ++ show idx ++ "_" ++ show pid), t)
 
 -- | Split a refinement type at the arrow position.
 split :: HORT -> Maybe (HORT, HORT)

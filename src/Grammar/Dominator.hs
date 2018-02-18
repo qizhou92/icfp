@@ -1,9 +1,13 @@
 module Grammar.Dominator where
 
+import           Control.Monad.State
+import           Control.Monad.Writer
+
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Set (Set)
 import qualified Data.Set as S
+import           Data.List (partition)
 
 import           Grammar.Grammar
 
@@ -46,12 +50,18 @@ postdominators g@(Grammar start rs) = dominators initial rSyms rulesWith g
     rSyms m = map (search m . lhsSymbol)
 
 backRules :: Grammar -> [Rule]
-backRules g@(Grammar _ rs) = filter isBack rs
+backRules (Grammar s rs) = execWriter (go [s] S.empty)
   where
-    predominates x y = x `elem` search (predominators g) y
-    postdominates x y = x `elem` search (postdominators g) y
-    isBack r = any (\sym -> (lhsSymbol r `predominates` sym)
-                         || (sym `postdominates` lhsSymbol r)) (rhsSymbols r)
+    go :: [Symbol] -> Set Symbol -> Writer [Rule] ()
+    go ws seen = case ws of
+      [] -> pure ()
+      (sym:ws') -> do
+        let rs' = rulesFor sym rs
+        let (forward, backward) =
+              partition (\r -> rhsSymbols r `S.intersection` seen == S.empty) rs'
+        let toVisit = foldMap rhsSymbols forward
+        tell backward
+        go (ws' ++ S.toList toVisit) (S.insert sym seen)
 
 nonrecursive :: Grammar -> Grammar
 nonrecursive g@(Grammar start rs) = Grammar start (filter (`notElem` backRules g) rs)

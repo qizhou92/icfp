@@ -74,8 +74,8 @@ resolve = fmap unAttrib . traverse resolve' . Attrib
       t -> pure t
 
 -- | Create a new type variable.
-fresh :: Infer Type
-fresh = do
+freshType :: Infer Type
+freshType = do
   s <- use varCount
   varCount += 1
   pure (TVar $ Var $ "__tv" ++ show s)
@@ -85,10 +85,10 @@ fresh = do
 contextualize :: CoreExpr -> Infer (Attr CoreExpr' Ctxt)
 contextualize = inheritM (\e ctxt -> case e of
   Fix (EFix x _) -> do
-    s <- fresh
+    s <- freshType
     pure (M.insert x s ctxt)
   Fix (ELam x _) -> do
-    s <- fresh
+    s <- freshType
     pure (M.insert x s ctxt)
   _ -> pure ctxt
   ) M.empty
@@ -107,7 +107,7 @@ infer = fmap annZip .
   EBool _ -> pure TBool
 
   -- A => Nil : [a]
-  ENil -> TList <$> fresh
+  ENil -> TList <$> freshType
 
   -- A + (x : t) => x : t
   EVar x -> case M.lookup x ctxt of
@@ -118,7 +118,7 @@ infer = fmap annZip .
   -- ------------------------------------------
   -- A => o e e' : t
   EBin o r s -> do
-    t <- fresh
+    t <- freshType
     rst <- opType o
     unify (r `TArr` (s `TArr` t)) rst
     pure t
@@ -135,7 +135,7 @@ infer = fmap annZip .
   -- --------------------------
   -- A => e e' : t
   EApp st s -> do
-    t <- fresh
+    t <- freshType
     unify st (s `TArr` t)
     pure t
 
@@ -159,7 +159,7 @@ opType :: Binop -> Infer Type
 opType b
   | b `elem` [Plus, Minus, Mul, Div] = pure (TInt `TArr` (TInt `TArr` TInt))
   | b `elem` [Eq, Ne] = do
-    t <- fresh
+    t <- freshType
     pure (t `TArr` (t `TArr` TBool))
   | b `elem` [Lt, Le] = pure (TInt `TArr` (TInt `TArr` TBool))
   | b `elem` [And, Or] = pure (TBool `TArr` (TBool `TArr` TBool))

@@ -48,7 +48,7 @@ typeConstraints e =
     -- | Mark each subexpression with the free variables which appear there.
     addFreeVars = annZipWith (\(m, t) vs -> (m, S.toList vs, t)) . freeVars
     -- | Generate a new higher order relational type for every subexpression.
-    giveType = fmap unAttrib . traverse (\(m, vs, t) -> fresh m vs t) . Attrib
+    giveType = fmap unAttrib . traverse (\(m, vs, t) -> freshType m vs t) . Attrib
 
 type Ctxt = Map Var HORT
 

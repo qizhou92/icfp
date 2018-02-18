@@ -42,8 +42,9 @@ inlineRule (Rule _ lhs body rhs) g =
     repRHS' (acc, f, p:ps) =
       if (p ^. nonterminalSymbol) == sym
       then do
-        (f', ps') <- freshen (M.fromList $ zip (lhs ^. nonterminalVars ) (p ^. nonterminalVars)) (body, rhs)
-        repRHS' (ps' ++ acc, mkAnd f f', ps)
+        -- (f', ps') <- freshen (M.fromList $ zip (lhs ^. nonterminalVars) (p ^. nonterminalVars)) (body, rhs)
+        -- repRHS' (ps' ++ acc, mkAnd f f', ps)
+        repRHS' (rhs ++ acc, mkAnd f body, ps)
       else repRHS' (p : acc, f, ps)
     repRHS' (acc, f, []) = pure (f, acc)
 

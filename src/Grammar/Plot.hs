@@ -37,9 +37,12 @@ dot g =
   in "digraph {\n" ++ unlines (map ("  " ++) (globalAtts ++ vs ++ es)) ++ "}"
   where
     symbol i =
-      let vs = view (ruleLHS . nonterminalVars) $ head $ rulesFor i (g ^. grammarRules)
-          vs' = unwords (map unaliasedVarName vs)
-      in show i ++ " [label=\"" ++ show i ++ "\n" ++ vs' ++ "\"];"
+      case rulesFor i (g ^. grammarRules) of
+        [] -> ""
+        (r:_) ->
+          let vs = view (ruleLHS . nonterminalVars) r
+              vs' = unwords (map (view varName) vs)
+          in show i ++ " [label=\"" ++ show i ++ "\n" ++ vs' ++ "\"];"
     rule (Rule ct lhs f rhs) =
       let annot = " [label=\"" ++ show ct ++ ": " ++ show (pretty f) ++ "\"];"
           inc = rhs ^.. allSymbols

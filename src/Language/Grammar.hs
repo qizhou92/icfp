@@ -29,7 +29,7 @@ import qualified Formula as F
 -- obeying the judgement rules of higher order refinement types.
 exprGrammar :: CoreExpr -> Either InferenceError Grammar
 exprGrammar e =
-  case TI.typeCheck (uniqueNames e) of
+  case TI.typeCheck (runVocab $ uniqueNames e) of
     Left (TI.UnificationError t1 t2) -> Left (UnificationError t1 t2)
     Left (TI.UnboundError x) -> Left (UnboundError x)
     Right e' -> typeConstraints e'
@@ -51,7 +51,6 @@ parseG e = case exprGrammar (parseE e) of
   Left e -> error (show e)
   Right g -> g
 
-
 pipeline :: String -> IO ()
 pipeline e = plot "tmp" (parseG e)
 
@@ -60,7 +59,7 @@ pipelineSimp e =
   case parse parseExpr "" e of
     Left e -> print e
     Right ex -> case exprGrammar ex of
-      Left e -> print "error"
+      Left e -> print e
       Right g -> plot "simp" (runVocab (simplify g))
 
 
@@ -68,15 +67,15 @@ drawTypes :: String -> IO ()
 drawTypes e =
   case parse parseExpr "" e of
     Left e -> print e
-    Right ex -> case TI.typeCheck (uniqueNames ex) of
-      Left e -> print "error"
+    Right ex -> case TI.typeCheck (runVocab $ uniqueNames ex) of
+      Left e -> print e
       Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
 
 drawBasicCtxt :: String -> IO ()
 drawBasicCtxt e =
   case parse parseExpr "" e of
     Left e -> print e
-    Right ex -> case evalStateT (TI.contextualize $ uniqueNames ex) (TI.InferenceState 0 M.empty) of
+    Right ex -> case evalStateT (TI.contextualize $ runVocab $ uniqueNames ex) (TI.InferenceState 0 M.empty) of
       Left e -> print "error"
       Right g -> drawTreeWith (\(Ann t _) -> show t) g
 
@@ -87,12 +86,12 @@ solvePair q s1 s2 =
   -- let g1 = parseG s1
   --     g2 = parseG s2
   in do
-    let (cs, g) = unwindAll (mempty, Grammar.product g1 g2)
+    let g = Grammar.product g1 g2
     print (_grammarStart g1)
     plot "g1" g1
     print (_grammarStart g)
     plot "tmp" g
-    solve cs g q
+    solve mempty g q
 
 -- testSum = "fix sum. \\n. if (n < 0)" ++
 --                            "(n + sum (n + 1))" ++
@@ -104,7 +103,7 @@ testSum = "fix sum. \\n. if (n = 0)" ++
                            "(n + sum (n - 1))"
 
 testSumF =
-  [F.expr|l/arg1#0 = r/arg1#0 + 1 && l/arg1#0 > 0 -> l/arg2#0 = r/arg2#0 + l/arg1#0|]
+  [F.expr|n > 0 && l/arg1_0 = n && r/arg1_0 = n - 1 -> l/out_0 = r/out_0 + n|]
 
 -- let rec sum n =
 --     if n < 0 then n + sum (n + 1)

@@ -10,18 +10,14 @@ import           Data.Generics.Fixplate.Traversals
 import           Language.Types
 import           Language.TypeInference
 
-uniqueNames :: CoreExpr -> CoreExpr
-uniqueNames e = evalState (topDownTransformM go e) M.empty
+import           Formula (MonadVocab, fresh, fetch)
+
+uniqueNames :: MonadVocab m => CoreExpr -> m CoreExpr
+uniqueNames = topDownTransformM go
   where
-    go :: CoreExpr -> State (Map Var Int) CoreExpr
     go (Fix e) = case e of
-      EVar x -> evar <$> resolve x
-      ELam x e -> do
-        M.lookup x <$> get >>= \case
-          Nothing -> modify (M.insert x 0)
-          Just i  -> modify (M.insert x (i+1))
-        elam <$> resolve x <*> pure e
+      EVar (Var x) -> evar . Var <$> fetch x
+      ELam (Var x) e -> do
+        x' <- fresh x
+        pure (elam (Var x') e)
       e' -> pure (Fix e')
-    resolve x = M.lookup x <$> get >>= \case
-      Nothing -> pure x
-      Just i -> pure (Var (getVar x ++ "/" ++ show i))

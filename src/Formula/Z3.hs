@@ -16,6 +16,8 @@ import qualified Formula as F
 
 import           Z3.Monad hiding (local)
 
+import Data.Text.Prettyprint.Doc
+
 data Env = Env { _envVars :: Map Var AST
                , _envFuns :: Map Var FuncDecl
                } deriving (Show, Eq, Ord)
@@ -26,6 +28,7 @@ type SMT n m = (MonadState Env m, MonadZ3 m)
 -- | Invoke `duality` to solve the relational post fixed-point problem.
 solveChc :: (MonadError F.Model m, MonadIO m) => [Chc] -> m F.Model
 solveChc hcs = do
+  liftIO $ print (pretty hcs)
   res <- runEnvZ3 sc
   case res of
     Left e -> throwError e
