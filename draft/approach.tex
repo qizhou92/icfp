@@ -29,74 +29,112 @@ A relational type is a set of refinement predicates that relate data
 within components of algebraic types, combined with information that
 defines mutual inductive definitions of data.
 %
-Type \emph{fields} identify components types to which algebraic type
+Relational types are defined partially over a space of type positions,
+which represent component types within algebraic types.
+%
+Relational positions are a class of sequences of type fields, which
+are symbols that denote component types to which algebraic type
 constructors are applied.
 %
-The space of type fields, denoted $\typosfields$, contains
+The space of such fields consists of $\tydatafield$, $\typaramfield$,
+$\tyresfield$, $\tyleftprod$, $\tyrightprod$, $\tyleftsum$,
+$\tyrightsum$, and for each $X \in \lfpvars$, $X$ and $\mu_X$.
 %
-\begin{itemize}
-\item % data
-  $\tydatafield$, which denotes a data component of a type;
-\item % abstraction:
-  $\typaramfield$ and $\tyresfield$, which denote the parameter and
-  result components of a function type;
-\item % product
-  $\tyleftprod$ and $\tyrightprod$, which denote the left and right
-  components of a product type;
-\item % sum
-  $\tyleftsum$ and $\tyrightsum$, which denote the left and right
-  components of a sum type;
-\item % lfp variable and constructor
-  $\tyvarfield$ and $\tylfp$, which denote a type variable and the
-  type from which a least-fixed-point type is constructed.
-\end{itemize}
-% define positions:
-A type \emph{position} is a finite sequence of type fields;
+\begin{defn}
+  \label{defn:ty-pos}
+  For all $\mathcal{X} \subseteq \lfpvars$, the space of \emph{open
+    positions} with $\mathcal{X}$ in scope, denoted
+  $\openpos{ \mathcal{X} }$, is defined inductively as follows:
+  \begin{itemize}
+  \item
+    % empty:
+    The empty position $\epsilon$ is an open position with $\emptyset$
+    in scope.
+  \item
+    % function, product, sum:
+    For $\mathcal{X} \subseteq \lfpvars$, $p \in \openpos{X}$,
+    $\typaramfield \cons p$, $\tyresfield \cons p$,
+    $\tyleftprod \cons p$, $\tyrightprod \cons p$, and
+    $\tyleftsum \cons p$ are in $\openpos{ \mathcal{X} }$.
+  \item
+    % type variable:
+    For $\mathcal{X} \subseteq \lfpvars$,
+    $p \in \openpos{ \mathcal{X} }$, and $Y \in \lfpvars$ such that
+    $Y \notin \mathcal{X}$, it holds that
+    $\tylfp_Y \cons p \in \openpos{ \add{ Y }{ \mathcal{X} } }$.
+  \end{itemize}
+  For all $p \in \openpos{ \mathcal{X} }$, \textbf{(1)}
+  $\tydatafield \cons p$ is a type closed position, and \textbf{(2)}
+  for each $X \in \mathcal{X}$, $X \cons p$ is a type position.
+  %
+  The space of type positions is denoted $\typos$.
+\end{defn}
+% define data positions.
+Each position of a data component type, i.e., each position that begins
+with the field $\tydatafield$, is a \emph{data} position.
 %
-i.e., the space of positions is $\typosfields^{*}$.
-%
-\BH{give examples}
+Each position of a type variable, i.e., each position that begins with
+the field $\tyvarfield$, is a \emph{variable} position.
 
 % define variance of type positions
 The variance of a data position denotes if it
 %
 \BH{connect to this some known FP idiom}
 %
-I.e.,
-%
-\begin{itemize}
-\item % base case:
-  $\epsilon$ is covariant;
-\item % case that doesn't change variance:
-  For each $p \in \typosfields^{*}$ and
-  $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
-  $f \cons p$ is co-variant, and if $p$ is contra-variant, then
-  $f \cons p$ is contra-variant.
-\item % abstraction case:
-  For each $p \in \typosfields^{*}$, if $p$ is covariant, then
-  $\typaramfield \cons p$ is contra-variant, and if $p$ is
-  contra-variant, then $\typaramfield \cons p$ is co-variant.
-\end{itemize}
+\begin{defn}
+  \label{defn:variance}
+  The \emph{co-variance} and \emph{contra-variance} of type positions
+  is defined inductively on the structure of type positions as
+  follows:
+  %
+  \begin{itemize}
+  \item % base case:
+    $\epsilon \in \typos$ is \emph{covariant};
+  \item % case that doesn't change variance:
+    For each $p \in \typos$ and
+    $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
+    $f \cons p$ is \emph{co-variant};
+    %
+    if $p$ is contra-variant, then $f \cons p$ is
+    \emph{contra-variant}.
+  \item % abstraction case:
+    For each $p \in \typos$, if $p$ is covariant, then
+    $\typaramfield \cons p$ is contra-variant, and if $p$ is
+    contra-variant, then $\typaramfield \cons p$ is \emph{co-variant}.
+  \end{itemize}
+\end{defn}
 
-% define data positions.
-Each position of a data component type, i.e., a position that begins
-with the field $\tydatafield$, is a \emph{data} position.
-
-% define relatable type positions
-If two data positions denote data components of a single value of a
-given type, then the positions are \emph{relatable}.
+% define consistency of type positions:
+If two type positions describe positions of some type, then the
+positions are consistent.
 %
-I.e., %
-\textbf{(1)} for all $p \in \typosfields^{*}$, $\tydatafield \cons p$
-is relatable to $\tydatafield \cons p$; %
-\textbf{(2)} for all $p, q, r \in \typosfields^{*}$,
-$[\tydatafield] \concat r \concat [ \tyleftprod ] \concat p$ is
-relatable to
-$[ \tydatafield ] \concat q \concat [ \tyrightprod ] \concat p$.
+\begin{defn}
+  \label{defn:pos-consistent}
+  Two type positions are \emph{consistent} under the following
+  conditions:
+  \begin{itemize}
+  \item % equal
+    For each $p \in \typos$, $p$ and $p$ are consistent.
+  \item % diverge on sum,
+    For all $p, q_0, q_1 \in \typos$,
+    $q_0 \concat [ \tyleftsum ] \concat p$ and
+    $q_1 \concat [ \tyrightsum ] \concat p$ are consistent.
+  \item % diverge on product,
+    For all $p, q_0, q_1 \in \typos$,
+    $q_0 \concat [ \tyleftprod ] \concat p$ and
+    $q_1 \concat [ \tyrightprod ] \concat p$ are consistent.
+  \end{itemize}
+\end{defn}
+%
+If two type positions satisfy conditions \textbf{(1)} or \textbf{(2)},
+then in addition to being consistent, they are \emph{relatable}.
+%
+\BH{replace this by defining positions of types, then defining
+  relational types in terms of component types that exist?}
 
 % define indexed positions:
 For countable space $I$, the type positions \emph{indexed} by $I$ are
-$I \times \typosfields^{*}$.
+$\idxpos{I} = I \times \typos$.
 %
 The variance of an indexed position is the variance of its type
 position.
@@ -104,16 +142,22 @@ position.
 Two indexed positions are relatable if they are relatable positions of
 an index or positions of distinct indices.
 %
-I.e.,
+\begin{defn}
+  \label{defn:reltable-idx-pos}
+  Two indexed positions of indices $I$ are \emph{relatable} under the
+  following conditions:
+  \begin{itemize}
+  \item % same index:
+    For each $i \in I$ and all $p, q \in \typos$ such that $p$ and $q$
+    are relatable, $(i, p)$ and $(i, q)$ are relatable.
+  \item % distinct indices
+    For all $i \not= j \in I$ and all $p, q \in \typos$, $(i, p)$ and
+    $(j, q)$ are relatable.
+  \end{itemize}
+\end{defn}
 %
-\begin{itemize}
-\item % same index:
-  For each $i \in I$ and all $p, q \in \typosfields^{*}$ such that
-  $p$ and $q$ are relatable, $(i, p)$ and $(i, q)$ are relatable.
-\item % distinct indices
-  For all $i \not= j \in I$ and all $p, q \in \typosfields^{*}$,
-  $(i, p)$ and $(j, q)$ are relatable.
-\end{itemize}
+For indices $I$ and all $p, q \in \idxpos{I}$, the fact that $p$ and
+$q$ are relatable is denoted $p \sim q$.
 
 % define refinement predicates, variance
 A relational refinement predicate defines a condition over indexed
@@ -121,7 +165,7 @@ data positions.
 %
 I.e., a relational refinement predicate over indices $I$ is a
 refinement predicate $\varphi$ in which all pairs of logical variables
-in $\vocab(\varphi)$ are relatable indexed poisitions of $I$.
+in $\vocab(\varphi)$ are relatable indexed positions of $I$.
 %
 If some indexed position in $\vocab(\varphi)$ is co-variant, then
 $\varphi$ is co-variant;
@@ -132,18 +176,36 @@ $\varphi$ is contra-variant;
 if $\varphi$ is both co-variant and contra-variant, then $\varphi$ is
 bi-variant.
 
-\BH{define mutual fixpoint structure over indices}
+% define induction structure
+For indices $I$, indexed positions $P \subseteq \idxpos{I}$ are a
+\emph{partial mutual induction definition} if %
+\textbf{(1)} all positions in $P$ are relatable; %
+\textbf{(2)} for each $X \in \lfpvars$ and $p \in \idxpos{I}$ such
+that $X \cons p \in P$ and each $q \not= p \in P$, $q$ does not
+contain $\mu_X$.
+%
+$\mathcal{P} \subseteq \pset(\idxpos{I})$ is a \emph{complete} mutual
+induction definition for $P \subseteq \idxpos{I}$ if it covers $P$.
 
 % define relational types:
-A relational type over countable space of indices $I$ is a tuple
-consisting of:
+Relational refinement types describe relations over finite tuples of
+values.
 %
-\begin{itemize}
-\item % refinement predicates:
-  A set of relational refinement predicates over $I$.
-\item % defn of mutual fixpoints:
-  A mutual fixpoint structure over $I$.
-\end{itemize}
+\begin{defn}
+  \label{defn:rel-types}
+  For indices $I$, a \emph{relational type} over $I$ is a triple
+  $(P, \Phi, M)$, where
+  % 
+  \begin{itemize}
+  \item % positions,
+    $P \subseteq \idxpos{I}$ are consistent;
+  \item % refinement predicates,
+    $\Phi \subseteq \relpreds{P}$;
+  \item % mutual induction defn,
+    $M \subseteq \pset(P)$ is a complete mutual induction definition
+    for $P$.
+  \end{itemize}
+\end{defn}
 %
 The space of relational types over $I$ is denoted $\reltypes{I}$.
 
@@ -241,10 +303,10 @@ $\tau$ replaced with the following predicate:
 \begin{itemize}
 \item % co-variant:
   If $\varphi$ is co-variant, then
-  $\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p) \land \varphi$.
+  $(\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p)) \land \varphi$.
 \item % contra-variant:
   If $\varphi$ is contra-variant, then
-  $\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p) \implies \varphi$.
+  $(\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p)) \implies \varphi$.
 \item % bi-variant:
   If $\varphi$ is bi-variant, then $\varphi$.
 \end{itemize}
@@ -259,8 +321,7 @@ relational types.
 A \emph{contextual relational type} is a relational type with program
 variables as indices.
 %
-I.e., the space of contextual relational types is
-$\ctxreltypes = \reltypes{\vars}$.
+I.e., the space of contextual relational types is $\reltypes{\vars}$.
 %
 A \emph{fixpoint relational context} is a map from fixpoint variables
 to contextual relational types.
@@ -283,7 +344,7 @@ The space of \emph{positioned expressions} is
 $\posexps = \exppos \partto \expr$.
 % 
 The space of \emph{positioned relational types} is
-$\posreltypes = \reltypes{\vars \union \exppos}$.
+$\reltypes{\vars \union \exppos}$.
 
 % define typing relation over expressions in terms of positioned
 % expressions
@@ -450,24 +511,24 @@ inference rules given in \autoref{fig:reltypes-rules}.
 The inference rules consist of syntax-directed rules that define the
 typing relation for arbitrary expressions in a map of positional
 expressions, along with rules that define the typing relation for
-special cases of positonal expressions and for assigning relational
+special cases of positional expressions and for assigning relational
 least-fixed-point types and using the subtype relation.
 % empty:
 Rule~EMPTY establishes that under contextual relational type $\gamma$,
-the empty positioned expressions have type $\gamma$.
+the empty positioned expressions (denoted $\cdot$) have type $\gamma$.
 
 % const:
 Rule~CONST establishes that if positioned expressions $E$ have type
 $\tau$, then $E$ extended to bind position $p$ to constant $c$ have
-type $\tau$ refined to set $p$ to $c$.
+type $\tau$ refined to equate $p$ with $c$.
 % variables:
 Rule~VARS establishes that if $E$ have type $\tau$, then $E$ extended
-to bind $p$ to variable $a$ have type $\tau$ refined to set $p$ to
-$x$.
+to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
+with $a$.
 % op:
-Rule~OP establishes that if $E$ extended to bind positoins
-$\leftchild \cons p$ and $\rightchild \cons p$ to expressions
-$e_0$ and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
+Rule~OP establishes that if $E$ extended to bind positions
+$\leftchild \cons p$ and $\rightchild \cons p$ to expressions $e_0$
+and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
 $e_0 \oplus e_1$ have type $\tau$ refined to set $p$ to
 $\leftchild \cons p \oplus \rightchild \cons p$.
 
