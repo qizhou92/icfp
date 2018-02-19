@@ -32,6 +32,7 @@ instance Pretty Category where
 -- It is crucial that every variable in a nonterminal location over a rule is unique.
 data Rule = Rule
   { _ruleCategory :: Category
+  , _ruleBackwards :: Bool
   , _ruleLHS :: Nonterminal
   , _ruleBody :: Expr
   , _ruleRHS :: [Nonterminal]
@@ -54,8 +55,9 @@ instance Pretty Nonterminal where
   pretty (Nonterminal sym vs) = pretty sym <> pretty vs
 
 instance Pretty Rule where
-  pretty (Rule ct lhs body rhs) =
+  pretty (Rule ct back lhs body rhs) =
     mconcat [ pretty ct
+            , pretty back
             , pretty lhs
             , pretty ": "
             , pretty body

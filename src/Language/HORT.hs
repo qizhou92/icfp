@@ -95,19 +95,19 @@ constrain :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> m ()
 constrain constraint witnesses t =
   let h = topPredicate t
       ws = map topPredicate witnesses
-  in tell [Rule L h constraint ws]
+  in tell [Rule L False h constraint ws]
 
 -- | Constrain t' to be a subtype of t where a constraint can occur between the types
 -- and other types may witness the constraint.
-subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
-subtype constraint witnesses t' t =
+subtype' :: MonadWriter [Rule] m => Bool -> F.Expr -> [HORT] -> HORT -> HORT -> m ()
+subtype' backwards constraint witnesses t' t =
   tell $ subtype' constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
   where
     subtype' constraint witnesses
       (Node (sub, ts1) subTrees1)
       (Node (super, ts2) subTrees2) =
       let expr = carryBound (length ts1) (length ts2) sub super
-          rule = Rule L super (constraint `F.mkAnd` expr) (sub:witnesses)
+          rule = Rule L backwards super (constraint `F.mkAnd` expr) (sub:witnesses)
           rules = subTreeRules subTrees2 subTrees1
       in rule : rules
     -- Construct constraints for the subtrees.
@@ -118,6 +118,9 @@ subtype constraint witnesses t' t =
       F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|])
         (lastN toTake vars1)
         (lastN toTake vars2))
+
+subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
+subtype = subtype' False
 
 topPredicate :: HORT -> Nonterminal
 topPredicate = (\(Node (c, _) _) -> c) . getHORT

@@ -11,7 +11,7 @@ import           Formula hiding (Rule)
 product :: Grammar -> Grammar -> Grammar
 product g1' g2' = Grammar start (initial : rs1' ++ rs2')
   where
-    initial = Rule L (Nonterminal 0 [Var "TMP" Int]) (LBool True) []
+    initial = Rule L False (Nonterminal 0 [Var "TMP" Int]) (LBool True) []
 
     ss1 = (-1) : S.toList (symbols g1)
     ss2 = (-1) : S.toList (symbols g2)

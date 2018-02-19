@@ -17,8 +17,6 @@ unwindAll (cs, g) = unwind (symbols g) (cs, g)
 -- | Find the first recursive invocation in the grammar along each branch and unwind it.
 -- That is, follow the rules until a nonterminal symbol appears which has already been
 -- seen. Create new copies of all the rules succeeding this one with new symbols.
--- unwind :: (Clones, Grammar) -> (Clones, Grammar)
--- unwind (clones, g) = let (clones', old, new) = unwind' clones g in (clones', g & grammarRules .~ (old ++ new))
 unwind :: Set Symbol -> (Clones, Grammar) -> (Clones, Grammar)
 unwind valid (clones, Grammar start rs) =
   let initial = (clones, maximum (symbols rs)+1)
@@ -53,33 +51,9 @@ unwind valid (clones, Grammar start rs) =
       let m = M.fromList (zip syms [s..])
       let sub sym = M.findWithDefault sym sym m
       let reaching' = reaching & allSymbols %~ sub
-      let r' = r & ruleRHS . allSymbols %~ sub
+      let r' = r & ruleRHS . allSymbols %~ sub & ruleBackwards .~ False
       mapM_ (\(i, j) -> _1 %= clone i j) (M.toList m)
       pure (r' : reaching')
-
-unwind2 :: Set Symbol -> (Clones, Grammar) -> (Clones, Grammar)
-unwind2 valid (clones, g@(Grammar start rs)) =
-  let initial = (clones, rs, maximum (symbols rs))
-      (clones', rs', _) = execState (evalStateT (unw start) S.empty) initial
-  in (clones', Grammar start rs')
-  where
-    backs = backRules g
-    unw = visit () (\sym -> do
-      when (sym `elem` valid) $ do
-        rs' <- lift (use _2)
-        let backsTo = filter (`elem` backs) (rulesFor sym rs')
-        lift (mapM_ (doUnw sym) backsTo)
-      mapM_ unw (predecessors rs sym))
-
-    doUnw sym r = do
-      rs' <- use _2
-      newSym <- _3 <+= 1
-      let rel = filter (elem sym . symbols) rs'
-      let replace s = if s == sym then newSym else s
-      let rs'' = (r & ruleRHS . allSymbols %~ replace) : (rel & allSymbols %~ replace)
-            ++ filter (/= r) rs'
-      _2 .= rs''
-      _1 %= clone sym newSym
 
 reaches :: Symbol -> [Rule] -> [Rule]
 reaches start rs = evalState (reach start) S.empty

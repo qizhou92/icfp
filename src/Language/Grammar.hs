@@ -79,7 +79,7 @@ drawBasicCtxt e =
       Left e -> print "error"
       Right g -> drawTreeWith (\(Ann t _) -> show t) g
 
-solvePair :: F.Expr -> String -> String -> IO (Either F.Model (Map Symbol (F.Expr, F.Expr)))
+solvePair :: F.Expr -> String -> String -> IO ()
 solvePair q s1 s2 =
   let g1 = runVocab (simplify (parseG s1))
       g2 = runVocab (simplify (parseG s2))
@@ -91,7 +91,11 @@ solvePair q s1 s2 =
     plot "g1" g1
     print (_grammarStart g)
     plot "tmp" g
-    solve mempty g q
+    plot "nonrec" (nonrecursive g)
+    solve mempty g q >>= \case
+      Left e -> print e
+      Right m ->
+        mapM_ (print . pretty) (M.toList m)
 
 -- testSum = "fix sum. \\n. if (n < 0)" ++
 --                            "(n + sum (n + 1))" ++

@@ -10,7 +10,7 @@ import           Formula hiding (Rule)
 
 import           Grammar.Grammar
 
--- | There are two ruels for logical grammar simplification:
+-- | There are two rules for logical grammar simplification:
 -- If there is a nonterminal with cardinality one (that is non-recursive), inline the body
 -- at all occurrences, deleting the rule for the nonterminal (the start symbol cannot be inlined).
 -- If there is a nonterminal with multiple rules that share the same nonterminals in the body,
@@ -23,8 +23,8 @@ simplify = fmap (over grammarRules (map cleanUp)) . loop
       g' <- disjoin <$> inline g
       if g' == g then pure g' else loop g'
 
-    cleanUp (Rule cats lhs f ps) =
-      Rule cats lhs (varElim (varSet lhs `S.union` varSet ps) f) ps
+    cleanUp (Rule cats b lhs f ps) =
+      Rule cats b lhs (varElim (varSet lhs `S.union` varSet ps) f) ps
 
 inline :: MonadVocab m => Grammar -> m Grammar
 inline (Grammar start rs) = do
@@ -34,8 +34,12 @@ inline (Grammar start rs) = do
 
 -- | Substitute occurrences of the rule left hand side instance with the body of the rule.
 inlineRule :: MonadVocab m => Rule -> [Rule] -> m [Rule]
-inlineRule (Rule _ lhs body rhs) g =
-  delete sym <$> mapM (\(Rule cats lhs' f rhs') -> uncurry (Rule cats lhs') <$> repRHS (f, rhs')) g
+inlineRule (Rule _ b lhs body rhs) g =
+  delete sym <$> mapM
+    (\(Rule cats b' lhs' f rhs') ->
+      if sym `elem` (rhs' ^.. allSymbols)
+      then uncurry (Rule cats (b || b') lhs') <$> repRHS (f, rhs')
+      else pure (Rule cats b' lhs' f rhs')) g
   where
     sym = lhs ^. nonterminalSymbol
     repRHS (f, ps) = repRHS' ([], f, ps)
@@ -55,7 +59,7 @@ disjoin (Grammar start rs)  = Grammar start $ foldr disjoinCandidate rs candidat
     candidates = M.elems (M.filter (\rs' -> length rs' > 1) instMap)
     -- a map from all instances in a rule to corresponding rules
     instMap = foldr addInstEntry M.empty rs
-    addInstEntry r@(Rule ct lhs _ rhs) =
+    addInstEntry r@(Rule ct _ lhs _ rhs) =
       M.insertWith (++) (ct, map (view nonterminalSymbol) (lhs : rhs)) [r]
 
 disjoinRules :: [Rule] -> Rule

@@ -13,9 +13,12 @@ import           Formula hiding (Rule)
 import qualified Formula.Z3 as Z3
 import           Grammar.Grammar
 
+import Debug.Trace
+
 synthesizeInvariants :: Set Symbol -> Clones -> Grammar -> Map Symbol Expr -> Map Symbol (Expr, Expr)
-synthesizeInvariants ind cs (Grammar start rs) m = evalState (rec L start) S.empty
+synthesizeInvariants ind cs (Grammar start rs') m = traceShow ind $ evalState (rec L start) S.empty
   where
+    rs = filter (\r -> all (`elem` ind) (r ^.. allSymbols)) rs'
     rec dir = visit M.empty (\sym ->
       if sym `notElem` ind
       then pure M.empty
@@ -25,7 +28,7 @@ synthesizeInvariants ind cs (Grammar start rs) m = evalState (rec L start) S.emp
                     else case dir of
                            L -> single (original sym) f (LBool True)
                            R -> single (original sym) (LBool True) f
-           in do ms <- mapM (\(Rule ct _ _ rhs) ->
+           in do ms <- mapM (\(Rule ct _ _ _ rhs) ->
                    merges <$> mapM (rec ct . view nonterminalSymbol) rhs) (rulesFor sym rs)
                  pure $ merges (m':ms))
 
@@ -52,7 +55,7 @@ validate (Grammar start rs) q m = do
     runVRule r =
       Z3.forallIsSat (vRule r)
 
-    vRule (Rule dir lhs f rhs) = mkImpl (manyAnd (f : map (insProd dir) rhs)) (insProd dir lhs)
+    vRule (Rule dir _ lhs f rhs) = mkImpl (manyAnd (f : map (insProd dir) rhs)) (insProd dir lhs)
 
     insProd dir (Nonterminal sym vs) =
       let fs = exprsFor sym

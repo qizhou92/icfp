@@ -50,19 +50,19 @@ typeConstraints e =
     -- | Generate a new higher order relational type for every subexpression.
     giveType = fmap unAttrib . traverse (\(m, vs, t) -> freshType m vs t) . Attrib
 
-type Ctxt = Map Var HORT
+type Ctxt = Map Var (HORT, Bool)
 
 -- | Annotate each subexpression with the context which maps variables
 -- to their corresponding context.
 contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
 contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
   -- We insert x into the context, regardless of its type for fix expressions.
-  EFix x _ -> M.insert x t ctxt
+  EFix x _ -> M.insert x (t, True) ctxt
   -- For lambda expressions, we only add x to the context if it is not primitive.
   -- Otherwise, we can constrain x directly.
   ELam x _ ->
     case split t of
-      Just (s, _) -> if isPrim s then ctxt else M.insert x s ctxt
+      Just (s, _) -> if isPrim s then ctxt else M.insert x (s, False) ctxt
       Nothing -> error "lambda has non-arrow type"
   _ -> ctxt) M.empty
 
@@ -84,7 +84,8 @@ infer = fmap (annMap snd . annZip) .
             in constrain [F.expr|$tv = @vx|] [] t
           -- When x is in the context, we say that its type in the context is a subtype
           -- of the type of the current expression.
-          Just t' -> t' <: t
+          Just (t', backwards) ->
+            subtype' backwards (F.LBool True) [] t' t
 
       EApp st s ->
         if isPrim s

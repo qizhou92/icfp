@@ -43,7 +43,7 @@ dot g =
           let vs = view (ruleLHS . nonterminalVars) r
               vs' = unwords (map (view varName) vs)
           in show i ++ " [label=\"" ++ show i ++ "\n" ++ vs' ++ "\"];"
-    rule (Rule ct lhs f rhs) =
+    rule (Rule ct _ lhs f rhs) =
       let annot = " [label=\"" ++ show ct ++ ": " ++ show (pretty f) ++ "\"];"
           inc = rhs ^.. allSymbols
           tar = lhs ^. nonterminalSymbol

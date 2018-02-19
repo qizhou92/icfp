@@ -17,7 +17,6 @@ import           Grammar.Dominator
 import           Grammar.Unwind
 import           Grammar.Synthesize
 import           Grammar.Chc
-import           Grammar.Plot
 
 solve :: Clones -> Grammar -> Expr -> IO (Either Model (Map Symbol (Expr, Expr)))
 solve cs g f = loop (cs, g)
@@ -39,8 +38,7 @@ solve cs g f = loop (cs, g)
     simpBoth (x, y) = (,) <$> Z3.superSimplify x <*> Z3.superSimplify y
 
 interpolate :: Grammar -> Expr -> IO (Either Model (Map Symbol Expr))
-interpolate g' q = do
-  liftIO $ plot "nonrec" g
+interpolate g' q =
   runSystem (F.Query [app terminal] (LBool True) q : map clause (g ^. grammarRules))
   where
     g = nonrecursive g'
