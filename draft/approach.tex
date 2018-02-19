@@ -36,174 +36,165 @@ Relational positions are a class of sequences of type fields, which
 are symbols that denote component types to which algebraic type
 constructors are applied.
 %
-The space of such fields consists of $\tydatafield$, $\typaramfield$,
-$\tyresfield$, $\tyleftprod$, $\tyrightprod$, $\tyleftsum$,
-$\tyrightsum$, and for each $X \in \lfpvars$, $X$ and $\mu_X$.
+The space of such fields consists of $\typaramfield$, $\tyresfield$,
+$\tyleftprod$, $\tyrightprod$, $\tyleftsum$, $\tyrightsum$, and for
+each $X \in \lfpvars$, $\mu_X$.
+%
+The space of positions is denoted $\typos = \typosfields^{*}$.
 %
 \begin{defn}
-  \label{defn:ty-pos}
-  For all $\mathcal{X} \subseteq \lfpvars$, the space of \emph{open
-    positions} with $\mathcal{X}$ in scope, denoted
-  $\openpos{ \mathcal{X} }$, is defined inductively as follows:
-  \begin{itemize}
-  \item
-    % empty:
-    The empty position $\epsilon$ is an open position with $\emptyset$
-    in scope.
-  \item
-    % function, product, sum:
-    For $\mathcal{X} \subseteq \lfpvars$, $p \in \openpos{X}$,
-    $\typaramfield \cons p$, $\tyresfield \cons p$,
-    $\tyleftprod \cons p$, $\tyrightprod \cons p$, and
-    $\tyleftsum \cons p$ are in $\openpos{ \mathcal{X} }$.
-  \item
-    % type variable:
-    For $\mathcal{X} \subseteq \lfpvars$,
-    $p \in \openpos{ \mathcal{X} }$, and $Y \in \lfpvars$ such that
-    $Y \notin \mathcal{X}$, it holds that
-    $\tylfp_Y \cons p \in \openpos{ \add{ Y }{ \mathcal{X} } }$.
-  \end{itemize}
-  For all $p \in \openpos{ \mathcal{X} }$, \textbf{(1)}
-  $\tydatafield \cons p$ is a type closed position, and \textbf{(2)}
-  for each $X \in \mathcal{X}$, $X \cons p$ is a type position.
+  \label{defn:ty-at-pos}
+  For $\tau, \tau' \in T$ and $p \in \typos$, the fact that $\tau'$ is
+  the type in $\tau$ at $p$ is defined by induction on $p$ as follows:
   %
-  The space of type positions is denoted $\typos$.
+  \begin{itemize}
+  \item % empty:
+    $\tau$ is the type in $\tau$ at $\epsilon$.
+  \item % function:
+    For all $\tau, \tau', \tau'' \in T$ and each $p \in \typos$ such
+    that $\tau' \to \tau''$ is in $\tau$ at $p$, $\tau'$ is in $\tau$
+    at $\typaramfield \cons p$ and $\tau''$ is in $\tau$ at
+    $\tyresfield \cons p$.
+  \item % sum:
+    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
+    that $\tau_l + \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in $\tau$
+    at $\tyleftsum \cons p$ and $\tau_r$ is in $\tau$ at
+    $\tyrightsum \cons p$.
+  \item % prod:
+    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
+    that $\tau_l \times \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in
+    $\tau$ at $\tyleftprod \cons p$ and $\tau_r$ is in $\tau$ at
+    $\tyrightprod \cons p$.
+  \item % lfp:
+    For all $\tau, \tau' \in T$, each $X \in \lfpvars$ and each
+    $p \in \typos$ such that $\mu X. \tau'$ is in $\tau$ at $p$,
+    $\tau'$ is in $\tau$ at $\mu_X \cons p$.
+  \end{itemize}
 \end{defn}
+%
+For each $\tau \in T$, the space of all $p \in \typos$ such that there
+is some $\tau' \in T$ in $\tau$ at $p$ is denoted $\typosty{\tau}$.
 % define data positions.
-Each position of a data component type, i.e., each position that begins
-with the field $\tydatafield$, is a \emph{data} position.
-%
-Each position of a type variable, i.e., each position that begins with
-the field $\tyvarfield$, is a \emph{variable} position.
+For each $\tau \in T$ and $p \in \typosty{\tau}$, if $D$ is in $\tau$
+at $p$, $p$ is a \emph{data} position of $\tau$;
+% define variable positions,
+for each $X \in \lfpvars$ in $\tau$ at $p$, $p$ is a \emph{variable}
+position of $\tau$; %
+% define lfp positions,
+for each $X \in \lfpvars$ and $\tau' \in T$ such that $\mu X. \tau$ is
+in $\tau$ at $p$, $p$ is a \emph{least-fixed point} position of
+$\tau$.
 
-% define variance of type positions
-The variance of a data position denotes if it
-%
-\BH{connect to this some known FP idiom}
+% define relatable type positions:
+Type positions are relatable if they are identical or are positions of
+distinct factors of a component product type.
 %
 \begin{defn}
-  \label{defn:variance}
-  The \emph{co-variance} and \emph{contra-variance} of type positions
-  is defined inductively on the structure of type positions as
-  follows:
-  %
+  \label{defn:relatable}
+  For each $\tau \in T$ and all $p, q \in \typosty{\tau}$, $p$ and $q$
+  are \emph{relatable} if one of the following conditions holds:
   \begin{itemize}
-  \item % base case:
-    $\epsilon \in \typos$ is \emph{covariant};
-  \item % case that doesn't change variance:
-    For each $p \in \typos$ and
-    $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
-    $f \cons p$ is \emph{co-variant};
-    %
-    if $p$ is contra-variant, then $f \cons p$ is
-    \emph{contra-variant}.
-  \item % abstraction case:
-    For each $p \in \typos$, if $p$ is covariant, then
-    $\typaramfield \cons p$ is contra-variant, and if $p$ is
-    contra-variant, then $\typaramfield \cons p$ is \emph{co-variant}.
-  \end{itemize}
-\end{defn}
-
-% define consistency of type positions:
-If two type positions describe positions of some type, then the
-positions are consistent.
-%
-\begin{defn}
-  \label{defn:pos-consistent}
-  Two type positions are \emph{consistent} under the following
-  conditions:
-  \begin{itemize}
-  \item % equal
-    For each $p \in \typos$, $p$ and $p$ are consistent.
-  \item % diverge on sum,
-    For all $p, q_0, q_1 \in \typos$,
-    $q_0 \concat [ \tyleftsum ] \concat p$ and
-    $q_1 \concat [ \tyrightsum ] \concat p$ are consistent.
-  \item % diverge on product,
-    For all $p, q_0, q_1 \in \typos$,
-    $q_0 \concat [ \tyleftprod ] \concat p$ and
-    $q_1 \concat [ \tyrightprod ] \concat p$ are consistent.
+  \item % identity:
+    Each $p \in \typos$ is relatable with itself;
+  \item % distinct factors:
+    For all $\tau_l, \tau_r \in T$ and all $p, q_l, q_r \in \typos$
+    such that $\tau_l \times \tau_r$ is in $\tau$ at $p$ and
+    $q_l \concat [ \tyleftprod ] \concat p, q_r \concat [ \tyrightprod
+    ] \concat p \in \typosty{\tau}$,
+    $q_l \concat [ \tyleftprod ] \concat p$ and
+    $q_r \concat [ \tyrightprod ] \concat p$ are relatable.
   \end{itemize}
 \end{defn}
 %
-If two type positions satisfy conditions \textbf{(1)} or \textbf{(2)},
-then in addition to being consistent, they are \emph{relatable}.
-%
-\BH{replace this by defining positions of types, then defining
-  relational types in terms of component types that exist?}
+The fact that $p, q \in \typos$ are relatable positions of
+$\tau \in T$ is denoted $\relatable{\tau}{p}{q}$.
 
-% define indexed positions:
-For countable space $I$, the type positions \emph{indexed} by $I$ are
-$\idxpos{I} = I \times \typos$.
+% define induction structure. Partial induction set:
+Each relational refinement type defines a property of a map from
+indices to types.
 %
-The variance of an indexed position is the variance of its type
-position.
-%
-Two indexed positions are relatable if they are relatable positions of
-an index or positions of distinct indices.
+For finite space of indices $I$, the type positions \emph{indexed} by
+$I$ are $\idxpos{I} = I \times \typos$.
+% define relational refinement predicates of indexed types
+Each relational refinement type contains predicates that relate data
+components of indexed type.
 %
 \begin{defn}
-  \label{defn:reltable-idx-pos}
-  Two indexed positions of indices $I$ are \emph{relatable} under the
-  following conditions:
+  \label{defn:ref-refinements}
+  For indices $I$ and $t : I \to T$, $\varphi \in \idxpos{I}$ is a
+  \emph{relational refinement predicate} of $t$ if the following
+  conditions hold:
   \begin{itemize}
-  \item % same index:
-    For each $i \in I$ and all $p, q \in \typos$ such that $p$ and $q$
-    are relatable, $(i, p)$ and $(i, q)$ are relatable.
-  \item % distinct indices
-    For all $i \not= j \in I$ and all $p, q \in \typos$, $(i, p)$ and
-    $(j, q)$ are relatable.
+  \item % vocab are all positions of their indexed types,
+    For each $i \in I$ and $p \in \typos$ such that
+    $(i, p) \in \vocab(\varphi)$, $p$ is a data position of $t(i)$.
+  \item % vocab are all relatable,
+    For each $i \in I$ and all $p, q \in \typos$ such that
+    $(i, p), (i, q) \in \vocab(\varphi)$, it holds that $p \sim q$.
   \end{itemize}
 \end{defn}
-%
-For indices $I$ and all $p, q \in \idxpos{I}$, the fact that $p$ and
-$q$ are relatable is denoted $p \sim q$.
 
-% define refinement predicates, variance
-A relational refinement predicate defines a condition over indexed
-data positions.
+% introduce inductive defns:
+Each relational refinement type also contains directives for how
+inductive definitions at distinct indices should be mutually unfolded
+in order to express a property.
 %
-I.e., a relational refinement predicate over indices $I$ is a
-refinement predicate $\varphi$ in which all pairs of logical variables
-in $\vocab(\varphi)$ are relatable indexed positions of $I$.
+A partial mutual induction definition relates some inductive types
+that are components of given indexed types.
 %
-If some indexed position in $\vocab(\varphi)$ is co-variant, then
-$\varphi$ is co-variant;
-%
-if some indexed position in $\vocab(\varphi)$ is contra-variant, then
-$\varphi$ is contra-variant;
-%
-if $\varphi$ is both co-variant and contra-variant, then $\varphi$ is
-bi-variant.
+\begin{defn}
+  \label{defn:part-mut-unfold}
+  For indices $I$, $t : I \to T$, and $P \subseteq \idxpos{I}$, $P$
+  are a \emph{partial mutual induction set} of $t$ if
+  \begin{itemize}
+  \item % all positions are of type variables,
+    For each $i \in I$ and $p \in \typos$ such that $(i, p) \in P$, it
+    holds that $p$ is a variable position of $t(i)$.
+  \item % all positions are relatable,
+    For each $i \in I$ and all $p, q \in \typos$ such that
+    $(i, p), (i, q) \in P$, it holds that $p \sim q$.
+  \item % no distinct positions that extend an inductive type:
+    For each $i \in I$, $p \in \typos$ a least-fixed point position of
+    $t(i)$, and $q_0, q_1 \in \typos$ such that
+    $(i, q_0), (i, q_1) \in P$, it holds that $q_0 = q_1$.
+  \end{itemize}
+\end{defn}
 
-% define induction structure
-For indices $I$, indexed positions $P \subseteq \idxpos{I}$ are a
-\emph{partial mutual induction definition} if %
-\textbf{(1)} all positions in $P$ are relatable; %
-\textbf{(2)} for each $X \in \lfpvars$ and $p \in \idxpos{I}$ such
-that $X \cons p \in P$ and each $q \not= p \in P$, $q$ does not
-contain $\mu_X$.
+% complete induction set:
+A complete mutual induction set relates all inductive types that are
+components of a given vector of indexed types.
 %
-$\mathcal{P} \subseteq \pset(\idxpos{I})$ is a \emph{complete} mutual
-induction definition for $P \subseteq \idxpos{I}$ if it covers $P$.
+\begin{defn}
+  \label{defn:compl-mut-unfold}
+  For indices $I$ and $t : I \to T$,
+  $\mathcal{P} \subseteq \pset(\idxpos{I})$ are a \emph{complete}
+  mutual induction set of $t$ if
+  \begin{itemize}
+  \item % each entry is a partial mutual induction defn:
+    Each $P \in \mathcal{P}$ is a partial mutual induction definition
+    of $P$;
+  \item % covers positions of variables:
+    For each $i \in I$ and $p \in \typos$ a variable position of
+    $t(i)$, there is some $P \in \mathcal{P}$ such that
+    $(i, p) \in P$.
+  \end{itemize}
+\end{defn}
 
 % define relational types:
-Relational refinement types describe relations over finite tuples of
-values.
+Relational refinement types relate data components of tuples of types
+defined by mutual induction.
 %
 \begin{defn}
   \label{defn:rel-types}
-  For indices $I$, a \emph{relational type} over $I$ is a triple
-  $(P, \Phi, M)$, where
+  For indices $I$, a \emph{relational type} over $I$ is a pair
+  $(\Phi, M)$ where for some $t : I \to T$,
   % 
   \begin{itemize}
-  \item % positions,
-    $P \subseteq \idxpos{I}$ are consistent;
   \item % refinement predicates,
-    $\Phi \subseteq \relpreds{P}$;
+    $\Phi \subseteq \relpreds{ \idxpos{I} }$ are refinement predicates
+    of $t$.
   \item % mutual induction defn,
-    $M \subseteq \pset(P)$ is a complete mutual induction definition
-    for $P$.
+    $M \subseteq \pset(P)$ are a complete mutual induction set of $t$.
   \end{itemize}
 \end{defn}
 %
@@ -222,7 +213,7 @@ $e_0, \ldots, e_n : \tau$.
 The typing relation is defined in \autoref{sec:rel-type-sys}.
 
 % walkthrough the operations over types:
-\paragraph{Operators over relational types}
+\paragraph{Operations and relations over relational refinement types}
 The relational typing relation is defined using operators over
 relational types.
 %
@@ -272,6 +263,46 @@ denoted $\tau +_{x, y}^z \tau'$, is
 The unfolding of $\tau$ at symbol $x$ is $\tau$ with a partially
 unfolded definition of the least-fixpoint type in which $x$ is
 associated.
+
+% define refinement predicates, variance
+\BH{lower this to when we define operations or the subtyping relation}
+% define variance of type positions
+The variance of a data position denotes if it
+%
+\BH{connect to this some known FP idiom}
+%
+\begin{defn}
+  \label{defn:variance}
+  The \emph{co-variance} and \emph{contra-variance} of type positions
+  is defined inductively on the structure of type positions as
+  follows:
+  %
+  \begin{itemize}
+  \item % base case:
+    $\epsilon \in \typos$ is \emph{covariant};
+  \item % case that doesn't change variance:
+    For each $p \in \typos$ and
+    $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
+    $f \cons p$ is \emph{co-variant};
+    %
+    if $p$ is contra-variant, then $f \cons p$ is
+    \emph{contra-variant}.
+  \item % abstraction case:
+    For each $p \in \typos$, if $p$ is covariant, then
+    $\typaramfield \cons p$ is contra-variant, and if $p$ is
+    contra-variant, then $\typaramfield \cons p$ is \emph{co-variant}.
+  \end{itemize}
+\end{defn}
+
+% lift variance to refinement predicates
+If some indexed position in $\vocab(\varphi)$ is co-variant, then
+$\varphi$ is co-variant;
+%
+if some indexed position in $\vocab(\varphi)$ is contra-variant, then
+$\varphi$ is contra-variant;
+%
+if $\varphi$ is both co-variant and contra-variant, then $\varphi$ is
+bi-variant.
 
 % define refinement
 A refinement of relational type $\tau$ is $\tau$ extended to model
