@@ -111,6 +111,11 @@ addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
                 "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1) (y+1))"
 
 
+mytest f1 f2 x y =
+  if (x :: Int) <= 0
+  then f2 x
+  else mytest f1 (f1 x) (x - 1) (y + 1 :: Int)
+
 -- addFunction (\x1 \y1 x1+y1) (\x2 x2+1)
 
 -- let rec sum n =
