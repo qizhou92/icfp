@@ -16,11 +16,11 @@ In this section, we describe a space of types over collections of
 expressions, which can represent proofs of equivalence of functional
 programs.
 %
-In \autoref{sec:rel-type-space}, we give key instances of such types,
-and operators for constructing such types.
-%
-In \autoref{sec:rel-type-sys}, we give a type system for relational
-types.
+\autoref{sec:rel-type-space} defines the space of types, %
+\autoref{sec:rel-type-ops} defines key operations and relations over
+the types, and %
+\autoref{sec:rel-type-sys} defines a typing relation from indexed
+expressions to the types.
 
 \subsubsection{A space of relational types}
 \label{sec:rel-type-space}
@@ -45,11 +45,11 @@ The space of positions is denoted $\typos = \typosfields^{*}$.
 \begin{defn}
   \label{defn:ty-at-pos}
   For $\tau, \tau' \in T$ and $p \in \typos$, the fact that $\tau'$ is
-  the type in $\tau$ at $p$ is defined by induction on $p$ as follows:
+  the type in $\tau$ at $p$ is defined by induction on $p$ as follows.
+  %
+  $\tau$ is the type in $\tau$ at $\epsilon$. Furthermore,
   %
   \begin{itemize}
-  \item % empty:
-    $\tau$ is the type in $\tau$ at $\epsilon$.
   \item % function:
     For all $\tau, \tau', \tau'' \in T$ and each $p \in \typos$ such
     that $\tau' \to \tau''$ is in $\tau$ at $p$, $\tau'$ is in $\tau$
@@ -92,17 +92,20 @@ distinct factors of a component product type.
 \begin{defn}
   \label{defn:relatable}
   For each $\tau \in T$ and all $p, q \in \typosty{\tau}$, $p$ and $q$
-  are \emph{relatable} if one of the following conditions holds:
+  are \emph{relatable in $\tau$} if one of the following conditions
+  holds:
   \begin{itemize}
   \item % identity:
-    Each $p \in \typos$ is relatable with itself;
+    Each $p \in \typosty{\tau}$ is relatable with itself as a position
+    of $\tau$;
   \item % distinct factors:
     For all $\tau_l, \tau_r \in T$ and all $p, q_l, q_r \in \typos$
     such that $\tau_l \times \tau_r$ is in $\tau$ at $p$ and
     $q_l \concat [ \tyleftprod ] \concat p, q_r \concat [ \tyrightprod
     ] \concat p \in \typosty{\tau}$,
     $q_l \concat [ \tyleftprod ] \concat p$ and
-    $q_r \concat [ \tyrightprod ] \concat p$ are relatable.
+    $q_r \concat [ \tyrightprod ] \concat p$ are relatable positions
+    of $\tau$.
   \end{itemize}
 \end{defn}
 %
@@ -117,27 +120,28 @@ For finite space of indices $I$, the type positions \emph{indexed} by
 $I$ are $\idxpos{I} = I \times \typos$.
 % define relational refinement predicates of indexed types
 Each relational refinement type contains predicates that relate data
-components of indexed type.
+components of types identified by indices.
 %
 \begin{defn}
   \label{defn:ref-refinements}
-  For indices $I$ and $t : I \to T$, $\varphi \in \idxpos{I}$ is a
-  \emph{relational refinement predicate} of $t$ if the following
-  conditions hold:
+  For indices $I$ and $t : I \to T$,
+  $\varphi \in \refpreds{ \idxpos{I} }$ is a \emph{relational
+    refinement predicate} of $t$ if the following conditions hold:
   \begin{itemize}
   \item % vocab are all positions of their indexed types,
     For each $i \in I$ and $p \in \typos$ such that
     $(i, p) \in \vocab(\varphi)$, $p$ is a data position of $t(i)$.
   \item % vocab are all relatable,
     For each $i \in I$ and all $p, q \in \typos$ such that
-    $(i, p), (i, q) \in \vocab(\varphi)$, it holds that $p \sim q$.
+    $(i, p), (i, q) \in \vocab(\varphi)$, it holds that
+    $\relatable{\tau}{p}{q}$.
   \end{itemize}
 \end{defn}
 
 % introduce inductive defns:
 Each relational refinement type also contains directives for how
-inductive definitions at distinct indices should be mutually unfolded
-in order to express a property.
+inductive definitions at distinct indices are mutually unfolded in
+order to express a property.
 %
 A partial mutual induction definition relates some inductive types
 that are components of given indexed types.
@@ -156,7 +160,8 @@ that are components of given indexed types.
   \item % no distinct positions that extend an inductive type:
     For each $i \in I$, $p \in \typos$ a least-fixed point position of
     $t(i)$, and $q_0, q_1 \in \typos$ such that
-    $(i, q_0), (i, q_1) \in P$, it holds that $q_0 = q_1$.
+    $(i, q_0 \concat p), (i, q_1 \concat p) \in P$, it holds that
+    $q_0 = q_1$.
   \end{itemize}
 \end{defn}
 
@@ -167,15 +172,15 @@ components of a given vector of indexed types.
 \begin{defn}
   \label{defn:compl-mut-unfold}
   For indices $I$ and $t : I \to T$,
-  $\mathcal{P} \subseteq \pset(\idxpos{I})$ are a \emph{complete}
+  $\mathcal{Q} \subseteq \pset(\idxpos{I})$ are a \emph{complete}
   mutual induction set of $t$ if
   \begin{itemize}
   \item % each entry is a partial mutual induction defn:
-    Each $P \in \mathcal{P}$ is a partial mutual induction definition
+    Each $P \in \mathcal{Q}$ is a partial mutual induction definition
     of $P$;
   \item % covers positions of variables:
     For each $i \in I$ and $p \in \typos$ a variable position of
-    $t(i)$, there is some $P \in \mathcal{P}$ such that
+    $t(i)$, there is some $P \in \mathcal{Q}$ such that
     $(i, p) \in P$.
   \end{itemize}
 \end{defn}
@@ -186,15 +191,16 @@ defined by mutual induction.
 %
 \begin{defn}
   \label{defn:rel-types}
-  For indices $I$, a \emph{relational type} over $I$ is a pair
-  $(\Phi, M)$ where for some $t : I \to T$,
+  For indices $I$, a \emph{relational refinement type} over $I$ is a
+  pair $(\Phi, M)$ where for some $t : I \to T$,
   % 
   \begin{itemize}
   \item % refinement predicates,
-    $\Phi \subseteq \relpreds{ \idxpos{I} }$ are refinement predicates
-    of $t$.
+    $\Phi \subseteq \refpreds{ \idxpos{I} }$ are relational refinement
+    predicates of $t$.
   \item % mutual induction defn,
-    $M \subseteq \pset(P)$ are a complete mutual induction set of $t$.
+    $M \subseteq \pset( \idxpos{I} )$ are a complete mutual induction
+    set of $t$.
   \end{itemize}
 \end{defn}
 %
@@ -213,59 +219,68 @@ $e_0, \ldots, e_n : \tau$.
 The typing relation is defined in \autoref{sec:rel-type-sys}.
 
 % walkthrough the operations over types:
-\paragraph{Operations and relations over relational refinement types}
+\subsubsection{Operations and relations over relational refinement types}
+\label{sec:rel-type-ops}
 The relational typing relation is defined using operators over
 relational types.
 %
 The operators include generalizations of the type constructors and
-operators over conventional types, generalizations of type operators
-used in refinement type systems, and operators introduced to operate
-over features unique to relational types.
-
-% union as type operator:
-For indices $I$ and all relational types
-$\tau, \tau' \in \reltypes{I}$, the union of relational predicates in
-$\tau$ and $\tau'$ (i.e., $\tau \union \tau'$) is a relational type.
-% renaming:
-For $\tau \in \reltypes{I}$ and symbols $x$ and $y$, the \emph{renaming}
-from $x$ to $y$ in $\tau$, denoted $\replace{\tau}{x}{y}$, is $\tau$
-with each logical variable of the form $(x, p)$, for $p \in \typepos$,
-with $(x, p)$.
-% position cons:
-For $\tau \in \reltypes{I}$, $f \in \typosfields$, and symbol $x$, the
-\emph{prepending} of $\tau$ with $f$ at $x$, denoted $f \cons_x \tau$,
-is $\tau$ with each logical variable of the form $(x, p)$, for
-$p \in \typepos$, replaced with $(x, f \cons p)$.
-
-% define relational product:
-The relational product of relational type $\tau$ from symbols $x$ and
-$y$ to symbol $z$ is a relational type in which each pair of values
-related at $x$ and $y$ in $\tau$ is a value at $z$.
-%
-I.e., the relational product of $\tau$ from $x$ and $y$ to $z$,
-denoted $\times_{x, y}^z \tau$, is
-\[ \replace{ (\tyleftprod \cons_x \tyrightprod \cons_y \tau) }{ x, y }{ p, p }
-\]
+operators over individual algebraic types, generalizations of type
+operators used in refinement type systems, and operators introduced to
+operate over features unique to relational types.
 
 % define relational sum:
-The relational sum of types $\tau$ and $\tau'$ from symbols $x$ and
-$y$ to $z$ is a relational type in which the disjoint union of values
-related at $x$ and $y$ is a values at $z$.
+\paragraph{Sum of relational types} The relational sum of types $\tau$
+and $\tau'$ from indices $i$ and $j$ to index $k$ is a relational
+refinement type in which the type at $k$ is the sum of types at $i$ in
+$\tau$ and at $j$ in $\tau'$.
 %
-I.e., the relational union of $\tau, \tau'$ from $x$ and $y$ to $z$,
-denoted $\tau +_{x, y}^z \tau'$, is
-\[ \replace{ (\tyleftsum \cons_x \tau \union \tyrightsum \cons_y
-    \tau')}{ x, y }{ p, p }
-\]
+I.e., for space of indices $I$, indices $i, j, k \in I$,
+$\Phi, \Phi' \subseteq \relpreds{ \idxpos{I} }$, and
+$M, M' \subseteq \pset(\idxpos{I})$, the sum of $(\Phi, M)$ and
+$(\Phi', M')$ from $i$ and $j$ to $k$, denoted $\tau +_{i, j}^k \tau'$
+is $(\Phi'', M'')$, where
+%
+\begin{itemize}
+\item 
+  \BH{define predicates}
+\item
+  \BH{define complete induction set}
+\end{itemize}
+%
+It is straightforward to prove that if $(\Phi, M)$ and $(\Phi', M')$
+are relational refinement types, then
+$(\Phi, M) +_{i, j}^k (\Phi', M')$ is a relational refinement type.
 
+% define relational product:
+\paragraph{Product of a relational type}
+The relational product of relational type $\tau$ from indices $i$ and
+$j$ to index $k$ is a relational type in which the type at $k$ is the
+product of types at $i$ and $j$.
+%
+I.e., the product of $\tau$ from $i$ and $j$ to $k$, denoted
+$\times_{i, j}^k \tau$, is
+%
+\begin{itemize}
+\item % define predicates
+  \BH{define predicates}
+\item
+  \BH{define complete induction set}
+\end{itemize}
+%
+It is straightforward to prove that if $(\Phi, M)$ is a relational
+refinement types, then $\times_{i, j}^k (\Phi, M)$ is a relational
+refinement type.
+
+\paragraph{Unfolding of a relational refinement type}
 \BH{define unfolding of fixpoint type}
 %
-The unfolding of $\tau$ at symbol $x$ is $\tau$ with a partially
-unfolded definition of the least-fixpoint type in which $x$ is
-associated.
 
 % define refinement predicates, variance
-\BH{lower this to when we define operations or the subtyping relation}
+\paragraph{Refinements of a relational refinement type}
+Relational refinement type $\tau$ is a subtype of relational
+refinement type $\tau'$ if it corresponds to a stronger property over
+program values then the property to which $\tau'$ corresponds.
 % define variance of type positions
 The variance of a data position denotes if it
 %
@@ -342,6 +357,10 @@ $\tau$ replaced with the following predicate:
   If $\varphi$ is bi-variant, then $\varphi$.
 \end{itemize}
 
+\paragraph{Relational refinement subtypes}
+%
+\BH{complete}
+
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
 %
@@ -370,29 +389,26 @@ $\expposfields = \elts{ \leftchild, \rightchild }$.
 %
 The space of \emph{expression positions} is
 $\exppos = \expposfields^{*}$.
-%
-The space of \emph{positioned expressions} is
-$\posexps = \exppos \partto \expr$.
 % 
 The space of \emph{positioned relational types} is
 $\reltypes{\vars \union \exppos}$.
 
 % define typing relation over expressions in terms of positioned
 % expressions
-For $\Gamma \in \ctxs$, $\gamma \in \ctxreltypes$, $E \in \posexps$,
-and $\tau \in \posreltypes$, the fact that $E$ have relational type
-$\tau$ under $\Gamma$ and $\gamma$ is denoted
-$\Gamma, \gamma \judges E : \tau$;
+For $\Gamma \in \ctxs$, $\gamma \in \ctxreltypes$,
+$E : \exppos \partto \expr$, and $\tau \in \posreltypes$, the fact
+that $E$ have relational type $\tau$ under $\Gamma$ and $\gamma$ is
+denoted $\Gamma, \gamma \judges E : \tau$;
 %
 the typing relation is defined below.
 %
 The typing relation over expressions is defined in terms of the typing
 relation over positioned expressions.
 %
-In particular, for each $n \in \nats$, let the position encoding of
-$n$ be $\pos{n} = \leftchild \cons \rightchild^{n}$, and let
-$\gamma_{\emptyset}$ denote th unique contextual relational type over
-the empty set of variables.
+In particular, for each $n \in \nats$, let the expression-position
+encoding of $n$ be $\pos{n} = \leftchild \cons \rightchild^{n}$, and
+let $\gamma_{\emptyset}$ denote the unique contextual relational type
+over the empty set of variables.
 %
 Then for all $e_0, \ldots, e_{n - 1} \in \expr$ and
 $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
@@ -533,17 +549,15 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
   \label{fig:reltypes-rules}
 \end{figure}
 
-\BH{update to define all notation as needed}
-
 % define judgment:
-The relation over positioned expressions is defined by the inductive
-inference rules given in \autoref{fig:reltypes-rules}.
+The typing relation over positioned expressions is defined by the
+inductive inference rules given in \autoref{fig:reltypes-rules}.
 %
 The inference rules consist of syntax-directed rules that define the
-typing relation for arbitrary expressions in a map of positional
-expressions, along with rules that define the typing relation for
-special cases of positional expressions and for assigning relational
-least-fixed-point types and using the subtype relation.
+typing relation for arbitrary expressions in a collection of
+positioned expressions, along with rules that define the typing
+relation for special cases of positioned expressions and for assigning
+relational least-fixed-point types and using the subtype relation.
 % empty:
 Rule~EMPTY establishes that under contextual relational type $\gamma$,
 the empty positioned expressions (denoted $\cdot$) have type $\gamma$.
@@ -553,7 +567,7 @@ Rule~CONST establishes that if positioned expressions $E$ have type
 $\tau$, then $E$ extended to bind position $p$ to constant $c$ have
 type $\tau$ refined to equate $p$ with $c$.
 % variables:
-Rule~VARS establishes that if $E$ have type $\tau$, then $E$ extended
+Rule~VAR establishes that if $E$ have type $\tau$, then $E$ extended
 to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
 with $a$.
 % op:
