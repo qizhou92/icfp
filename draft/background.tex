@@ -12,12 +12,14 @@ We then define partial equivalence of STLC programs
 \begin{figure}[t]
   \begin{minipage}{0.55\linewidth}
     \begin{align*}
-      % expression is a constant,
-      e \rightarrow &\ c \
-      % or a variable,
-      |\ a\ 
-      % or a base operation,
-      |\ e_0 \oplus e_1 \\
+      % expression is the unit,
+      e \rightarrow &\ \unit\ 
+                      % a constant,
+                      |\ c\
+                      % or a variable,
+                      |\ a\ 
+                      % or a base operation,
+                      |\ e_0 \oplus e_1 \\
       % or an abstraction,
       | &\ \lambda x.\ e \
       % or an application,
@@ -44,7 +46,7 @@ We then define partial equivalence of STLC programs
   % types,
   \begin{minipage}{0.36\linewidth}
     \begin{align*} %
-      \tau \rightarrow &\ D \\
+      \tau \rightarrow &\ \unitty\ |\ \basety\ |\ X \\
       | &\ \tau \rightarrow \tau \\
       | &\ \tau + \tau \\
       | &\ \tau \times \tau \\
@@ -59,33 +61,27 @@ We then define partial equivalence of STLC programs
 \end{figure}
 
 % define STLC syntax:
-\paragraph{Syntax} \autoref{fig:exprs} defines the space of
-simply-typed $\lambda$-calculus expressions, $\expr$.
+\paragraph{Syntax}
+% define spaces,
+\autoref{fig:exprs} defines a space of expressions.
 %
-For the remainder of this paper, metavariable $e$ ranges over
-$\expr$, %
-$c$ ranges over constants, %
-$\oplus$ ranges over binary operators from the combination of Boolean
-and linear integer arithmetic, %
-$x$ ranges over program variables, and %
-$f$ ranges over fixpoint variables.
+Expressions are defined over disjoint spaces of abstraction variables
+$\absvars$, fixpoint variables $\fixvars$;
 %
-An expression is a Boolean or integer constant, %
-a variable (drawn from the space of variables $\vars$), %
-a fixpoint variable (drawn from the space of fixpoint $\fixvars$), %
-an application of an fixed operator to a pair of expressions, %
-an \cc{if}-\cc{then}-\cc{else} expression, %
-a $\lambda$-abstraction, %
-an application, or %
-a fixpoint expression.
+the disjoint union of abstraction variables and fixpoint variables is
+denoted $\vars$.
+
+% define construction of expressions,
+An expression is the unit, a constant, a variable, a base operation
+over expressions, an abstraction, an application, a pair, a
+\cc{let}-binding, a left injection, a right injection, a match, or a
+fixpoint.
 %
 For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
 $\freevars(e)$.
 %
-A STLC \emph{program} is a closed expression---i.e., an expression $e$
+A \emph{program} is a closed expression---i.e., an expression $e$
 such that $\freevars(e) = \emptyset$.
-%
-The space of STLC programs is denoted $\stlc$.
 %
 For $P \in \stlc$, the subexpressions of $P$ are denoted
 $\subexps{ P }$.
@@ -141,9 +137,9 @@ Let $P$ be fixed for the rest of this section.
   \inference[ MATCHR ]{
     % evaluate target exp to a left injection,
     e_0 \evalsto \injr\ v_0 &
-    \replace{ e_2 }{ y }{ v_2 } \evalsto v_2 }{ %
+    \replace{ e_2 }{ y }{ v_0 } \evalsto v_2 }{ %
     \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } \\
-  % evaluate a fix:
+  % fix:
   \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{ e } } \evalsto v } %
   { \fix{ f }{ e } \evalsto v }
   \end{gather*}
@@ -151,44 +147,37 @@ Let $P$ be fixed for the rest of this section.
   \label{fig:nat-sem}
 \end{figure}
 %
-A value is a Boolean, an integer, or a $\lambda$ abstraction;
+A value is the unit, a constant, an abstraction, a pair of values, a
+left-injection of a value, or a right-injection of a value;
 %
 the space of values is denoted $\values$.
 %
 For $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ is denoted $e \evalsto v$.
 % 
-The evaluation relation is defined by a natural semantics, given in
-\autoref{fig:nat-sem}.
+The evaluation relation is defined by a natural (i.e.,
+\emph{big-step}) semantics, defined inductively by inference rules
+given in \autoref{fig:nat-sem}.
 
 % define base types:
-\paragraph{Base types}
+\paragraph{Structural types}
 %
-A base type is defines a basic structure of values.
+A structural type defines the structure of a value.
 %
-I.e., a value's base type defines the structure of values on which it
-is parameterized, and th e
-
+The space of types is defined in \autoref{fig:types}.
 %
-Each expression $e$ has a type that describe the spaces of values that
-it takes as input and the spaces of values to which it evaluates.
+A type is a base type or a, a type variable, a function type, a sum of
+types, a product of types, or a least-fixed point of a type.
 %
-The space of types is given in \autoref{fig:types}.
-%
-A type is either a base type or a function from a type to a type.
-
-% introduce has-type symbol:
-For expression $e \in \expr$, typing context $\Gamma : \vars \to
-\types$, and type $\tau \in \types$, the fact that $e$ \emph{has type}
-$\tau$ under $\Gamma$ is denoted $\Gamma \judges e : \tau$.
-%
-The definition of the has-type relation is standard.
+A type $\tau$ is well-formed if each type variable $X$ occurs only as
+a component of a type of the form $\mu X. \tau'$ that itself is a
+component of $\tau$.
 
 % standard defns for logic:
 \paragraph{Logic}
 %
-\sys infers types that related possible evaluations of expressions
-using formulas in formal logic.
+\sys infers types that relate evaluations of expressions using
+formulas in formal logic.
 %
 The quantifier-free fragment of the theory of linear arithmetic is
 denoted $\lia$.
@@ -235,46 +224,6 @@ efficiently~\cite{demoura08}.
 \sys assumes access to a procedure that, given \lia formulas
 $\varphi_0$ and $\varphi_1$, decides if $\varphi_0 \entails
 \varphi_1$.
-
-\subsection{Partial equivalence of STLC programs}
-\label{sec:peq}
-%
-\BH{generalize all of this to be in terms of $k$-safety properties}
-%
-If STLC programs $P_0$ and $P_1$, applied to the same input, evaluate
-to the same value, then $P_0$ and $P_1$ are partially equivalent.
-%
-\begin{defn}
-  \label{defn:val-equiv}
-  Let $\Gamma \in \ctxs$.
-  % case: equivalence over base values:
-  \textbf{(1)} For each $v_0 \in \basevalues$, $\Gamma \judges
-  v_0 \equiv v_1$.
-  % case: equivalence over functions:
-  \textbf{(2)} For all $x_0, y_0 \in \vars$ and $e_0, e_1 \in \expr$
-  such that $f_0 = \lambda\ x_0. e_0, f_1 = \lambda x_1.\ e_1 \in
-  \values$, if for all $v_0, v_1 \in \values$ such that $v_0 \equiv
-  v_1$ and %
-  all $v_0', v_1' \in \values$ such that $\emptyset \judges f_0\ v_0
-  \evalsto v_0'$ and $\emptyset \judges f_1\ v_1 \evalsto v_1'$, it
-  holds that $v_0' \equiv v_1'$, then %
-  $f_0 \equiv f_1$.
-\end{defn}
-
-%
-Two programs are partially equivalent if they evaluate to equivalent
-values.
-%
-\begin{defn}
-  \label{defn:prog-equiv}
-  For all $P_0, P_1 \in \stlc$, if for all $v_0, v_1 \in \values$ such
-  that $\emptyset \judges P_0 \evalsto v_0$ and $\emptyset \judges
-  P_1 \evalsto v_1$ it holds that $v_0 \equiv v_1$, then $P_0 \equiv
-  P_1$.
-\end{defn}
-%
-The main problem that we address in this work is, given STLC programs
-$P_0$ and $P_1$, to determine if $P_0 \equiv P_1$.
 
 \subsection{Constrained Horn Clauses}
 \label{sec:chcs}
