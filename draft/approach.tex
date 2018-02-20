@@ -239,21 +239,27 @@ relational refinement type in which the type at $k$ is the sum of
 types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
 I.e., for space of indices $I$, indices $i, j, k \in I$,
-$\Phi, \Phi' \subseteq \relpreds{ \idxpos{I} }$, and
-$M, M' \subseteq \pset(\idxpos{I})$, the sum of $(\Phi, M)$ and
-$(\Phi', M')$ from $i$ and $j$ to $k$, denoted $\tau +_{i, j}^k \tau'$
-is $(\Phi'', M'')$, where
+$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and
+$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the sum of
+$(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ from $i$ and $j$ to
+$k$, denoted $\tau +_{i, j}^k \tau'$ is $(\Phi'', \mathcal{M}'')$,
+where $\Phi''$ is
+\begin{align*}
+  \Phi'' \equiv & %
+  \setformer{ \replace{ \varphi }{ (i, p) }{ (k, \tyleftsum \cons p) } }{ %
+    \varphi \in \Phi, p \in \typos } \union %
+  \setformer{ \replace{ \varphi }{ (j, p) }{(k, \tyrightsum \cons p)} }{ %
+                  \varphi \in \Phi', p \in \typos } \\
+  \mathcal{M}'' \equiv & %
+  \setformer{ \replace{ M }{ (i, p) }{ (k, \tyleftsum \cons p) } }{ %
+  M \in \mathcal{M}, p \in \typos } \union
+  \setformer{ \replace{ M }{ (j, p) }{ k, \tyrightsum \cons p} }{ %
+  M \in \mathcal{M}', p \in \typos }
+\end{align*}
 %
-\begin{itemize}
-\item 
-  \BH{define predicates}
-\item
-  \BH{define complete induction set}
-\end{itemize}
-%
-It is straightforward to prove that if $(\Phi, M)$ and $(\Phi', M')$
-are relational refinement types, then
-$(\Phi, M) +_{i, j}^k (\Phi', M')$ is a relational refinement type.
+It is straightforward to prove that if $(\Phi, \mathcal{M})$ and
+$(\Phi', \mathcal{M}')$ are relational refinement types, then
+$(\Phi'', \mathcal{M}'')$ is a relational refinement type.
 
 % define relational product:
 \paragraph{Relational refinement product types}
@@ -261,19 +267,27 @@ The relational product of relational type $\tau$ from indices $i$ and
 $j$ to index $k$ is a relational type in which the type at $k$ is the
 product of types at $i$ and $j$.
 %
-I.e., the product of $\tau$ from $i$ and $j$ to $k$, denoted
-$\times_{i, j}^k \tau$, is
+I.e., for space of indices $I$, indices $i, j, k \in I$,
+$\Phi \subseteq \refpreds{ \idxpos{I} }$, and
+$\mathcal{M} \subseteq \pset(\idxpos{I})$, the relational product of
+$(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$ is
+$(\Phi', \mathcal{M}')$, where
+\begin{align*}
+  \Phi' = & \setformer{ %
+    \replace{ \varphi }{ %
+      (i, p), (j, q) }{ %
+      (k, \tyleftprod \cons p), (k, \tyrightprod \cons q) } }{ %
+    \varphi \in \Phi, p, q \in \typos } \\
+  \mathcal{M}' = & \setformer{ %
+    \replace{ M }{ %
+    (i, p), (j, q) }{ %
+    (k, \tyleftprod \cons p), (k, \tyrightprod \cons q) } }{ %
+    M \in \mathcal{M}, p, q \in \typos }
+\end{align*}
 %
-\begin{itemize}
-\item % define predicates
-  \BH{define predicates}
-\item
-  \BH{define complete induction set}
-\end{itemize}
-%
-It is straightforward to prove that if $(\Phi, M)$ is a relational
-refinement types, then $\times_{i, j}^k (\Phi, M)$ is a relational
-refinement type.
+It is straightforward to prove that if $(\Phi, \mathcal{M})$ is a
+relational refinement types, then $(\Phi', \mathcal{M}')$ is a
+relational refinement type.
 
 \paragraph{Relational refinement unfoldings}
 \BH{define unfolding of fixpoint type}
