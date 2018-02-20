@@ -20,7 +20,7 @@ data Var = Var
 makeLenses ''Var
 
 instance Pretty Var
-  where pretty (Var n t) = pretty n <> pretty ":" <> pretty t
+  where pretty (Var n _) = pretty n
 
 -- | A traversal which targets all of the variables in a given expression.
 vars :: Data a => Traversal' a Var

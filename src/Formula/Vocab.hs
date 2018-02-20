@@ -31,8 +31,7 @@ instance Monad m => MonadVocab (VocabT m) where
 
   fetch n = Vocab (M.lookup n <$> get >>= \case
     Nothing -> pure n
-    Just 0 -> pure n
-    Just i -> pure (n ++ "#" ++ show (i-1)))
+    Just i -> pure (n ++ "#" ++ show i))
 
 instance MonadVocab m => MonadVocab (StateT s m) where
   fresh = lift . fresh
@@ -43,18 +42,8 @@ type Vocab a = VocabT Identity a
 runVocab :: Vocab a -> a
 runVocab (Vocab a) = evalState a M.empty
 
--- | Replace the variables in the structure with the following constraints:
--- Nothing from the list of taken variables can appear on the right hand side unless it is
--- in the list of substitutes.
--- The variables on the left of the list of substitutes will be replaced by the corresponding
--- variable on the right.
-freshen :: (Data a, MonadVocab m) => Map Var Var -> a -> m a
-freshen tab x = subst <$> aliasMap <*> pure x
-  where
-    aliasMap = foldrM addAlias tab (varSet x)
-    addAlias v@(Var n t) m =
-      if v `elem` M.keys tab
-      then pure m
-      else do
-        n' <- fresh n
-        pure $ M.insert v (Var n' t) m
+runVocabT :: Monad m => VocabT m a -> m a
+runVocabT (Vocab a) = evalStateT a M.empty
+
+baseName :: String -> String
+baseName = head . splitOn "#"

@@ -16,41 +16,39 @@ import           Grammar.Grammar
 -- If there is a nonterminal with multiple rules that share the same nonterminals in the body,
 -- disjoin them into a single rule.
 -- Repeat the rules into no more reductions are possible.
-simplify :: MonadVocab m => Grammar -> m Grammar
-simplify = fmap (over grammarRules (map cleanUp)) . loop
+simplify :: Grammar -> Grammar
+simplify = over grammarRules (map cleanUp) . loop
   where
-    loop g = do
-      g' <- disjoin <$> inline g
-      if g' == g then pure g' else loop g'
+    loop g =
+      let g' = disjoin $ inline g
+      in if g' == g then g' else loop g'
 
-    cleanUp (Rule cats b lhs f ps) =
-      Rule cats b lhs (varElim (varSet lhs `S.union` varSet ps) f) ps
+    cleanUp (Rule cats lhs f ps) =
+      Rule cats lhs (varElim (varSet lhs `S.union` varSet ps) f) ps
 
-inline :: MonadVocab m => Grammar -> m Grammar
-inline (Grammar start rs) = do
-  let toInline = S.filter (\inst -> inst /= start && cardinality inst rs == 1) (instances rs)
-  rs' <- foldrM (\inst rs' -> inlineRule (head $ rulesFor inst rs') rs') rs toInline
-  pure (Grammar start rs')
+inline :: Grammar -> Grammar
+inline g@(Grammar start rs) =
+  let preserve = S.insert start $ foldMap (\(s, tar, _) -> S.fromList [s, tar]) (phantoms g)
+      toInline = S.filter (\inst -> inst `notElem` preserve && cardinality inst rs == 1) (instances rs)
+      rs' = foldr (\inst rs' -> inlineRule (head $ rulesFor inst rs') rs') rs toInline
+  in Grammar start rs'
 
 -- | Substitute occurrences of the rule left hand side instance with the body of the rule.
-inlineRule :: MonadVocab m => Rule -> [Rule] -> m [Rule]
-inlineRule (Rule _ b lhs body rhs) g =
-  delete sym <$> mapM
-    (\(Rule cats b' lhs' f rhs') ->
-      if sym `elem` (rhs' ^.. allSymbols)
-      then uncurry (Rule cats (b || b') lhs') <$> repRHS (f, rhs')
-      else pure (Rule cats b' lhs' f rhs')) g
+inlineRule :: Rule -> [Rule] -> [Rule]
+inlineRule (Rule _ lhs body rhs) g =
+  delete sym $ map
+    (\(Rule cats lhs' f rhs') ->
+      if sym `elem` foldMap (S.singleton . nonterminalPrimary) rhs'
+      then uncurry (Rule cats lhs') $ repRHS (f, rhs')
+      else Rule cats lhs' f rhs') g
   where
-    sym = lhs ^. nonterminalSymbol
+    sym = nonterminalPrimary lhs
     repRHS (f, ps) = repRHS' ([], f, ps)
     repRHS' (acc, f, p:ps) =
-      if (p ^. nonterminalSymbol) == sym
-      then do
-        -- (f', ps') <- freshen (M.fromList $ zip (lhs ^. nonterminalVars) (p ^. nonterminalVars)) (body, rhs)
-        -- repRHS' (ps' ++ acc, mkAnd f f', ps)
-        repRHS' (rhs ++ acc, mkAnd f body, ps)
+      if nonterminalPrimary p == sym
+      then repRHS' (rhs ++ acc, mkAnd f body, ps)
       else repRHS' (p : acc, f, ps)
-    repRHS' (acc, f, []) = pure (f, acc)
+    repRHS' (acc, f, []) = (f, acc)
 
 disjoin :: Grammar -> Grammar
 disjoin (Grammar start rs)  = Grammar start $ foldr disjoinCandidate rs candidates
@@ -59,8 +57,8 @@ disjoin (Grammar start rs)  = Grammar start $ foldr disjoinCandidate rs candidat
     candidates = M.elems (M.filter (\rs' -> length rs' > 1) instMap)
     -- a map from all instances in a rule to corresponding rules
     instMap = foldr addInstEntry M.empty rs
-    addInstEntry r@(Rule ct _ lhs _ rhs) =
-      M.insertWith (++) (ct, map (view nonterminalSymbol) (lhs : rhs)) [r]
+    addInstEntry r@(Rule ct lhs _ rhs) =
+      M.insertWith (++) (ct, map (view nonterminalID) (lhs : rhs)) [r]
 
 disjoinRules :: [Rule] -> Rule
 disjoinRules rules =

@@ -13,6 +13,8 @@ import           Data.Generics.Fixplate.Attributes
 
 import           Language.Types
 
+import Debug.Trace
+
 data InferenceError
   = UnificationError Type Type
   | UnboundError Var
@@ -29,7 +31,11 @@ type Ctxt = Map Var Type
 type Infer a = StateT InferenceState (Either InferenceError) a
 
 typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' (Ctxt, Type))
-typeCheck e = evalStateT (contextualize e >>= infer >>= resolve)
+typeCheck e = evalStateT (do
+  e' <- contextualize e >>= infer
+  s <- get
+  mapM_ (traceM . show) (M.toList (s ^. typeTable))
+  resolve e')
   (InferenceState 0 M.empty)
 
 -- | When two types are the same, ensure they are eventually the same. This involves
@@ -69,7 +75,9 @@ resolve = fmap unAttrib . traverse resolve' . Attrib
       x' <- x & _1 . traverse %%~ res
       x' & _2 %%~ res
     res = \case
-      TVar x -> res =<< M.findWithDefault (TVar x) x <$> use typeTable
+      TVar x -> M.lookup x <$> use typeTable >>= \case
+        Nothing -> pure (TVar x)
+        Just t -> res t
       TArr s t -> TArr <$> res s <*> res t
       t -> pure t
 

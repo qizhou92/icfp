@@ -4,8 +4,9 @@ module Grammar.Plot where
 import           Control.Lens
 import           Control.Monad.State
 
+import           Data.Data.Lens
 import           Data.Monoid ((<>))
-import           Data.List (intercalate)
+import           Data.List (intercalate, nub)
 import qualified Data.Set as S
 import           Data.Text.Prettyprint.Doc hiding ((<>), dot)
 
@@ -30,27 +31,30 @@ plot fn g = do
 
 dot :: Grammar -> String
 dot g =
-  let vs = map symbol (S.toList (symbols g))
+  let vs = map symbol $ nub $ toListOf template g
       es = concatMap rule (g ^. grammarRules)
       globalAtts = [ "node[fontsize=6];"
                    , "edge[fontsize=6, arrowsize=0.6];"]
   in "digraph {\n" ++ unlines (map ("  " ++) (globalAtts ++ vs ++ es)) ++ "}"
   where
-    symbol i =
-      case rulesFor i (g ^. grammarRules) of
-        [] -> ""
-        (r:_) ->
-          let vs = view (ruleLHS . nonterminalVars) r
-              vs' = unwords (map (view varName) vs)
-          in show i ++ " [label=\"" ++ show i ++ "\n" ++ vs' ++ "\"];"
-    rule (Rule ct _ lhs f rhs) =
+    symbol nt =
+      let vs = view nonterminalVars nt
+          vs' = unwords (map (view varName) vs)
+          lbl = case view nonterminalID nt of
+            ConcreteID i -> "\"" ++ show i ++ "\n" ++ vs' ++ "\""
+            PhantomID i j bound -> "\"" ++ show i ++ ":" ++ show j ++ "\n" ++
+                                   unwords bound ++ "\n" ++ vs' ++ "\", " ++
+                                     "style=dashed"
+      in show (nonterminalPrimary nt) ++ " [label=" ++ lbl ++ "];"
+    rule (Rule ct lhs f rhs) =
       let annot = " [label=\"" ++ show ct ++ ": " ++ show (pretty f) ++ "\"];"
-          inc = rhs ^.. allSymbols
-          tar = lhs ^. nonterminalSymbol
+          inc = map (view nonterminalID) rhs
+          tar = lhs ^. nonterminalID
       in case inc of
-        [i] -> [show i ++ " -> " ++ show tar ++ annot]
+        [i] -> [sym i ++ " -> " ++ sym tar ++ annot]
         _ ->
-          let mid = "m" ++ intercalate "_" (map show (inc ++ [tar])) in
+          let mid = "m" ++ intercalate "_" (map sym (inc ++ [tar])) in
           [ mid ++ " [shape=point, width=0.00001, height=0.00001];" ]
-          ++ map (\i -> show i ++ " -> " ++ mid ++ " [dir=none];") inc
-          ++ [ mid ++ " -> " ++ show tar ++ annot ]
+          ++ map (\i -> sym i ++ " -> " ++ mid ++ " [dir=none];") inc
+          ++ [ mid ++ " -> " ++ sym tar ++ annot ]
+    sym = show . primaryID

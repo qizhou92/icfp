@@ -10,15 +10,10 @@ import           Language.UniqueNames
 import           Language.Parser
 
 import           Text.Parsec
-import           Text.ParserCombinators.Parsec.Char
-import qualified Text.Parsec.Token as T
-import           Text.Parsec.Language (emptyDef)
 import           Data.Generics.Fixplate.Draw
 import           Data.Generics.Fixplate.Base
-import           Data.Map (Map)
 import qualified Data.Map as M
-
-import Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc
 
 import           Grammar
 import           Formula (runVocab)
@@ -27,9 +22,10 @@ import qualified Formula as F
 -- | Given an expression, generate a grammar of type constraints which expresses
 -- relationships between the types of subexpressions and the top level expression,
 -- obeying the judgement rules of higher order refinement types.
-exprGrammar :: CoreExpr -> Either InferenceError Grammar
-exprGrammar e =
-  case TI.typeCheck (runVocab $ uniqueNames e) of
+exprGrammar :: F.MonadVocab m => CoreExpr -> m (Either InferenceError Grammar)
+exprGrammar e = do
+  g <- uniqueNames e
+  pure $ case TI.typeCheck g of
     Left (TI.UnificationError t1 t2) -> Left (UnificationError t1 t2)
     Left (TI.UnboundError x) -> Left (UnboundError x)
     Right e' -> typeConstraints e'
@@ -37,65 +33,66 @@ exprGrammar e =
 test :: String
 test = "(\\f.\\x.f x)(\\y.y+1)3"
 
+testIf :: String
 testIf = "(\\x.if (x < 3) true false)2"
 
+testFix :: String
 testFix = "(fix f. \\x. if (x < 0) 0 (1 + (f (x-1))))"
 
 parseE :: String -> CoreExpr
-parseE e = case parse parseExpr "" e of
+parseE s = case parse parseExpr "" s of
   Left e -> error (show e)
   Right ex -> ex
 
-parseG :: String -> Grammar
-parseG e = case exprGrammar (parseE e) of
+parseG :: F.MonadVocab m => String -> m Grammar
+parseG s = exprGrammar (parseE s) >>= \case
   Left e -> error (show e)
-  Right g -> g
+  Right g -> pure g
 
 pipeline :: String -> IO ()
-pipeline e = plot "tmp" (parseG e)
+pipeline e = plot "tmp" (runVocab $ parseG e)
 
 pipelineSimp :: String -> IO ()
-pipelineSimp e =
-  case parse parseExpr "" e of
-    Left e -> print e
-    Right ex -> case exprGrammar ex of
-      Left e -> print e
-      Right g -> plot "simp" (runVocab (simplify g))
-
+pipelineSimp e = plot "simp" (simplify (runVocab $ parseG e))
 
 drawTypes :: String -> IO ()
-drawTypes e =
-  case parse parseExpr "" e of
+drawTypes s =
+  let ex = parseE s
+  in case TI.typeCheck (runVocab $ uniqueNames ex) of
     Left e -> print e
-    Right ex -> case TI.typeCheck (runVocab $ uniqueNames ex) of
-      Left e -> print e
-      Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
+    Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
 
 drawBasicCtxt :: String -> IO ()
-drawBasicCtxt e =
-  case parse parseExpr "" e of
-    Left e -> print e
-    Right ex -> case evalStateT (TI.contextualize $ runVocab $ uniqueNames ex) (TI.InferenceState 0 M.empty) of
-      Left e -> print "error"
+drawBasicCtxt s =
+  let ex = parseE s
+  in case evalStateT (TI.contextualize $ runVocab $ uniqueNames ex)
+    (TI.InferenceState 0 M.empty) of
+      Left e -> print e
       Right g -> drawTreeWith (\(Ann t _) -> show t) g
 
 solvePair :: F.Expr -> String -> String -> IO ()
 solvePair q s1 s2 =
-  let g1 = runVocab (simplify (parseG s1))
-      g2 = runVocab (simplify (parseG s2))
-  -- let g1 = parseG s1
-  --     g2 = parseG s2
-  in do
-    let g = Grammar.product g1 g2
-    print (_grammarStart g1)
+  F.runVocabT $ do
+    g1 <- simplify <$> parseG s1
+    g2 <- simplify <$> parseG s2
+    let g = simplify (Grammar.product g1 g2)
+    -- let g = Grammar.product g1 g2
+    liftIO $ print (_grammarStart g1)
     plot "g1" g1
-    print (_grammarStart g)
+    liftIO $ print (_grammarStart g)
     plot "tmp" g
-    plot "nonrec" (nonrecursive g)
+    plot "unwound" =<< (snd <$> (unwindAll =<< unwindAll =<< unwindAll (mempty, g1)))
     solve mempty g q >>= \case
-      Left e -> print e
+      Left e -> liftIO $ print e
       Right m ->
-        mapM_ (print . pretty) (M.toList m)
+        liftIO $ mapM_ (print . pretty) (M.toList m)
+
+basicPlot :: String -> IO ()
+basicPlot s = do
+  let g = runVocab $ parseG s
+  -- let gs = runVocab (simplify g)
+  plot "basic" g
+  -- plot "simplified" gs
 
 -- testSum = "fix sum. \\n. if (n < 0)" ++
 --                            "(n + sum (n + 1))" ++
@@ -107,7 +104,19 @@ testSum = "fix sum. \\n. if (n = 0)" ++
                            "(n + sum (n - 1))"
 
 testSumF =
-  [F.expr|n > 0 && l/arg1_0 = n && r/arg1_0 = n - 1 -> l/out_0 = r/out_0 + n|]
+  [F.expr|n > 0 && l/arg1/0 = n && r/arg1/0 = n - 1 -> l/out/0 = r/out/0 + n|]
+
+-- Fix addFunction = \f1 \f2 \x \y if x<=0 (f2 x) else (addFunction f1 (f1 x) (x-1)(y+1) ) (edited)
+addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
+                "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1) (y+1))"
+
+
+mytest f1 f2 x y =
+  if (x :: Int) <= 0
+  then f2 x
+  else mytest f1 (f1 x) (x - 1) (y + 1 :: Int)
+
+-- addFunction (\x1 \y1 x1+y1) (\x2 x2+1)
 
 -- let rec sum n =
 --     if n < 0 then n + sum (n + 1)

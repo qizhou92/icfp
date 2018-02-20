@@ -17,11 +17,30 @@ import Formula hiding (Rule)
 -- An identifier which should be completely unique per location.
 type Symbol = Int
 
+data NonterminalID
+  = ConcreteID Symbol
+  | PhantomID Symbol Symbol [String]
+  deriving (Show, Read, Eq, Ord, Data)
+makePrisms ''NonterminalID
+
+instance Pretty NonterminalID where
+  pretty = \case
+    ConcreteID s -> pretty s
+    PhantomID s tar vs -> pretty s <> pretty ":" <> pretty tar <> pretty vs
+
+primaryID :: NonterminalID -> Symbol
+primaryID = \case
+  ConcreteID s -> s
+  PhantomID s _ _ -> s
+
 data Nonterminal = Nonterminal
-  { _nonterminalSymbol :: Symbol
+  { _nonterminalID :: NonterminalID
   , _nonterminalVars :: [Var]
   } deriving (Show, Read, Eq, Ord, Data)
 makeLenses ''Nonterminal
+
+nonterminalPrimary :: Nonterminal -> Symbol
+nonterminalPrimary (Nonterminal id _) = primaryID id
 
 data Category = L | R
   deriving (Show, Read, Eq, Ord, Data)
@@ -32,7 +51,6 @@ instance Pretty Category where
 -- It is crucial that every variable in a nonterminal location over a rule is unique.
 data Rule = Rule
   { _ruleCategory :: Category
-  , _ruleBackwards :: Bool
   , _ruleLHS :: Nonterminal
   , _ruleBody :: Expr
   , _ruleRHS :: [Nonterminal]
@@ -48,38 +66,37 @@ makeLenses ''Grammar
 instance Pretty Grammar where
   pretty (Grammar start rs) = pretty start <> pretty "\n" <> vsep (map pretty rs)
 
--- An identifier which groups different instances of the same nonterminal location.
-type ControlID = Int
-
 instance Pretty Nonterminal where
   pretty (Nonterminal sym vs) = pretty sym <> pretty vs
 
 instance Pretty Rule where
-  pretty (Rule ct back lhs body rhs) =
+  pretty (Rule ct lhs body rhs) =
     mconcat [ pretty ct
-            , pretty back
             , pretty lhs
             , pretty ": "
             , pretty body
             , pretty " | "
             , pretty rhs ]
 
+phantoms :: Grammar -> [(Symbol, Symbol, [String])]
+phantoms = toListOf (biplate . _PhantomID)
+
 cardinality :: Symbol -> [Rule] -> Int
-cardinality sym = length . filter (\r -> _nonterminalSymbol (_ruleLHS r) == sym)
+cardinality sym = length . filter (\r -> nonterminalPrimary (_ruleLHS r) == sym)
 
 instances :: [Rule] -> Set Symbol
-instances = S.fromList . map (_nonterminalSymbol . _ruleLHS)
+instances = S.fromList . map (nonterminalPrimary . _ruleLHS)
 
 -- | Delete the rules for the instance.
 delete :: Symbol -> [Rule] -> [Rule]
-delete sym = filter (\r -> _nonterminalSymbol (_ruleLHS r) /= sym)
+delete sym = filter (\r -> nonterminalPrimary (_ruleLHS r) /= sym)
 
 -- | Collect the rules whose nonterminal match the predicate.
 rulesFor :: Symbol -> [Rule] -> [Rule]
-rulesFor sym = filter (\r -> _nonterminalSymbol (_ruleLHS r) == sym)
+rulesFor sym = filter (\r -> nonterminalPrimary (_ruleLHS r) == sym)
 
 rulesWith :: Symbol -> [Rule] -> [Rule]
-rulesWith sym = filter (\r -> sym `elem` map (view nonterminalSymbol) (r ^. ruleRHS))
+rulesWith sym = filter (\r -> sym `elem` map nonterminalPrimary (r ^. ruleRHS))
 
 type Clones = [Set Symbol]
 
@@ -93,11 +110,11 @@ cloneFor i [] = S.singleton i
 
 predecessors :: [Rule] -> Symbol -> Set Symbol
 predecessors rs s =
-  S.fromList $ concatMap (toListOf (ruleRHS . traverse . nonterminalSymbol)) (rulesFor s rs)
+  S.fromList $ concatMap (toListOf (ruleRHS . traverse . to nonterminalPrimary)) (rulesFor s rs)
 
 successors :: Grammar -> Symbol -> Set Symbol
 successors g s =
-  S.fromList $ map (view (ruleLHS . nonterminalSymbol)) (rulesWith s (g ^. grammarRules))
+  S.fromList $ map (view (ruleLHS . to nonterminalPrimary)) (rulesWith s (g ^. grammarRules))
 
 visit :: MonadState (Set Symbol) m => a -> (Symbol -> m a) -> Symbol -> m a
 visit def f sym = do
@@ -117,17 +134,17 @@ descendants g s = evalState (desc s) S.empty
 nonterminals :: (Applicative f, Data a) => (Nonterminal -> f Nonterminal) -> a -> f a
 nonterminals = biplate
 
-allSymbols :: (Applicative f, Data a) => (Symbol -> f Symbol) -> a -> f a
-allSymbols = biplate
-
-symbols :: Data a => a -> Set Symbol
-symbols = S.fromList . toListOf allSymbols
-
 categorize :: [Rule] -> Map Category [Rule]
 categorize = foldr (\r -> M.insertWith (++) (r ^. ruleCategory) [r]) M.empty
 
 lhsSymbol :: Rule -> Symbol
-lhsSymbol = view (ruleLHS . nonterminalSymbol)
+lhsSymbol = view (ruleLHS . to nonterminalPrimary)
 
 rhsSymbols :: Rule -> Set Symbol
-rhsSymbols = S.fromList . toListOf (ruleRHS . traverse . nonterminalSymbol)
+rhsSymbols = S.fromList . toListOf (ruleRHS . traverse . to nonterminalPrimary)
+
+ruleSymbols :: Rule -> Set Symbol
+ruleSymbols r = S.insert (lhsSymbol r) (rhsSymbols r)
+
+allSymbols :: Grammar -> Set Symbol
+allSymbols = foldMap ruleSymbols . view grammarRules

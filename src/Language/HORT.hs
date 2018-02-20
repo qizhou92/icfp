@@ -7,12 +7,16 @@ import           Data.Data (Data)
 import           Data.Tree
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Data.List (partition)
 
 import           Language.Types
 import           Grammar
 import qualified Formula as F
 import           Formula (MonadVocab, fetch, fresh)
+
+import Debug.Trace
 
 data HORT = HORT
   -- the type list is the list of flat basic type
@@ -34,7 +38,7 @@ argumentOf :: HORT -> F.Expr
 argumentOf hort =
   let (Node (Nonterminal pid _, _) _) = getHORT hort
   in case getBasicType hort of
-     TArr t _ -> F.V $ mkArg pid (t, 1)
+     TArr t _ -> F.V $ mkArg (primaryID pid) (t, 1)
      _ -> error "this type is not supported (argumentOf in HORT)"
 
 -- | Whether or not this type is primitive.
@@ -60,11 +64,18 @@ freshType varTypes freeVars exprType = do
       let varList = map (mkArg idNumber) (zip (init types) [1 ..])
       let outputVar = mkOut idNumber (last types)
       let freeVarList = map mkFreeVar freeVarsWithType
-      let nonterminal = Nonterminal idNumber (freeVarList ++ varList ++ [outputVar])
+      let nonterminal = Nonterminal (ConcreteID idNumber) (freeVarList ++ varList ++ [outputVar])
       put (idNumber+1)
       return nonterminal
+    mkOut pid t = mkFreeVar (Var ("out/" ++ show pid), t)
 
-    mkOut pid t = mkFreeVar (Var ("out_" ++ show pid), t)
+convertToFix :: Set Var -> HORT -> HORT -> HORT
+convertToFix bound ref (HORT (Node (Nonterminal iden vs, ts) sub) t)  =
+  let tmp =
+        HORT (Node (Nonterminal (PhantomID (primaryID iden)
+                                           (nonterminalPrimary $ topPredicate ref)
+                                           (map getVar (S.toList bound))) vs, ts) sub) t
+  in traceShow tmp tmp
 
 flattenType :: Type -> [Type]
 flattenType = \case
@@ -79,15 +90,13 @@ mkFreeVar (Var name, t) = case t of
   _ -> error "it is not an primitive type  free vars (mkFreeVar in HORT)"
 
 mkArg :: Int -> (Type,Int) -> F.Var
-mkArg pid (t, idx) = mkFreeVar (Var ("arg" ++ show idx ++ "_" ++ show pid), t)
+mkArg pid (t, idx) = mkFreeVar (Var ("arg" ++ show idx ++ "/" ++ show pid), t)
 
 -- | Split a refinement type at the arrow position.
-split :: HORT -> Maybe (HORT, HORT)
+split :: HORT -> (HORT, HORT)
 split hort = case getBasicType hort of
-  TInt -> Nothing
-  TBool -> Nothing
   TArr t1 t2 -> let (Node root subTrees) = getHORT hort
-                in Just (HORT (head subTrees) t1, HORT (Node root (tail subTrees)) t2)
+                in (HORT (head subTrees) t1, HORT (Node root (tail subTrees)) t2)
   _ -> error "not a supported type (split in HORT)"
 
 -- | Apply a constraint to `t` where other types may witness the constraint.
@@ -95,19 +104,19 @@ constrain :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> m ()
 constrain constraint witnesses t =
   let h = topPredicate t
       ws = map topPredicate witnesses
-  in tell [Rule L False h constraint ws]
+  in tell [Rule L h constraint ws]
 
 -- | Constrain t' to be a subtype of t where a constraint can occur between the types
 -- and other types may witness the constraint.
-subtype' :: MonadWriter [Rule] m => Bool -> F.Expr -> [HORT] -> HORT -> HORT -> m ()
-subtype' backwards constraint witnesses t' t =
+subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
+subtype constraint witnesses t' t =
   tell $ subtype' constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
   where
     subtype' constraint witnesses
       (Node (sub, ts1) subTrees1)
       (Node (super, ts2) subTrees2) =
       let expr = carryBound (length ts1) (length ts2) sub super
-          rule = Rule L backwards super (constraint `F.mkAnd` expr) (sub:witnesses)
+          rule = Rule L super (constraint `F.mkAnd` expr) (sub:witnesses)
           rules = subTreeRules subTrees2 subTrees1
       in rule : rules
     -- Construct constraints for the subtrees.

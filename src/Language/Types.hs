@@ -169,55 +169,21 @@ freeVars = synthetise (\(Ann _ e) -> case e of
   EBool _          -> S.empty
   ENil             -> S.empty)
 
--- -- | Substitute variables by corresponding expressions.
--- subst :: Map Var CoreExpr -> CoreExpr -> CoreExpr
--- subst m x = runReader (sub x) m
---   where
---     protect v e = local (M.delete v) (sub e)
---     sub :: CoreExpr -> Reader (Map Var CoreExpr) CoreExpr
---     sub = \case
---       -- If the variable is to be substituted, do so.
---       EVar v () -> M.findWithDefault (EVar v ()) v <$> ask
---       -- 'let', 'lambda', 'fix', and 'match' expressions guard against the
---       -- substitution of their bound variable(s).
---       (ELet v e1 e2 ()) -> ELet v <$> protect v e1 <*> protect v e2 <*> pure ()
---       (ELam v e ()) -> ELam v <$> protect v e <*> pure ()
---       (EFix v e ()) -> EFix v <$> protect v e <*> pure ()
---       EMatch tar nc v1 v2 cc () ->
---         EMatch <$> sub tar
---                <*> sub nc
---                <*> pure v1
---                <*> pure v2
---                <*> local (M.delete v1 . M.delete v2) (sub cc)
---                <*> pure ()
---       -- In all other cases, recursively substitute over subexpressions.
---       e -> e & plate %%~ sub
---
--- data Result = Result {resGoal :: (Var, Var), resResult :: Bool}
---   deriving Show
+-- Which variables are bound as part of the expression?
+boundVars :: Attr CoreExpr' a -> Set Var
+boundVars = attribute . synthetise (\(Ann _ e) -> case e of
+  EVar v              -> S.empty
+  ELam v vs           -> S.insert v vs
+  EFix v vs           -> vs
+  EMatch tar nc v1 v2 cc -> S.fromList [v1, v2] <> tar <> nc <> cc
+  ELet _ _ vs         -> vs
+  EBin _ e1 e2     -> e1 <> e2
+  EIf c t e        -> c <> t <> e
+  EApp e1 e2       -> e1 <> e2
+  ECon a b         -> a <> b
+  EInt _           -> S.empty
+  EBool _          -> S.empty
+  ENil             -> S.empty)
 
--- data EqEnv = EqEnv
---   { eqProgram :: Program
---   , eqGoals   :: [(Var, Var)]
---   }
-
--- goalsToPrograms :: Program -> (Var, Var) -> (Bind, Bind)
--- goalsToPrograms bs (x1, x2) = ((x1, findBind bs x1), (x2, findBind bs x2))
-
--- findBind :: Program -> Var -> CoreExpr
--- findBind ((x,e):bs) y
---   | x == y    = e
---   | otherwise = findBind bs y
--- findBind [] _ = error "findBind: Not found"
-
--- mkPairs :: [String] -> [(Var, Var)]
--- mkPairs (x1:x2:rest) = (Var x1, Var x2) : mkPairs rest
--- mkPairs _            = []
-
--- exprList :: [CoreExpr] -> CoreExpr
--- exprList = foldr (EBin Cons) ENil
-
--- isFix :: CoreExpr -> Bool
--- isFix (ELet x ex _) =  x `S.member` freeVars ex
--- isFix _             = False
-
+emptyAttr :: CoreExpr -> Attr CoreExpr' ()
+emptyAttr = synthetise (const ())

@@ -18,7 +18,7 @@ import Debug.Trace
 synthesizeInvariants :: Set Symbol -> Clones -> Grammar -> Map Symbol Expr -> Map Symbol (Expr, Expr)
 synthesizeInvariants ind cs (Grammar start rs') m = traceShow ind $ evalState (rec L start) S.empty
   where
-    rs = filter (\r -> all (`elem` ind) (r ^.. allSymbols)) rs'
+    rs = filter (all (`elem` ind) . ruleSymbols) rs'
     rec dir = visit M.empty (\sym ->
       if sym `notElem` ind
       then pure M.empty
@@ -28,8 +28,8 @@ synthesizeInvariants ind cs (Grammar start rs') m = traceShow ind $ evalState (r
                     else case dir of
                            L -> single (original sym) f (LBool True)
                            R -> single (original sym) (LBool True) f
-           in do ms <- mapM (\(Rule ct _ _ _ rhs) ->
-                   merges <$> mapM (rec ct . view nonterminalSymbol) rhs) (rulesFor sym rs)
+           in do ms <- mapM (\(Rule ct _ _ rhs) ->
+                   merges <$> mapM (rec ct . nonterminalPrimary) rhs) (rulesFor sym rs)
                  pure $ merges (m':ms))
 
     single sym l r = M.singleton sym (l, r)
@@ -42,23 +42,16 @@ synthesizeInvariants ind cs (Grammar start rs') m = traceShow ind $ evalState (r
 validate :: Grammar -> Expr -> Map Symbol (Expr, Expr) -> IO Bool
 validate (Grammar start rs) q m = do
   rs' <- mapM runVRule rs
-  mapM_ (\(r, r') -> do
-    print (pretty (r ^.. allSymbols))
-    print (pretty (vRule r))
-    print r') (zip rs rs')
-
-
   q' <- Z3.forallIsSat (mkImpl (fst (exprsFor start)) q)
-  print q'
   pure (and (q':rs'))
   where
     runVRule r =
       Z3.forallIsSat (vRule r)
 
-    vRule (Rule dir _ lhs f rhs) = mkImpl (manyAnd (f : map (insProd dir) rhs)) (insProd dir lhs)
+    vRule (Rule dir lhs f rhs) = mkImpl (manyAnd (f : map (insProd dir) rhs)) (insProd dir lhs)
 
     insProd dir (Nonterminal sym vs) =
-      let fs = exprsFor sym
+      let fs = exprsFor (primaryID sym)
       in case dir of
         L -> instantiate vs (fst fs)
         R -> instantiate vs (snd fs)

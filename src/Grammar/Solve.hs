@@ -4,6 +4,7 @@ import           Control.Lens
 import           Control.Monad.Extra (allM, anyM)
 import           Control.Monad.State
 
+import           Data.Data.Lens
 import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -13,12 +14,12 @@ import qualified Formula as F
 import qualified Formula.Z3 as Z3
 
 import           Grammar.Grammar
-import           Grammar.Dominator
 import           Grammar.Unwind
 import           Grammar.Synthesize
 import           Grammar.Chc
 
-solve :: Clones -> Grammar -> Expr -> IO (Either Model (Map Symbol (Expr, Expr)))
+solve :: (MonadVocab m, MonadIO m)
+      => Clones -> Grammar -> Expr -> m (Either Model (Map Symbol (Expr, Expr)))
 solve cs g f = loop (cs, g)
   where
     loop (clones, g') = interpolate g' f >>= \case
@@ -27,7 +28,7 @@ solve cs g f = loop (cs, g)
         ind <- inductive clones g' m
         if M.findWithDefault False (g ^. grammarStart) ind
         then onInductive g' clones m ind
-        else loop $ unwind (M.keysSet $ M.filter not ind) (clones, g')
+        else loop =<< unwind (M.keysSet $ M.filter not ind) (clones, g')
 
     onInductive g' clones m ind = do
       let indS = M.keysSet $ M.filter id ind
@@ -37,24 +38,26 @@ solve cs g f = loop (cs, g)
 
     simpBoth (x, y) = (,) <$> Z3.superSimplify x <*> Z3.superSimplify y
 
-interpolate :: Grammar -> Expr -> IO (Either Model (Map Symbol Expr))
-interpolate g' q =
-  runSystem (F.Query [app terminal] (LBool True) q : map clause (g ^. grammarRules))
+interpolate :: MonadIO m => Grammar -> Expr -> m (Either Model (Map Symbol Expr))
+interpolate g q =
+  liftIO (runSystem (F.Query [app terminal] (LBool True) q : map clause (g ^. grammarRules)))
   where
-    g = nonrecursive g'
     terminal = view ruleLHS (head $ rulesFor (g ^. grammarStart)
                                              (g ^. grammarRules))
 
-inductive :: Clones -> Grammar -> Map Symbol Expr -> IO (Map Symbol Bool)
+nonrecursive :: [Rule] -> [Rule]
+nonrecursive = filter (\r -> null $ r ^.. biplate . _PhantomID)
+
+inductive :: MonadIO m => Clones -> Grammar -> Map Symbol Expr -> m (Map Symbol Bool)
 inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
   where
     descs sym =
       let cs = cloneFor sym clones
-          ds = descendants (nonrecursive g) sym
+          ds = descendants g sym
           cds = S.toList $ S.intersection cs ds
       in map (\cd -> M.findWithDefault (LBool True) cd m) cds
 
-    ind :: Symbol -> StateT (Map Symbol Bool) IO Bool
+    ind :: MonadIO m => Symbol -> StateT (Map Symbol Bool) m Bool
     ind sym = do
       memo <- get
       case M.lookup sym memo of
@@ -69,10 +72,10 @@ inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
               ]
 
     indByPred sym =
-      let ps = predecessors (g ^. grammarRules) sym
-          backTars = map lhsSymbol (backRules g)
-      in if | null ps -> pure True
-            | sym `elem` backTars -> pure False
+      let phantomTargets = map (view _2) (phantoms g)
+          ps = predecessors (g ^. grammarRules) sym
+      in if | sym `elem` phantomTargets -> pure False
+            | null ps -> pure True
             | otherwise ->
               let cats = M.elems (categorize (g ^. grammarRules))
                   cps = map (`predecessors` sym) cats
