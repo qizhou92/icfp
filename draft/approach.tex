@@ -230,7 +230,31 @@ operate over features unique to relational types.
 
 \paragraph{Relational refinement function types}
 %
-\BH{complete}
+The relational function from type $\tau$ to $\tau'$ at index $i$ is a
+relational refinement type in which the type at $i$ is a function from
+the type at $i$ in $\tau$ to the type at $i$ in $\tau'$.
+%
+I.e., for the space of indices $I$, index $i \in I$, %
+$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
+$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the function
+from $(\Phi, \mathcal{M})$ to $(\Phi', \mathcal{M}')$ at $i$, denoted
+$(\Phi, \mathcal{M}) \to_i (\Phi', \mathcal{M}')$, is
+$(\Phi'', \mathcal{M}'')$, where %
+\begin{align*}
+  \Phi'' \equiv & %
+  \setformer{ \replace{ \varphi }{ (i, p) }{ (k, \typaramfield \cons p) } }{ %
+    \varphi \in \Phi, p \in \typos } \union %
+  \setformer{ \replace{ \varphi }{ (j, p) }{(k, \tyresfield \cons p)} }{ %
+                  \varphi \in \Phi', p \in \typos } \\
+  \mathcal{M}'' \equiv & %
+  \setformer{ \replace{ M }{ (i, p) }{ (k, \typaramfield \cons p) } }{ %
+  M \in \mathcal{M}, p \in \typos } \union
+  \setformer{ \replace{ M }{ (j, p) }{ (k, \tyresfield \cons p) } }{ %
+  M \in \mathcal{M}', p \in \typos }
+\end{align*}
+It is straightforward to prove that if $(\Phi, \mathcal{M})$ and
+$(\Phi', \mathcal{M}')$ are relational refinement types, then
+$(\Phi'', \mathcal{M}'')$ is a relational refinement type.
 
 % define relational sum:
 \paragraph{Relational refinement sum types} The relational sum of
@@ -242,8 +266,8 @@ I.e., for space of indices $I$, indices $i, j, k \in I$,
 $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the sum of
 $(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ from $i$ and $j$ to
-$k$, denoted $\tau +_{i, j}^k \tau'$ is $(\Phi'', \mathcal{M}'')$,
-where $\Phi''$ is
+$k$, denoted $(\Phi, \mathcal{M}) +_{i, j}^k (\Phi', \mathcal{M}')$ is
+$(\Phi'', \mathcal{M}'')$, where $\Phi''$ is
 \begin{align*}
   \Phi'' \equiv & %
   \setformer{ \replace{ \varphi }{ (i, p) }{ (k, \tyleftsum \cons p) } }{ %
@@ -253,7 +277,7 @@ where $\Phi''$ is
   \mathcal{M}'' \equiv & %
   \setformer{ \replace{ M }{ (i, p) }{ (k, \tyleftsum \cons p) } }{ %
   M \in \mathcal{M}, p \in \typos } \union
-  \setformer{ \replace{ M }{ (j, p) }{ k, \tyrightsum \cons p} }{ %
+  \setformer{ \replace{ M }{ (j, p) }{ (k, \tyrightsum \cons p) } }{ %
   M \in \mathcal{M}', p \in \typos }
 \end{align*}
 %
@@ -270,8 +294,9 @@ product of types at $i$ and $j$.
 I.e., for space of indices $I$, indices $i, j, k \in I$,
 $\Phi \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M} \subseteq \pset(\idxpos{I})$, the relational product of
-$(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$ is
-$(\Phi', \mathcal{M}')$, where
+$(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$, denoted
+$\times_{i, j}^k (\Phi, \mathcal{M})$, is $(\Phi', \mathcal{M}')$,
+where
 \begin{align*}
   \Phi' = & \setformer{ %
     \replace{ \varphi }{ %
