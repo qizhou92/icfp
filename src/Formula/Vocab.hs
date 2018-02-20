@@ -43,6 +43,9 @@ type Vocab a = VocabT Identity a
 runVocab :: Vocab a -> a
 runVocab (Vocab a) = evalState a M.empty
 
+runVocabT :: Monad m => VocabT m a -> m a
+runVocabT (Vocab a) = evalStateT a M.empty
+
 -- | Replace the variables in the structure with the following constraints:
 -- Nothing from the list of taken variables can appear on the right hand side unless it is
 -- in the list of substitutes.
@@ -58,3 +61,6 @@ freshen tab x = subst <$> aliasMap <*> pure x
       else do
         n' <- fresh n
         pure $ M.insert v (Var n' t) m
+
+baseName :: String -> String
+baseName = head . splitOn "#"

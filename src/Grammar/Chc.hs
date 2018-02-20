@@ -20,8 +20,7 @@ runSystem clauses = runExceptT (interpretModel <$> Z3.solveChc clauses)
       $ M.mapKeys _varName m
 
 clause :: Rule -> Chc
-clause (Rule _ _ lhs f rhs) = F.Rule (map app rhs) f (app lhs)
+clause (Rule _ lhs f rhs) = F.Rule (map app rhs) f (app lhs)
 
 app :: Nonterminal -> App
-app (Nonterminal sym vs) = mkApp ("R" ++ show sym) vs
-
+app (Nonterminal sym vs) = mkApp ("R" ++ show (primaryID sym)) vs

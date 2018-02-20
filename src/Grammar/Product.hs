@@ -1,6 +1,7 @@
 module Grammar.Product where
 
 import           Control.Lens
+import           Data.Data.Lens
 
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -11,10 +12,10 @@ import           Formula hiding (Rule)
 product :: Grammar -> Grammar -> Grammar
 product g1' g2' = Grammar start (initial : rs1' ++ rs2')
   where
-    initial = Rule L False (Nonterminal 0 [Var "TMP" Int]) (LBool True) []
+    initial = Rule L (Nonterminal (ConcreteID 0) [Var "TMP" Int]) (LBool True) []
 
-    ss1 = (-1) : S.toList (symbols g1)
-    ss2 = (-1) : S.toList (symbols g2)
+    ss1 = (-1) : S.toList (allSymbols g1)
+    ss2 = (-1) : S.toList (allSymbols g2)
 
     g1 = g1' & vars . varName %~ ("l/" ++)
     g2 = g2' & vars . varName %~ ("r/" ++)
@@ -32,13 +33,13 @@ product g1' g2' = Grammar start (initial : rs1' ++ rs2')
                 & ruleCategory .~ R
            | r2 <- rs2, s1 <- ss1]
 
-    rightJoin s vs p = p & nonterminalVars %~ (++ vs) & allSymbols %~ (`tab` s)
-    leftJoin  s vs p = p & nonterminalVars %~ (vs ++) & allSymbols %~ (s `tab`)
+    rightJoin s vs p = p & nonterminalVars %~ (++ vs) & biplate %~ (`tab` s)
+    leftJoin  s vs p = p & nonterminalVars %~ (vs ++) & biplate %~ (s `tab`)
 
 removeEmpty :: Rule -> Rule
 removeEmpty r =
   if null (r ^. ruleRHS)
-  then r & ruleRHS .~ [Nonterminal (-1) []]
+  then r & ruleRHS .~ [Nonterminal (ConcreteID $ -1) []]
   else r
 
 symbolTable :: [Symbol] -> [Symbol] -> Symbol -> Symbol -> Symbol
