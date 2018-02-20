@@ -74,7 +74,7 @@ convertToFix bound ref (HORT (Node (Nonterminal iden vs, ts) sub) t)  =
   let tmp =
         HORT (Node (Nonterminal (PhantomID (primaryID iden)
                                            (nonterminalPrimary $ topPredicate ref)
-                                           (S.map getVar bound)) vs, ts) sub) t
+                                           (map getVar (S.toList bound))) vs, ts) sub) t
   in traceShow tmp tmp
 
 flattenType :: Type -> [Type]

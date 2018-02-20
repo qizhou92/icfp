@@ -4,6 +4,7 @@ import           Control.Lens
 import           Control.Monad.Extra (allM, anyM)
 import           Control.Monad.State
 
+import           Data.Data.Lens
 import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -44,6 +45,9 @@ interpolate g q =
     terminal = view ruleLHS (head $ rulesFor (g ^. grammarStart)
                                              (g ^. grammarRules))
 
+nonrecursive :: [Rule] -> [Rule]
+nonrecursive = filter (\r -> null $ r ^.. biplate . _PhantomID)
+
 inductive :: MonadIO m => Clones -> Grammar -> Map Symbol Expr -> m (Map Symbol Bool)
 inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
   where
@@ -68,8 +72,10 @@ inductive clones g m = execStateT (ind (g ^. grammarStart)) M.empty
               ]
 
     indByPred sym =
-      let ps = predecessors (g ^. grammarRules) sym
-      in if | null ps -> pure True
+      let phantomTargets = map (view _2) (phantoms g)
+          ps = predecessors (g ^. grammarRules) sym
+      in if | sym `elem` phantomTargets -> pure False
+            | null ps -> pure True
             | otherwise ->
               let cats = M.elems (categorize (g ^. grammarRules))
                   cps = map (`predecessors` sym) cats

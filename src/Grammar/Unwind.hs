@@ -17,7 +17,7 @@ import           Formula
 unwindAll :: MonadVocab m => (Clones, Grammar) -> m (Clones, Grammar)
 unwindAll (cs, g) = unwind (allSymbols g) (cs, g)
 
-toUnwind :: Set Symbol -> Grammar -> [(Symbol, Symbol, Set String)]
+toUnwind :: Set Symbol -> Grammar -> [(Symbol, Symbol, [String])]
 toUnwind valid =
   M.elems . foldMap (\(s, tar, vs) ->
     if tar `elem` valid
@@ -28,11 +28,10 @@ unwind :: MonadVocab m => Set Symbol -> (Clones, Grammar) -> m (Clones, Grammar)
 unwind valid (cs, g) = foldrM unwindOnPhantom (cs, g) (toUnwind valid g)
 
 unwindOnPhantom :: MonadVocab m
-                => (Symbol, Symbol, Set String) -> (Clones, Grammar) -> m (Clones, Grammar)
+                => (Symbol, Symbol, [String]) -> (Clones, Grammar) -> m (Clones, Grammar)
 unwindOnPhantom (s, tar, vs) (cs, g) = do
     traverse_ fresh vs
-    toPaste'' <- toPaste' & vars %~ renameSpecial
-                          & vars %%~ renameBound
+    toPaste'' <- toPaste' & vars %%~ renameBound
     let g' = g & grammarRules <>~ toPaste''
                & grammarRules . biplate %~ (\ntid ->
           if primaryID ntid == s then ConcreteID s else ntid)

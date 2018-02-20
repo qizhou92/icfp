@@ -43,7 +43,7 @@ dot g =
           lbl = case view nonterminalID nt of
             ConcreteID i -> "\"" ++ show i ++ "\n" ++ vs' ++ "\""
             PhantomID i j bound -> "\"" ++ show i ++ ":" ++ show j ++ "\n" ++
-                                   unwords (S.toList bound) ++ "\n" ++ vs' ++ "\", " ++
+                                   unwords bound ++ "\n" ++ vs' ++ "\", " ++
                                      "style=dashed"
       in show (nonterminalPrimary nt) ++ " [label=" ++ lbl ++ "];"
     rule (Rule ct lhs f rhs) =

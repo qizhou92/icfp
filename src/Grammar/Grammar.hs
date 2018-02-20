@@ -19,14 +19,14 @@ type Symbol = Int
 
 data NonterminalID
   = ConcreteID Symbol
-  | PhantomID Symbol Symbol (Set String)
+  | PhantomID Symbol Symbol [String]
   deriving (Show, Read, Eq, Ord, Data)
 makePrisms ''NonterminalID
 
 instance Pretty NonterminalID where
   pretty = \case
     ConcreteID s -> pretty s
-    PhantomID s tar vs -> pretty s <> pretty ":" <> pretty tar <> pretty (S.toList vs)
+    PhantomID s tar vs -> pretty s <> pretty ":" <> pretty tar <> pretty vs
 
 primaryID :: NonterminalID -> Symbol
 primaryID = \case
@@ -78,7 +78,7 @@ instance Pretty Rule where
             , pretty " | "
             , pretty rhs ]
 
-phantoms :: Grammar -> [(Symbol, Symbol, Set String)]
+phantoms :: Grammar -> [(Symbol, Symbol, [String])]
 phantoms = toListOf (biplate . _PhantomID)
 
 cardinality :: Symbol -> [Rule] -> Int

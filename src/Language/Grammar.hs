@@ -13,6 +13,7 @@ import           Text.Parsec
 import           Data.Generics.Fixplate.Draw
 import           Data.Generics.Fixplate.Base
 import qualified Data.Map as M
+import           Data.Text.Prettyprint.Doc
 
 import           Grammar
 import           Formula (runVocab)
@@ -75,16 +76,16 @@ solvePair q s1 s2 =
     g1 <- simplify <$> parseG s1
     g2 <- simplify <$> parseG s2
     let g = simplify (Grammar.product g1 g2)
+    -- let g = Grammar.product g1 g2
     liftIO $ print (_grammarStart g1)
     plot "g1" g1
     liftIO $ print (_grammarStart g)
     plot "tmp" g
     plot "unwound" =<< (snd <$> (unwindAll =<< unwindAll =<< unwindAll (mempty, g1)))
-    -- plot "nonrec" (nonrecursive g)
-    -- solve mempty g q >>= \case
-    --   Left e -> print e
-    --   Right m ->
-    --     mapM_ (print . pretty) (M.toList m)
+    solve mempty g q >>= \case
+      Left e -> liftIO $ print e
+      Right m ->
+        liftIO $ mapM_ (print . pretty) (M.toList m)
 
 basicPlot :: String -> IO ()
 basicPlot s = do
@@ -103,7 +104,7 @@ testSum = "fix sum. \\n. if (n = 0)" ++
                            "(n + sum (n - 1))"
 
 testSumF =
-  [F.expr|n > 0 && l/arg1_0 = n && r/arg1_0 = n - 1 -> l/out_0 = r/out_0 + n|]
+  [F.expr|n > 0 && l/arg1/0 = n && r/arg1/0 = n - 1 -> l/out/0 = r/out/0 + n|]
 
 -- Fix addFunction = \f1 \f2 \x \y if x<=0 (f2 x) else (addFunction f1 (f1 x) (x-1)(y+1) ) (edited)
 addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
