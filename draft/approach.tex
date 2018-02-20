@@ -92,8 +92,7 @@ distinct factors of a component product type.
 \begin{defn}
   \label{defn:relatable}
   For each $\tau \in T$ and all $p, q \in \typosty{\tau}$, $p$ and $q$
-  are \emph{relatable in $\tau$} if one of the following conditions
-  holds:
+  are \emph{relatable in $\tau$} if:
   \begin{itemize}
   \item % identity:
     Each $p \in \typosty{\tau}$ is relatable with itself as a position
@@ -229,11 +228,15 @@ operators over individual algebraic types, generalizations of type
 operators used in refinement type systems, and operators introduced to
 operate over features unique to relational types.
 
+\paragraph{Relational refinement function types}
+%
+\BH{complete}
+
 % define relational sum:
-\paragraph{Sum of relational types} The relational sum of types $\tau$
-and $\tau'$ from indices $i$ and $j$ to index $k$ is a relational
-refinement type in which the type at $k$ is the sum of types at $i$ in
-$\tau$ and at $j$ in $\tau'$.
+\paragraph{Relational refinement sum types} The relational sum of
+types $\tau$ and $\tau'$ from indices $i$ and $j$ to index $k$ is a
+relational refinement type in which the type at $k$ is the sum of
+types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
 I.e., for space of indices $I$, indices $i, j, k \in I$,
 $\Phi, \Phi' \subseteq \relpreds{ \idxpos{I} }$, and
@@ -253,7 +256,7 @@ are relational refinement types, then
 $(\Phi, M) +_{i, j}^k (\Phi', M')$ is a relational refinement type.
 
 % define relational product:
-\paragraph{Product of a relational type}
+\paragraph{Relational refinement product types}
 The relational product of relational type $\tau$ from indices $i$ and
 $j$ to index $k$ is a relational type in which the type at $k$ is the
 product of types at $i$ and $j$.
@@ -272,7 +275,7 @@ It is straightforward to prove that if $(\Phi, M)$ is a relational
 refinement types, then $\times_{i, j}^k (\Phi, M)$ is a relational
 refinement type.
 
-\paragraph{Unfolding of a relational refinement type}
+\paragraph{Relational refinement unfoldings}
 \BH{define unfolding of fixpoint type}
 %
 
@@ -521,7 +524,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     % unfold:
     \inference[ UN ]{
       % if expressions have tau unfolded at p,
-      \Gamma, \gamma \judges E : \unfold{\tau}{p} }{ 
+      \Gamma, \gamma \judges E : \unfold{\tau} }{ 
       % then expressions have folded type
       \Gamma, \gamma \judges E : \tau } \qquad
     % subtype:
@@ -599,13 +602,13 @@ operator.
 % pair:
 Rule~PAIR establishes that if $E$ extended to bind
 $\leftchild \cons p$ and $\rightchild \cons p$ to $e_0$ and $e_1$ has
-type $\tau$, then $E$ extended to bind $p$ to $e_0$ paired with $e_1$
-is the relational product of $\tau$ from $\leftchild \cons p$ and
+type $\tau$, then $E$ extended to bind $p$ to $\pair{ e_0 }{ e_1 }$ is
+the relational product of $\tau$ from $\leftchild \cons p$ and
 $\rightchild \cons p$ to $p$.
 % let:
 Rule~LET establishes that if %
-\textbf{(1)} under $\gamma$, the binding from $p$ to $e_0$ is the
-relational product of $\gamma'$ from variables $x$ and $y$ to $p$;
+\textbf{(1)} under $\gamma$, the $e_0$ is the relational product of
+$\gamma'$ from variables $x$ and $y$;
 %
 \textbf{(2)} under $\gamma'$, $e_1$ has type $\tau$, then under
 $\gamma$, $E$ extended to bind $p$ to $\letexp{x}{y}{e_0}{e_1}$ has
@@ -617,15 +620,14 @@ operator.
 % left:
 Rule~LEFT establishes that if $E$ extended to bind $p$ to $e$ has type
 $\tau$, then $E$ extended to bind $p$ to the left injection of $e$ is
-a relational sum of $\tau$ and any relational type $\tau'$ from $p$
-and $p$ to $p$.
+a relational sum of from $p$ and $p$ to $p$ of $\tau$ and any
+relational type $\tau'$.
 %
 Rule~RIGHT is defined symmetrically to Rule~LEFT.
 % match:
 Rule~MATCH establishes that if %
-\textbf{(1)} under $\gamma$, the binding from $p$ to $e_0$ is a
-relational sum of $\gamma'$ and $\gamma''$ from variables $x$ and $y$
-to $p$;
+\textbf{(1)} under $\gamma$, $e_0$ is the relational sum of $\gamma'$
+and $\gamma''$ from variables $x$ and $y$;
 % 
 \textbf{(2)} under $\gamma'$, $E$ extended to bind $p$ to $e_1$ has
 type $\tau''$; and
@@ -644,10 +646,10 @@ to $\fix{f}{e}$ has type $\tau$.
 % fixpoint var:
 Rule~FVAR establishes that under context $\Gamma$, the positioned
 expression that maps only position $p$ to fixpoint variable $f$ has
-type $\Gamma(f)$ refined to set $p$ to $f$.
+type $\Gamma(f)$ refined to equate $p$ with $f$.
 
 % unfold:
-Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded at $p$,
+Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded,
 then $E$ has type $\tau$.
 % sub:
 Rule~SUB establishes that if $E$ has type $\tau$ a subtype of $\tau'$,
