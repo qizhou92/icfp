@@ -10,39 +10,50 @@ We then define partial equivalence of STLC programs
 \subsection{The Simply-Typed $\lambda$-calculus}
 \label{sec:stlc}
 \begin{figure}[t]
-  \begin{minipage}{0.48\linewidth}
+  \begin{minipage}{0.55\linewidth}
     \begin{align*}
       % expression is a constant,
-      e \rightarrow &\ c \\
+      e \rightarrow &\ c \
       % or a variable,
-      | &\ x \\
-      % or a binary operation,
-      | &\ e \oplus e \\
-      % or an if-then-else, 
-      | &\ \ite{ e }{ e }{ e } \\
+      |\ a\ 
+      % or a base operation,
+      |\ e_0 \oplus e_1 \\
       % or an abstraction,
-      | &\ \lambda x.\ e \\
+      | &\ \lambda x.\ e \
       % or an application,
-      | &\ e\ e \\
-      % or a fixpoint,
-      | &\ \fix{ f }{ e } 
+          | \ e_0\ e_1 \\
+      % or a pairing,
+      | &\ \pair{e_0}{e_1} \
+      % or a let-expression,
+          |\ \letexp{x}{y}{e_0}{e_1} \\
+      % or an injection or a match,
+      | &\ \injl\ e\ |\ \injr\ e\ |\ \matchexp{e_0}{x}{e_1}{y}{e_2} \\
+      % or a fix
+      | &\ \fix{f}{e}
     \end{align*}
     \caption{The space of program expressions, $\expr$.
       %
       Metavariable $e$ ranges over $\expr$, %
       $c$ ranges over $\const$, %
-      $x$ ranges over $\vars$, and %
+      $a$ ranges over $\vars$, %
+      $x$ and $y$ range over abstraction variables, and %
       $f$ ranges over $\fixvars$. } %
     \label{fig:exprs}
   \end{minipage}
-  %
-  \begin{minipage}{0.48\linewidth}
+  \qquad
+  % types,
+  \begin{minipage}{0.36\linewidth}
     \begin{align*} %
-      \tau \rightarrow &\ \bools\ |\ \ints\ |\ \tau \to \tau 
+      \tau \rightarrow &\ D \\
+      | &\ \tau \rightarrow \tau \\
+      | &\ \tau + \tau \\
+      | &\ \tau \times \tau \\
+      | &\ \mu X. \tau
     \end{align*}
     \caption{The space of types, $\types$.
       % 
-      Metavariable $\tau$ ranges over $\types$.} %
+      Metavariable $\tau$ ranges over $\types$ and $X$ ranges over
+      least-fixed point variables.} %
     \label{fig:types}
   \end{minipage}
 \end{figure}
@@ -88,36 +99,55 @@ Let $P$ be fixed for the rest of this section.
   \centering
   \begin{gather*}
   % evaluate const:
-  \inference[ CONST ]{ }{ c \evalsto c }
+  \inference[ CONST ]{ }{ c \evalsto c } \qquad
   % evaluate binary operations:
   \inference[ OP ]{ %
     e_0 \evalsto v_0 & %
     e_1 \evalsto v_1 } %
   { e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\
-  % evaluate if-then-else by then branch
-  \inference[ ITE-T ]{ %
-    e_0 \evalsto \true & %
-    e_1 \evalsto v_1 } %
-  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 }
-  % evaluate if-then-else by else branch
-  \inference[ ITE-F ]{ %
-    e_0 \evalsto \false & %
-    e_2 \evalsto v_2 } %
-  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_2 } \\
-  % evaluate an abstraction:
-  \inference[ ABS ]{ } %
-  { \lambda x.\ e \evalsto \lambda x.\ e }
-  % evaluate a fix:
-  \inference[ FIX ]{ \replace{e}{ \fix{ f }{ e } }{ f } \evalsto v } %
-  { \fix{ f }{ e } \evalsto v }
-  % application:
+  % abstraction, 
+  \inference[ ABS ]{ }{ \lambda x.\ e \evalsto \lambda x.\ e } \qquad
+  % application,
   \inference[ APP ]{ %
     e_0 \evalsto \lambda x.\ e_0' & %
-    e_1 \evalsto v_1 & %
-    \replace{ e_0' }{ x }{ v_1 } \evalsto v }
-  { e_0\ e_1 \evalsto v } 
+    e_1 \evalsto v_1 &
+    \replace{ e_0' }{ x }{ v_1 } \evalsto v }{ %
+    e_0\ e_1 \evalsto v } \\
+  % pair,
+  \inference[ PAIR ]{ %
+    % evaluate components,
+    e_0 \evalsto v_0 & e_1 \evalsto v_1 }{ %
+    % pair them up to get final result
+    \pair{ e_0 }{ e_1 } \evalsto (v_0, v_1) } \qquad
+  % let,
+  \inference[ LET ]{
+    % evaluate bound expression,
+    e_0 \evalsto (v_0^l, v_0^r) &
+    % evaluate result with values replaced
+    \replace{ e_1 }{ x, y }{ v_0^l, v_1^r } \evalsto v_1 }{ %
+    \letexp{x}{y}{e_0}{e_1} \evalsto v_1 } \\
+  % inject left,
+  \inference[ INJL ]{ e \evalsto v }{ %
+    \injl\ e \evalsto \injl\ v } \qquad
+  % inject right,
+  \inference[ INJR ]{ e \evalsto v }{ \injr\ e \evalsto \injr\ v } \\
+  % match left injection,
+  \inference[ MATCHL ]{
+    % evaluate target exp to a left injection,
+    e_0 \evalsto \injl\ v_0 &
+    \replace{ e_1 }{ x }{ v_0 } \evalsto v_1 }{ %
+    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_1 }
+  % match right injection,
+  \inference[ MATCHR ]{
+    % evaluate target exp to a left injection,
+    e_0 \evalsto \injr\ v_0 &
+    \replace{ e_2 }{ y }{ v_2 } \evalsto v_2 }{ %
+    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } \\
+  % evaluate a fix:
+  \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{ e } } \evalsto v } %
+  { \fix{ f }{ e } \evalsto v }
   \end{gather*}
-  \caption{The natural semantics of $\stlc$.}
+  \caption{The natural semantics of expressions.}
   \label{fig:nat-sem}
 \end{figure}
 %
