@@ -7,7 +7,7 @@ simply-typed $\lambda$-calculus (STLC) (\autoref{sec:stlc}).
 We then define partial equivalence of STLC programs
 (\autoref{sec:peq}).
 
-\subsection{The Simply-Typed $\lambda$-calculus}
+\subsection{A subject functional language}
 \label{sec:stlc}
 \begin{figure}[t]
   \begin{minipage}{0.55\linewidth}
@@ -36,9 +36,10 @@ We then define partial equivalence of STLC programs
     \caption{The space of program expressions, $\expr$.
       %
       Metavariable $e$ ranges over $\expr$, %
-      $c$ ranges over $\const$, %
+      $c$ ranges over $\consts$, %
       $a$ ranges over $\vars$, %
-      $x$ and $y$ range over abstraction variables, and %
+      $\oplus$ ranges over base operations, %
+      $x$ and $y$ range over $\absvars$, and %
       $f$ ranges over $\fixvars$. } %
     \label{fig:exprs}
   \end{minipage}
@@ -70,6 +71,8 @@ $\absvars$, fixpoint variables $\fixvars$;
 %
 the disjoint union of abstraction variables and fixpoint variables is
 denoted $\vars$.
+%
+The space of constants is denoted $\consts$.
 
 % define construction of expressions,
 An expression is the unit, a constant, a variable, a base operation
@@ -91,16 +94,27 @@ Let $P$ be fixed for the rest of this section.
 % define semantics:
 \paragraph{Semantics}
 %
+%
+A value is the unit, a constant, an abstraction, a pair of values, a
+left-injection of a value, or a right-injection of a value;
+%
+the space of values is denoted $\values$.
+%
+For each base operation $\oplus$, there is a semantic function
+$\interp{\oplus} : \consts \times \consts \to \consts$.
+
 \begin{figure}
   \centering
   \begin{gather*}
+    % unit,
+  \inference[ UNIT ]{ }{ \unit \evalsto \unit } \qquad
   % evaluate const:
   \inference[ CONST ]{ }{ c \evalsto c } \qquad
   % evaluate binary operations:
   \inference[ OP ]{ %
-    e_0 \evalsto v_0 & %
-    e_1 \evalsto v_1 } %
-  { e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\
+    e_0 \evalsto c_0 & %
+    e_1 \evalsto c_1 }{ %
+    e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } \\
   % abstraction, 
   \inference[ ABS ]{ }{ \lambda x.\ e \evalsto \lambda x.\ e } \qquad
   % application,
@@ -143,21 +157,22 @@ Let $P$ be fixed for the rest of this section.
   \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{ e } } \evalsto v } %
   { \fix{ f }{ e } \evalsto v }
   \end{gather*}
-  \caption{The natural semantics of expressions.}
+  \caption{The natural semantics of expressions.
+    %
+    Metavariable $e$ ranges over $\expr$, %
+    $c$ ranges over $\consts$, %
+    $\oplus$ ranges over base operations, %
+    $x$ and $y$ range over $\absvars$, and %
+    $f$ ranges over $\fixvars$.}
   \label{fig:nat-sem}
 \end{figure}
 %
-A value is the unit, a constant, an abstraction, a pair of values, a
-left-injection of a value, or a right-injection of a value;
-%
-the space of values is denoted $\values$.
-%
-For $e \in \expr$ and $v \in \values$, the fact that $e$
+For each $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ is denoted $e \evalsto v$.
 % 
-The evaluation relation is defined by a natural (i.e.,
-\emph{big-step}) semantics, defined inductively by inference rules
-given in \autoref{fig:nat-sem}.
+The evaluation relation is a natural (i.e., \emph{big-step})
+semantics, defined inductively by inference rules given in
+\autoref{fig:nat-sem}.
 
 % define base types:
 \paragraph{Structural types}
@@ -166,8 +181,8 @@ A structural type defines the structure of a value.
 %
 The space of types is defined in \autoref{fig:types}.
 %
-A type is a base type or a, a type variable, a function type, a sum of
-types, a product of types, or a least-fixed point of a type.
+A type is the unit, the base type, a type variable, a function type, a
+sum of types, a product of types, or a least-fixed point of a type.
 %
 A type $\tau$ is well-formed if each type variable $X$ occurs only as
 a component of a type of the form $\mu X. \tau'$ that itself is a
@@ -175,35 +190,45 @@ component of $\tau$.
 
 % standard defns for logic:
 \paragraph{Logic}
-%
+% define theory:
 \sys infers types that relate evaluations of expressions using
 formulas in formal logic.
 %
-The quantifier-free fragment of the theory of linear arithmetic is
-denoted $\lia$.
+Let the space of \emph{refinement values} be
+$\fovals = \consts \union \elts{ \injl\ \unit, \injr\ \unit }$.
 %
-For each space of logical variables $X$, the space of $\lia$ formulas
-over $X$ is denoted $\formulas{ X }$.
+Let $\mathcal{T}$ be a theory whose vocabularly whose constants are
+the program constants, $\injl\ \unit$, and $\injr\ \unit$, and whose
+binary functions are the space of binary operators.
+%
+Each model of $\mathcal{T}$ is isomorphic the domain $\fovals$ and the
+semantic functions $\interp{\oplus}$ for each binary operation
+$\oplus$.
+%
+For practical languages modeled by $\expr$, $\mathcal{T}$ may be,
+e.g., quantifier-free fragment of the theory of linear arithmetic,
+where $\consts$ is the space of integers, $\injl\ \unit$ and
+$\injr\ \unit$ model true and false, and the space of binary operators
+contains sum and the less-than-or-equal comparitor.
+
+% define spaces of formulas:
+For each space of logical variables $X$, the space of $\mathcal{T}$
+formulas over $X$ is denoted $\formulas{ X }$.
 %
 For each formula $\varphi \in \formulas{X}$, the set of variables that
 occur in $\varphi$ (i.e., the \emph{vocabulary} of $\varphi$) is
 denoted $\vocab(\varphi)$.
 % define models, satisfaction, entailment
-A \lia \emph{model} $m$ over $X$ is an assignment from each variable
-in $X$ to an integer.
-%
-The fact that model $m$ \emph{satisfies} a formula $\varphi$ is
-denoted $m \sats \varphi$.
-%
 For formulas $\varphi_0, \ldots, \varphi_n, \varphi \in \formulas{X}$,
 the fact that $\varphi_0, \ldots, \varphi_n$ \emph{entail} $\varphi$
 is denoted $\varphi_0, \ldots, \varphi_n \entails \varphi$.
 
 % Define replacement and substitution:
-For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and $Y = [
-y_0, \ldots, y_n ]$, the \lia formula constraining the equality of
-each element in $X$ with its corresponding element in $Y$, i.e., the
-formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted $X = Y$.
+For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and
+$Y = [ y_0, \ldots, y_n ]$, the $\mathcal{T}$ formula constraining the
+equality of each element in $X$ with its corresponding element in $Y$,
+i.e., the formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted
+$X = Y$.
 %
 The repeated replacement of variables $\varphi[ y_0 / x_0 \ldots y_{n}
 / x_{n} ]$ is denoted $\replace{\varphi}{Y}{X}$.
@@ -213,17 +238,6 @@ $\replace{\varphi}{X}{Y}$ is denoted alternatively as $\varphi[Y]$.
 %
 The number of free variables in formula $\varphi$ is denoted
 $\degreeof(\varphi)$.
-
-% Introduce decision procedure:
-Although determining the satisfiability of a \lia formula is
-NP-complete in general, decision procedures for \lia have been
-proposed that often determine the satisfiability of formulas that
-arise from practical verification problems
-efficiently~\cite{demoura08}.
-%
-\sys assumes access to a procedure that, given \lia formulas
-$\varphi_0$ and $\varphi_1$, decides if $\varphi_0 \entails
-\varphi_1$.
 
 \subsection{Constrained Horn Clauses}
 \label{sec:chcs}
