@@ -14,6 +14,7 @@ import           Data.Generics.Fixplate.Draw
 import           Data.Generics.Fixplate.Base
 import qualified Data.Map as M
 import           Data.Text.Prettyprint.Doc
+import           Data.Generics.Fixplate.Attributes
 
 import           Grammar
 import           Formula (runVocab)
@@ -115,6 +116,9 @@ qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
 qiTest2 =
   let addF = "fix f . \\f1.\\f2.\\x.(f f1 (f1 x) (x-1))"
   in "(" ++ addF ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+
+unwindTest =
+  forget $ unwindFix $ synthetise (const ()) $ parseE qiTest2
 
 
 mytest f1 f2 x y =

@@ -177,23 +177,22 @@ attach = synthetiseM (\e -> do
   put (x+1)
   pure x)
 
-unwind :: Attr CoreExpr' a -> Attr CoreExpr' a
-unwind = T.transform (\(Ann _ e) -> case e of
-  EVar v -> EVar v
-  ELet v v1 v2 -> ELet v v1 v2
-  ELam v vs    -> ELam v vs
-  EFix v vs    -> unwindFixExpr (EFix v vs)
-  EMatch tar nc v1 v2 cc -> EMatch tar nc v1 v2 cc
-  EBin b e1 e2     -> EBin b e1 e2
-  EIf c t e        -> EIf c t e
-  EApp e1 e2       -> EApp e1 e2 
-  ECon a b         -> ECon a b
-  EInt i           -> EInt i
-  EBool b          -> EBool b  
-  ENil             -> ENil)
-
-unwindFixExpr :: Attr CoreExpr' a -> Attr CoreExpr' a
-unwindFixExpr = undefined 
+unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
+unwindFix = unwindCtxt . mkCtxt
+  where
+    -- Unwind based on the context, removing fix expressions and replacing fix
+    -- variables by the full fix expression.
+    unwindCtxt = annMap fst . T.transform (\(Fix (Ann (a, ctxt) e)) -> case e of
+      EFix _ e -> e
+      EVar v -> case M.lookup v ctxt of
+        Nothing -> Fix $ Ann (a, ctxt) (EVar v)
+        Just e' -> annMap (\a -> (a, M.empty)) e'
+      _ -> Fix $ Ann (a, ctxt) e)
+    -- Build up a context per subexpression which indicates how to replace fix variables.
+    mkCtxt = annZip . inherit (\(Fix (Ann a e)) ctxt -> case e of
+      EFix x e -> M.insert x (Fix (Ann a (EFix x e))) ctxt
+      ELam x _ -> M.delete x ctxt
+      _ -> ctxt) M.empty
 
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
