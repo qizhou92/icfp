@@ -127,9 +127,6 @@ subtype constraint witnesses t' t =
       F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|])
         (lastN toTake vars1)
         (lastN toTake vars2))
-      
-subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
-subtype = subtype' False
 
 topPredicate :: HORT -> Nonterminal
 topPredicate = (\(Node (c, _) _) -> c) . getHORT

@@ -177,11 +177,20 @@ attach = synthetiseM (\e -> do
   put (x+1)
   pure x)
 
-unwind :: Attr CoreExpr' a  -> Attr CoreExpr' a
-unwind = T.transform (\(Ann v e) -> unwindFixExpr e)
-
-unwindFixExpr :: CoreExpr -> CoreExpr 
-unwindFixExpr = undefined 
+unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
+unwindFix ex = runReader (unw ex) M.empty
+  where
+    unw (Fix node@(Ann a e')) = case e' of
+      -- In the case of a fix expression, unwind with the fix expression in the
+      -- context, removing the Fix.
+      EFix x e -> local (M.insert x node) (unw e)
+      -- In the case of a lambda expression, remove the matched fix variable
+      -- from the context before recursing over the subexpressions.
+      ELam x e -> T.descendM (local (M.delete x) . unw) (Fix node)
+      -- In the case of a variable try to replace it by value in the context.
+      EVar x -> Fix . M.findWithDefault node x <$> ask
+      -- In all other cases, recurse over the subexpressions.
+      _ -> T.descendM unw (Fix node)
 
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
