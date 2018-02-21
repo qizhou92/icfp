@@ -90,9 +90,9 @@ solvePair q s1 s2 =
 basicPlot :: String -> IO ()
 basicPlot s = do
   let g = runVocab $ parseG s
-  -- let gs = runVocab (simplify g)
+  let gs = simplify g
   plot "basic" g
-  -- plot "simplified" gs
+  plot "simplified" gs
 
 -- testSum = "fix sum. \\n. if (n < 0)" ++
 --                            "(n + sum (n + 1))" ++
@@ -109,6 +109,12 @@ testSumF =
 -- Fix addFunction = \f1 \f2 \x \y if x<=0 (f2 x) else (addFunction f1 (f1 x) (x-1)(y+1) ) (edited)
 addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
                 "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1) (y+1))"
+
+qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+
+qiTest2 =
+  let addF = "fix f . \\f1.\\f2.\\x.(f f1 (f1 x) (x-1))"
+  in "(" ++ addF ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
 
 
 mytest f1 f2 x y =
