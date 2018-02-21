@@ -178,21 +178,19 @@ attach = synthetiseM (\e -> do
   pure x)
 
 unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
-unwindFix = unwindCtxt . mkCtxt
+unwindFix ex = runReader (unw ex) M.empty
   where
-    -- Unwind based on the context, removing fix expressions and replacing fix
-    -- variables by the full fix expression.
-    unwindCtxt = annMap fst . T.transform (\(Fix (Ann (a, ctxt) e)) -> case e of
-      EFix _ e -> e
-      EVar v -> case M.lookup v ctxt of
-        Nothing -> Fix $ Ann (a, ctxt) (EVar v)
-        Just e' -> annMap (\a -> (a, M.empty)) e'
-      _ -> Fix $ Ann (a, ctxt) e)
-    -- Build up a context per subexpression which indicates how to replace fix variables.
-    mkCtxt = annZip . inherit (\(Fix (Ann a e)) ctxt -> case e of
-      EFix x e -> M.insert x (Fix (Ann a (EFix x e))) ctxt
-      ELam x _ -> M.delete x ctxt
-      _ -> ctxt) M.empty
+    unw (Fix node@(Ann a e')) = case e' of
+      -- In the case of a fix expression, unwind with the fix expression in the
+      -- context, removing the Fix.
+      EFix x e -> local (M.insert x node) (unw e)
+      -- In the case of a lambda expression, remove the matched fix variable
+      -- from the context.
+      ELam x e -> (Fix . Ann a . ELam x) <$> local (M.delete x) (unw e)
+      -- In the case of a variable try to replace it by value in the context.
+      EVar x -> Fix . M.findWithDefault node x <$> ask
+      -- In all other cases, recurse over the subexpressions.
+      _ -> T.descendM unw (Fix node)
 
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
