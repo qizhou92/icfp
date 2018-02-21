@@ -6,7 +6,6 @@ import Control.Monad.State
 import qualified Language.TypeInference as TI
 import           Language.HOTypeInference
 import           Language.Types
-import           Language.UniqueNames
 import           Language.Parser
 
 import           Text.Parsec

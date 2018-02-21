@@ -4,7 +4,8 @@ import           Control.Lens hiding (para)
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
-import           Data.Data.Lens 
+
+import           Data.Data.Lens
 import           Data.Data (Data)
 import           Data.Set (Set)
 import qualified Data.Set as S
@@ -15,9 +16,11 @@ import           Data.Text.Prettyprint.Doc hiding ((<>))
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Morphisms
 import           Data.Generics.Fixplate.Attributes
-import           Data.Generics.Fixplate.Attributes
 import qualified Data.Generics.Fixplate.Traversals as T
+
 import           GHC.Exts(IsString(..))
+
+import           Formula (MonadVocab, fresh, fetch)
 
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
@@ -25,8 +28,6 @@ type Bind    = (Var, CoreExpr)
 newtype Var = Var { getVar :: String }
   deriving (Show, Read, Eq, Ord, Data)
 instance Pretty Var where pretty (Var v) = pretty v
-
-type TV = String
 
 data Type
   = TVar Var
@@ -42,16 +43,11 @@ data Type
 instance Plated Type where plate = uniplate
 
 isPrimitiveType :: Type -> Bool
-isPrimitiveType TInt = True
-isPrimitiveType TBool = True
-isPrimitiveType (TArr _ _) = False
-isPrimitiveType _ = error "currently not support (isPrimitiveType in Types.hs)"
-
-types :: Data a => Traversal' a Type
-types = biplate
-
-data Scheme = Forall [Type] Type
-  deriving (Show, Read, Eq, Ord, Data)
+isPrimitiveType = \case
+  TInt -> True
+  TBool -> True
+  (TArr _ _) -> False
+  _ -> error "currently not support (isPrimitiveType in Types.hs)"
 
 data CoreExpr' a
   = ENil
@@ -125,8 +121,7 @@ instance Pretty CoreExpr where
     ECon x y         -> parens (p "con" <+> x <+> y)
     EMatch e n x y c ->
       p "match" <+> e <+> p "with" <+>
-        braces (p "Nil ->" <+> n <> p "; Cons" <+> p x <+> p y <+> p "->" <+> c)
-    )
+        braces (p "Nil ->" <+> n <> p "; Cons" <+> p x <+> p y <+> p "->" <+> c))
     where p = pretty
 
 instance IsString CoreExpr where fromString x = evar (Var x)
@@ -151,31 +146,41 @@ prettyCtxt (Ann ctx _) = show ctx
 freeVars :: Attr CoreExpr' a -> Attr (Ann CoreExpr' a) (Set Var)
 freeVars = synthetise (\(Ann _ e) -> case e of
   -- In the case of a variable, add that variable as a free variable.
-  EVar v              -> S.singleton v
+  EVar v                 -> S.singleton v
   -- In the case of 'let', 'lambda', and 'fix' expressions, variables
   -- which are bound are no longer free.
-  ELet v _ vs         -> S.delete v vs
-  ELam v vs           -> S.delete v vs
-  EFix v vs           -> S.delete v vs
+  ELet v _ vs            -> S.delete v vs
+  ELam v vs              -> S.delete v vs
+  EFix v vs              -> S.delete v vs
   -- The match expression is the most complex. Remove the bound variables
   -- from the 'cons' case, but keep all free variables from the matched
   -- expression and the 'nil' case.
-  EMatch tar nc v1 v2 cc ->
-    tar <> nc <> S.delete v1 (S.delete v2 cc)
+  EMatch tar nc v1 v2 cc -> tar <> nc <> S.delete v1 (S.delete v2 cc)
   -- All other expressions propogate the transitive closure.
-  EBin _ e1 e2     -> e1 <> e2
-  EIf c t e        -> c <> t <> e
-  EApp e1 e2       -> e1 <> e2
-  ECon a b         -> a <> b
-  EInt _           -> S.empty
-  EBool _          -> S.empty
-  ENil             -> S.empty)
+  EBin _ e1 e2           -> e1 <> e2
+  EIf c t e              -> c <> t <> e
+  EApp e1 e2             -> e1 <> e2
+  ECon a b               -> a <> b
+  EInt _                 -> S.empty
+  EBool _                -> S.empty
+  ENil                   -> S.empty)
 
-attach :: MonadState Int m => Attr CoreExpr' a -> m (Attr (Ann CoreExpr' a) Int)
-attach = synthetiseM (\e -> do
+type ExprID = Int
+
+numberExpressions :: MonadState ExprID m
+                  => CoreExpr -> m (Attr CoreExpr' ExprID)
+numberExpressions = synthetiseM (\e -> do
   x <- get
   put (x+1)
   pure x)
+
+-- | Use alpha renaming to ensure every binding binds a different variable.
+uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
+uniqueNames = T.topDownTransformM (\(Fix node@(Ann a e)) -> case e of
+  EVar (Var x) -> Fix . Ann a . EVar . Var <$> fetch x
+  ELam (Var x) e -> (Fix . Ann a) <$> (ELam <$> (Var <$> fresh x) <*> pure e)
+  EFix (Var x) e -> (Fix . Ann a) <$> (EFix <$> (Var <$> fresh x) <*> pure e)
+  e' -> pure (Fix node))
 
 unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
 unwindFix ex = runReader (unw ex) M.empty
@@ -195,20 +200,18 @@ unwindFix ex = runReader (unw ex) M.empty
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
 boundVars = attribute . synthetise (\(Ann _ e) -> case e of
-  EVar v              -> S.empty
-  ELam v vs           -> S.insert v vs
-  EFix v vs           -> vs
+  EVar v                 -> S.empty
+  ELam v vs              -> S.insert v vs
+  ELet v _ vs            -> S.insert v vs
+  EFix v vs              -> vs
   EMatch tar nc v1 v2 cc -> S.fromList [v1, v2] <> tar <> nc <> cc
-  ELet _ _ vs         -> vs
-  EBin _ e1 e2     -> e1 <> e2
-  EIf c t e        -> c <> t <> e
-  EApp e1 e2       -> e1 <> e2
-  ECon a b         -> a <> b
-  EInt _           -> S.empty
-  EBool _          -> S.empty
-  ENil             -> S.empty)
+  EBin _ e1 e2           -> e1 <> e2
+  EIf c t e              -> c <> t <> e
+  EApp e1 e2             -> e1 <> e2
+  ECon a b               -> a <> b
+  EInt _                 -> S.empty
+  EBool _                -> S.empty
+  ENil                   -> S.empty)
 
 emptyAttr :: CoreExpr -> Attr CoreExpr' ()
 emptyAttr = synthetise (const ())
-
-

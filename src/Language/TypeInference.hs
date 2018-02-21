@@ -5,6 +5,8 @@ import           Control.Lens
 import           Control.Monad.Except
 import           Control.Monad.State
 import           Control.Monad.Writer
+
+import           Data.Data.Lens
 import           Data.Data (Data)
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -12,8 +14,6 @@ import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Attributes
 
 import           Language.Types
-
-import Debug.Trace
 
 data InferenceError
   = UnificationError Type Type
@@ -31,11 +31,8 @@ type Ctxt = Map Var Type
 type Infer a = StateT InferenceState (Either InferenceError) a
 
 typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' (Ctxt, Type))
-typeCheck e = evalStateT (do
-  e' <- contextualize e >>= infer
-  s <- get
-  mapM_ (traceM . show) (M.toList (s ^. typeTable))
-  resolve e')
+typeCheck e = evalStateT
+  (contextualize e >>= infer >>= resolve)
   (InferenceState 0 M.empty)
 
 -- | When two types are the same, ensure they are eventually the same. This involves
@@ -98,8 +95,7 @@ contextualize = inheritM (\e ctxt -> case e of
   Fix (ELam x _) -> do
     s <- freshType
     pure (M.insert x s ctxt)
-  _ -> pure ctxt
-  ) M.empty
+  _ -> pure ctxt) M.empty
 
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not
@@ -118,9 +114,7 @@ infer = fmap annZip .
   ENil -> TList <$> freshType
 
   -- A + (x : t) => x : t
-  EVar x -> case M.lookup x ctxt of
-    Nothing -> throwError (UnboundError x)
-    Just t  -> pure t
+  EVar x -> search x ctxt
 
   -- A => o : r -> s -> t, A => e : r, A => e' : s
   -- ------------------------------------------
@@ -150,18 +144,13 @@ infer = fmap annZip .
   -- A + (x : s) => e : t
   -- -------------------
   -- A => \x.e : s -> t
-  ELam x t -> case M.lookup x ctxt of
-    Nothing -> throwError (UnboundError x)
-    Just s -> pure (s `TArr` t)
+  ELam x t -> (`TArr` t) <$> search x ctxt
 
-  -- A + (x : s) => e : t
-  -- -------------------
-  -- A => fix x.e : s -> t
-  EFix x t -> pure t
-  -- case M.lookup x ctxt of
-  --   Nothing -> throwError (UnboundError x)
-  --   Just s -> pure (s `TArr` t))
-  )
+  EFix x t -> pure t)
+  where
+    search x ctxt = case M.lookup x ctxt of
+      Nothing -> throwError (UnboundError x)
+      Just s -> pure s
 
 opType :: Binop -> Infer Type
 opType b
@@ -173,9 +162,6 @@ opType b
   | b `elem` [And, Or] = pure (TBool `TArr` (TBool `TArr` TBool))
   -- | b == Cons = let a = TVar "a" in Forall [a] (a `TArr` (TList a `TArr` TList a))
   | otherwise = error ("unknown binop " ++ show b)
-
--- binScheme :: Type -> Type -> Type -> Scheme
--- binScheme t1 t2 t3 = Forall [] (TArr t1 (TArr t2 t3))
 
 -- resugarMatch :: CoreExpr -> CoreExpr
 -- resugarMatch = rewrite (\case
@@ -200,6 +186,6 @@ opType b
 --     isConsMatch _ _ = Nothing
 
 listToFix :: Data a => a -> a
-listToFix = types %~ rewrite (\case
+listToFix = biplate %~ rewrite (\case
   TList t -> Just $ TFix (Var "VList") (TPlus TNil (TProduct t (TVar (Var "VList"))))
   _ -> Nothing)
