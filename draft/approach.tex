@@ -466,7 +466,13 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     % empty:
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma, \gamma \judges \cdot : \gamma } \qquad
+      \Gamma, \gamma \judges \cdot : \gamma } 
+    % unit:
+    \inference[ UNIT ]{
+      % get types for remainder,
+      \Gamma, \gamma \judges E : \tau }{ %
+      \Gamma, \gamma \judges \upd{ E }{ p }{ \unit } : \tau %
+    } 
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
@@ -477,7 +483,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     \inference[ VAR ]{ %
       \Gamma, \gamma \judges E : \tau }{ %
       \Gamma, \gamma \judges \upd{ E }{ p }{ a } : %
-      \tau \joinctr p \equiv a } \qquad
+      \tau \joinctr p \equiv a } 
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
@@ -493,7 +499,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
       \Gamma, \gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
       \Gamma, \gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
-      \gamma \to_p \tau } \qquad
+      \gamma \to_p \tau } 
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
@@ -510,7 +516,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
       \rightchild \cons p \mapsto e_1 ] : \tau }{
       % then type of pair is
       \Gamma, \gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
-      \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } \qquad
+      \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } 
     % let:
     \inference[ LET ]{
       % get type of bound expression,
@@ -527,7 +533,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
       \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
       \Gamma, \gamma \judges \upd{E}{p}{ \injl\ e} : %
-      \tau +_{p, p}^p \tau' } \qquad
+      \tau +_{p, p}^p \tau' } 
     % right injection:
     \inference[ RIGHT ]{
       % get type of the nested exp,
@@ -546,7 +552,7 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
       \Gamma, \gamma'' \judges \upd{E}{p}{e_2} : \tau }{
       % then type of match exp is type of both branches,
       \Gamma, \gamma \judges %
-      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } \qquad
+      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } 
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
@@ -559,13 +565,13 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     \inference[ FVAR ]{ }{
       % the empty map of expressions has relational type true
       \Gamma, \gamma \judges p \mapsto f : %
-      \Gamma(f) \joinctr p \equiv f} \qquad
+      \Gamma(f) \joinctr p \equiv f} 
     % unfold:
-    \inference[ UN ]{
+    \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
       \Gamma, \gamma \judges E : \unfold{\tau} }{ 
       % then expressions have folded type
-      \Gamma, \gamma \judges E : \tau } \qquad
+      \Gamma, \gamma \judges E : \tau } 
     % subtype:
     \inference[ SUB ]{
       % if expressions have tau,
@@ -604,10 +610,14 @@ relational least-fixed-point types and using the subtype relation.
 Rule~EMPTY establishes that under contextual relational type $\gamma$,
 the empty positioned expressions (denoted $\cdot$) have type $\gamma$.
 
+% unit:
+Rule~UNIT establishes that if positioned expressions $E$ have type
+$\tau$, then $E$ extended to bind position $p$ to the unit have type
+$\tau$.
 % const:
-Rule~CONST establishes that if positioned expressions $E$ have type
-$\tau$, then $E$ extended to bind position $p$ to constant $c$ have
-type $\tau$ refined to equate $p$ with $c$.
+Rule~CONST establishes that if $E$ have type $\tau$, then $E$ extended
+to bind $p$ to constant $c$ have type $\tau$ refined to equate $p$
+with $c$.
 % variables:
 Rule~VAR establishes that if $E$ have type $\tau$, then $E$ extended
 to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
@@ -694,17 +704,38 @@ then $E$ has type $\tau$.
 Rule~SUB establishes that if $E$ has type $\tau$ a subtype of $\tau'$,
 then $E$ has type $\tau'$.
 
+% main lemma of the typing system:
+The typing relation is preserved by the evaluation relation.
+%
+\begin{lemma}
+  \label{lemma:preservation}
+  For all $e_0, \ldots, e_n$, $v_0, \ldots, v_n \in \values$ such that
+  $v_0 \evalsto v_0, \ldots, e_n \evalsto v_n$, and
+  $\tau \in \reltypes{e_0, \ldots, e_n}$ such that
+  $e_0, \ldots, e_n : \tau$, it holds that $v_0, \ldots, v_n : \tau$.
+\end{lemma}
+%
+One proof of \autoref{lemma:preservation} uses proof by induction on
+%
+\BH{complete}
+
+\subsection{Inferring relational refinement types}
+\label{sec:infer}
+%
+A key contribution of our work is a type-inference algorithm for
+relational refinement types, named \sys.
+%
+\sys, given expressions $e_0, \ldots, e_n$ and relational refinement
+type $\tau$, attempts to determine if $e_0, \ldots, e_n : \tau$.
+%
+This section defines bounded unfoldings of expressions, which are
+maintained by \sys (\autoref{sec:bnd-unfoldings}).
+
+\subsubsection{Bounded unfoldings of expressions}
+\label{sec:bnd-unfoldings}
+
 % types as proving equivalence:
 \BH{deprecated}
-
-\BH{state main soundness result}
-% 
-\sys, given programs $P_0$ and $P_1$, attempts to synthesize a proof
-that $P_0 \equiv P_1$ as a proof that $\elts{ P_0, P_1 } :
-\tau_{\equiv}$.
-%
-For the rest of this section, let $P_0, P_1 \in \stlc$ be two fixed,
-arbitrary $\stlc$ programs.
 
 % structures maintained by inference algorithm. Unfoldings:
 \sys attempts to extract a proof that $P_0, P_1 : \tau_{\equiv}$ from
@@ -803,8 +834,8 @@ If $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv P_1$.
 partial equivalence by synthesizing inductive unfolded relational
 types.
 
-\subsection{Inferring relational types}
-\label{sec:infer-rel-types}
+\subsubsection{A relational type-inference algorithm}
+\label{sec:infer-alg}
 
 \begin{figure}
   \centering

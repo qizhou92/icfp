@@ -94,7 +94,6 @@ Let $P$ be fixed for the rest of this section.
 % define semantics:
 \paragraph{Semantics}
 %
-%
 A value is the unit, a constant, an abstraction, a pair of values, a
 left-injection of a value, or a right-injection of a value;
 %
@@ -197,19 +196,20 @@ formulas in formal logic.
 Let the space of \emph{refinement values} be
 $\fovals = \consts \union \elts{ \injl\ \unit, \injr\ \unit }$.
 %
-Let $\mathcal{T}$ be a theory whose vocabularly whose constants are
-the program constants, $\injl\ \unit$, and $\injr\ \unit$, and whose
-binary functions are the space of binary operators.
+Let the \emph{refinement theory} $\mathcal{T}$ be a logical theory
+with equality with a vocabularly whose constants are the program
+constants, $\injl\ \unit$, and $\injr\ \unit$, and whose binary
+functions are the space of binary operators.
 %
-Each model of $\mathcal{T}$ is isomorphic the domain $\fovals$ and the
-semantic functions $\interp{\oplus}$ for each binary operation
+Each model of $\mathcal{T}$ is isomorphic to the domain $\fovals$ and
+the semantic functions $\interp{\oplus}$ for each binary operation
 $\oplus$.
 %
 For practical languages modeled by $\expr$, $\mathcal{T}$ may be,
-e.g., quantifier-free fragment of the theory of linear arithmetic,
+e.g., the quantifier-free fragment of the theory of linear arithmetic,
 where $\consts$ is the space of integers, $\injl\ \unit$ and
 $\injr\ \unit$ model true and false, and the space of binary operators
-contains sum and the less-than-or-equal comparitor.
+contains plus and the less-than-or-equal comparitor.
 
 % define spaces of formulas:
 For each space of logical variables $X$, the space of $\mathcal{T}$
