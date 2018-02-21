@@ -4,7 +4,7 @@ module Language.TypeInference where
 import           Control.Lens
 import           Control.Monad.Except
 import           Control.Monad.State
-
+import           Control.Monad.Writer
 import           Data.Data (Data)
 import           Data.Map (Map)
 import qualified Data.Map as M

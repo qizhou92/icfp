@@ -2,8 +2,9 @@ module Language.Types where
 
 import           Control.Lens hiding (para)
 import           Control.Monad.Reader
-
-import           Data.Data.Lens
+import           Control.Monad.State
+import           Control.Monad.Writer
+import           Data.Data.Lens 
 import           Data.Data (Data)
 import           Data.Set (Set)
 import qualified Data.Set as S
@@ -14,7 +15,8 @@ import           Data.Text.Prettyprint.Doc hiding ((<>))
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Morphisms
 import           Data.Generics.Fixplate.Attributes
-
+import           Data.Generics.Fixplate.Attributes
+import qualified Data.Generics.Fixplate.Traversals as T
 import           GHC.Exts(IsString(..))
 
 type Program = [Bind]
@@ -169,6 +171,30 @@ freeVars = synthetise (\(Ann _ e) -> case e of
   EBool _          -> S.empty
   ENil             -> S.empty)
 
+attach :: MonadState Int m => Attr CoreExpr' a -> m (Attr (Ann CoreExpr' a) Int)
+attach = synthetiseM (\e -> do
+  x <- get
+  put (x+1)
+  pure x)
+
+unwind :: Attr CoreExpr' a -> Attr CoreExpr' a
+unwind = T.transform (\(Ann _ e) -> case e of
+  EVar v -> EVar v
+  ELet v v1 v2 -> ELet v v1 v2
+  ELam v vs    -> ELam v vs
+  EFix v vs    -> unwindFixExpr (EFix v vs)
+  EMatch tar nc v1 v2 cc -> EMatch tar nc v1 v2 cc
+  EBin b e1 e2     -> EBin b e1 e2
+  EIf c t e        -> EIf c t e
+  EApp e1 e2       -> EApp e1 e2 
+  ECon a b         -> ECon a b
+  EInt i           -> EInt i
+  EBool b          -> EBool b  
+  ENil             -> ENil)
+
+unwindFixExpr :: Attr CoreExpr' a -> Attr CoreExpr' a
+unwindFixExpr = undefined 
+
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
 boundVars = attribute . synthetise (\(Ann _ e) -> case e of
@@ -187,3 +213,5 @@ boundVars = attribute . synthetise (\(Ann _ e) -> case e of
 
 emptyAttr :: CoreExpr -> Attr CoreExpr' ()
 emptyAttr = synthetise (const ())
+
+
