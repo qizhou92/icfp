@@ -16,8 +16,6 @@ import           Grammar
 import qualified Formula as F
 import           Formula (MonadVocab, fetch, fresh)
 
-import Debug.Trace
-
 data HORT = HORT
   -- the type list is the list of flat basic type
   { getHORT :: Tree (Nonterminal, [Type])
@@ -71,11 +69,9 @@ freshType varTypes freeVars exprType = do
 
 convertToFix :: Set Var -> HORT -> HORT -> HORT
 convertToFix bound ref (HORT (Node (Nonterminal iden vs, ts) sub) t)  =
-  let tmp =
-        HORT (Node (Nonterminal (PhantomID (primaryID iden)
-                                           (nonterminalPrimary $ topPredicate ref)
-                                           (map getVar (S.toList bound))) vs, ts) sub) t
-  in traceShow tmp tmp
+  HORT (Node (Nonterminal (PhantomID (primaryID iden)
+                                     (nonterminalPrimary $ topPredicate ref)
+                                     (map getVar (S.toList bound))) vs, ts) sub) t
 
 flattenType :: Type -> [Type]
 flattenType = \case

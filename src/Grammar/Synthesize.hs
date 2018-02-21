@@ -13,10 +13,8 @@ import           Formula hiding (Rule)
 import qualified Formula.Z3 as Z3
 import           Grammar.Grammar
 
-import Debug.Trace
-
 synthesizeInvariants :: Set Symbol -> Clones -> Grammar -> Map Symbol Expr -> Map Symbol (Expr, Expr)
-synthesizeInvariants ind cs (Grammar start rs') m = traceShow ind $ evalState (rec L start) S.empty
+synthesizeInvariants ind cs (Grammar start rs') m = evalState (rec L start) S.empty
   where
     rs = filter (all (`elem` ind) . ruleSymbols) rs'
     rec dir = visit M.empty (\sym ->
