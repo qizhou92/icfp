@@ -59,6 +59,7 @@ addSymbolToSet :: Map (Symbol, Symbol) Symbol -> (Symbol,Symbol) -> S.Set Symbol
 addSymbolToSet fromPairToProduct pairs oldSet = case (M.lookup pairs fromPairToProduct) of
   Nothing -> error "addSymbolToSet has an error in Solve.hs"
   Just s  -> S.insert s oldSet
+
 exprGrammar :: Attr CoreExpr' ExprID -> IO (Clones, Grammar)
 exprGrammar e =
   case TI.typeCheck e of

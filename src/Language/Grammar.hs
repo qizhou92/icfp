@@ -7,6 +7,7 @@ import qualified Language.TypeInference as TI
 import           Language.HOTypeInference
 import           Language.Types
 import           Language.Parser
+import qualified Language.Solve as S
 
 import           Text.Parsec
 import           Data.Generics.Fixplate.Draw
@@ -22,74 +23,83 @@ import qualified Formula as F
 -- | Given an expression, generate a grammar of type constraints which expresses
 -- relationships between the types of subexpressions and the top level expression,
 -- obeying the judgement rules of higher order refinement types.
-exprGrammar :: F.MonadVocab m => CoreExpr -> m (Either InferenceError Grammar)
-exprGrammar e = do
-  g <- uniqueNames e
-  pure $ case TI.typeCheck g of
-    Left (TI.UnificationError t1 t2) -> Left (UnificationError t1 t2)
-    Left (TI.UnboundError x) -> Left (UnboundError x)
-    Right e' -> typeConstraints e'
+-- exprGrammar :: F.MonadVocab m => CoreExpr -> m (Either InferenceError Grammar)
+-- exprGrammar e = do
+--   g <- uniqueNames e
+--   pure $ case TI.typeCheck g of
+--     Left (TI.UnificationError t1 t2) -> Left (UnificationError t1 t2)
+--     Left (TI.UnboundError x) -> Left (UnboundError x)
+--     Right e' -> typeConstraints e'
 
-test :: String
-test = "(\\f.\\x.f x)(\\y.y+1)3"
+-- test :: String
+-- test = "(\\f.\\x.f x)(\\y.y+1)3"
 
-testIf :: String
-testIf = "(\\x.if (x < 3) true false)2"
+-- testIf :: String
+-- testIf = "(\\x.if (x < 3) true false)2"
 
-testFix :: String
-testFix = "(fix f. \\x. if (x < 0) 0 (1 + (f (x-1))))"
+-- testFix :: String
+-- testFix = "(fix f. \\x. if (x < 0) 0 (1 + (f (x-1))))"
+
+-- parseG :: F.MonadVocab m => String -> m Grammar
+-- parseG s = exprGrammar (parseE s) >>= \case
+--   Left e -> error (show e)
+--   Right g -> pure g
+
+-- pipeline :: String -> IO ()
+-- pipeline e = plot "tmp" (runVocab $ parseG e)
+
+-- pipelineSimp :: String -> IO ()
+-- pipelineSimp e = plot "simp" (simplify (runVocab $ parseG e))
+
+-- drawTypes :: String -> IO ()
+-- drawTypes s =
+--   let ex = parseE s
+--   in case TI.typeCheck (runVocab $ uniqueNames ex) of
+--     Left e -> print e
+--     Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
+
+-- drawBasicCtxt :: String -> IO ()
+-- drawBasicCtxt s =
+--   let ex = parseE s
+--   in case evalStateT (TI.contextualize $ runVocab $ uniqueNames ex)
+--     (TI.InferenceState 0 M.empty) of
+--       Left e -> print e
+--       Right g -> drawTreeWith (\(Ann t _) -> show t) g
+
+-- solvePair :: F.Expr -> String -> String -> IO ()
+-- solvePair q s1 s2 =
+--   F.runVocabT $ do
+--     g1 <- simplify <$> parseG s1
+--     g2 <- simplify <$> parseG s2
+--     let g = simplify (Grammar.product g1 g2)
+--     -- let g = Grammar.product g1 g2
+--     liftIO $ print (_grammarStart g1)
+--     plot "g1" g1
+--     liftIO $ print (_grammarStart g)
+--     plot "tmp" g
+--     plot "unwound" =<< (snd <$> (unwindAll =<< unwindAll =<< unwindAll (mempty, g1)))
+--     solve mempty g q >>= \case
+--       Left e -> liftIO $ print e
+--       Right m ->
+--         liftIO $ mapM_ (print . pretty) (M.toList m)
+
+-- basicPlot :: String -> IO ()
+-- basicPlot s = do
+--   let g = runVocab $ parseG s
+--   let gs = simplify g
+--   plot "basic" g
+--   plot "simplified" gs
 
 parseE :: String -> CoreExpr
 parseE s = case parse parseExpr "" s of
   Left e -> error (show e)
   Right ex -> ex
 
-parseG :: F.MonadVocab m => String -> m Grammar
-parseG s = exprGrammar (parseE s) >>= \case
-  Left e -> error (show e)
-  Right g -> pure g
-
-pipeline :: String -> IO ()
-pipeline e = plot "tmp" (runVocab $ parseG e)
-
-pipelineSimp :: String -> IO ()
-pipelineSimp e = plot "simp" (simplify (runVocab $ parseG e))
-
-drawTypes :: String -> IO ()
-drawTypes s =
-  let ex = parseE s
-  in case TI.typeCheck (runVocab $ uniqueNames ex) of
-    Left e -> print e
-    Right g -> drawTreeWith (\(Ann (_, t) _) -> show t) g
-
-drawBasicCtxt :: String -> IO ()
-drawBasicCtxt s =
-  let ex = parseE s
-  in case evalStateT (TI.contextualize $ runVocab $ uniqueNames ex)
-    (TI.InferenceState 0 M.empty) of
-      Left e -> print e
-      Right g -> drawTreeWith (\(Ann t _) -> show t) g
-
-solvePair :: F.Expr -> String -> String -> IO ()
-solvePair q s1 s2 =
-  F.runVocabT $ do
-    g1 <- simplify <$> parseG s1
-    g2 <- simplify <$> parseG s2
-    let g = simplify (Grammar.product g1 g2)
-    -- let g = Grammar.product g1 g2
-    liftIO $ print (_grammarStart g1)
-    plot "g1" g1
-    liftIO $ print (_grammarStart g)
-    plot "tmp" g
-    plot "unwound" =<< (snd <$> (unwindAll =<< unwindAll =<< unwindAll (mempty, g1)))
-    solve mempty g q >>= \case
-      Left e -> liftIO $ print e
-      Right m ->
-        liftIO $ mapM_ (print . pretty) (M.toList m)
-
-basicPlot :: String -> IO ()
-basicPlot s = do
-  let g = runVocab $ parseG s
+basicPlotE :: CoreExpr -> IO ()
+basicPlotE ex = do
+  let ex' = runVocab $ uniqueNames $ unwindFix (evalState (numberExpressions ex) 0)
+  print (pretty (forget ex'))
+  (cs, g) <- S.exprGrammar ex'
   let gs = simplify g
   plot "basic" g
   plot "simplified" gs
