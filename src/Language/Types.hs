@@ -185,8 +185,8 @@ unwindFix ex = runReader (unw ex) M.empty
       -- context, removing the Fix.
       EFix x e -> local (M.insert x node) (unw e)
       -- In the case of a lambda expression, remove the matched fix variable
-      -- from the context.
-      ELam x e -> (Fix . Ann a . ELam x) <$> local (M.delete x) (unw e)
+      -- from the context before recursing over the subexpressions.
+      ELam x e -> T.descendM (local (M.delete x) . unw) (Fix node)
       -- In the case of a variable try to replace it by value in the context.
       EVar x -> Fix . M.findWithDefault node x <$> ask
       -- In all other cases, recurse over the subexpressions.
