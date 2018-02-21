@@ -106,16 +106,16 @@ $\interp{\oplus} : \consts \times \consts \to \consts$.
   \centering
   \begin{gather*}
     % unit,
-  \inference[ UNIT ]{ }{ \unit \evalsto \unit } \qquad
+  \inference[ UNIT ]{ }{ \unit \evalsto \unit } 
   % evaluate const:
-  \inference[ CONST ]{ }{ c \evalsto c } \qquad
+  \inference[ CONST ]{ }{ c \evalsto c } 
   % evaluate binary operations:
   \inference[ OP ]{ %
     e_0 \evalsto c_0 & %
     e_1 \evalsto c_1 }{ %
     e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } \\
   % abstraction, 
-  \inference[ ABS ]{ }{ \lambda x.\ e \evalsto \lambda x.\ e } \qquad
+  \inference[ ABS ]{ }{ \lambda x.\ e \evalsto \lambda x.\ e } 
   % application,
   \inference[ APP ]{ %
     e_0 \evalsto \lambda x.\ e_0' & %
@@ -127,7 +127,7 @@ $\interp{\oplus} : \consts \times \consts \to \consts$.
     % evaluate components,
     e_0 \evalsto v_0 & e_1 \evalsto v_1 }{ %
     % pair them up to get final result
-    \pair{ e_0 }{ e_1 } \evalsto (v_0, v_1) } \qquad
+    \pair{ e_0 }{ e_1 } \evalsto (v_0, v_1) } 
   % let,
   \inference[ LET ]{
     % evaluate bound expression,
@@ -137,21 +137,21 @@ $\interp{\oplus} : \consts \times \consts \to \consts$.
     \letexp{x}{y}{e_0}{e_1} \evalsto v_1 } \\
   % inject left,
   \inference[ INJL ]{ e \evalsto v }{ %
-    \injl\ e \evalsto \injl\ v } \qquad
-  % inject right,
-  \inference[ INJR ]{ e \evalsto v }{ \injr\ e \evalsto \injr\ v } \\
+    \injl\ e \evalsto \injl\ v } 
   % match left injection,
   \inference[ MATCHL ]{
     % evaluate target exp to a left injection,
     e_0 \evalsto \injl\ v_0 &
     \replace{ e_1 }{ x }{ v_0 } \evalsto v_1 }{ %
-    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_1 }
+    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_1 } \\
+  % inject right,
+  \inference[ INJR ]{ e \evalsto v }{ \injr\ e \evalsto \injr\ v }
   % match right injection,
   \inference[ MATCHR ]{
     % evaluate target exp to a left injection,
     e_0 \evalsto \injr\ v_0 &
     \replace{ e_2 }{ y }{ v_0 } \evalsto v_2 }{ %
-    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } \\
+    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } 
   % fix:
   \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{ e } } \evalsto v } %
   { \fix{ f }{ e } \evalsto v }

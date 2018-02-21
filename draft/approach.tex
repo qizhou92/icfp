@@ -728,19 +728,28 @@ relational refinement types, named \sys.
 \sys, given expressions $e_0, \ldots, e_n$ and relational refinement
 type $\tau$, attempts to determine if $e_0, \ldots, e_n : \tau$.
 %
-This section defines bounded unfoldings of expressions, which are
-maintained by \sys (\autoref{sec:bnd-unfoldings}).
+This section defines collections of relational refinement types over
+sub-expressions maintained by \sys (\autoref{sec:bnd-unfoldings}).
+%
+The section then defines a type-inference algorithm that synthesizes
+such collections of relational refinement types
+(\autoref{sec:infer-alg}).
 
-\subsubsection{Bounded unfoldings of expressions}
+\subsubsection{Relational types of sub-expressions}
 \label{sec:bnd-unfoldings}
-
-% types as proving equivalence:
-\BH{deprecated}
+%
+\sys, given expressions $e_0, \ldots, e_n$ and relational type
+$\tau \in \reltypes{e_0, \ldots, e_n}$, attempts to determine if
+$e_0, \ldots, e_n : \tau$ by finding types for non-recursive
+expressions that under-approximate the behaviors of
+$e_0, \ldots, e_n$.
+%
+Expression $e \in \expr$ is \emph{bounded} if it does not contain a
+sub-expression of the form $\fix{f}{e'}$ for some $f \in \fixvars$ and
+$e' \in \expr$.
 
 % structures maintained by inference algorithm. Unfoldings:
-\sys attempts to extract a proof that $P_0, P_1 : \tau_{\equiv}$ from
-a map from sets of \emph{unfoldings} of sub-expressions of $P_0$
-and $P_1$ to candidate relational types.
+\BH{update this}
 %
 \begin{defn}
   \label{defn:unfoldings}
@@ -761,80 +770,8 @@ and $P_1$ to candidate relational types.
 %
 \BH{give examples}
 
-% invariant structure:
-\BH{rename this}
-%
-Partial relational invariants assign sets of subexpressions to
-relational types.
-%
-\begin{defn}
-  \label{defn:inferred-invs}
-  Let
-  \begin{itemize}
-  \item 
-    % subexpressions of unfoldings:
-    $\mathcal{E} \subseteq \pset(\subexps{ \unfoldings{P_0} } \union
-      \subexps{\unfoldings{P_1} })$;
-  \item
-    % context types:
-    \BH{update}
-  \item
-    % relational types of subexpressions:
-    \BH{update}
-  \end{itemize}
-  %
-  be such that 
-  \begin{itemize}
-  \item 
-    % set of programs has the equivalence type:
-    $T( \elts{ P_0, P_1 } ) \entails \tau_{ \equiv }$; 
-  \item 
-    % type of set is subtype of type of extension with fixpoint
-    % symbol
-    For all $E \in \mathcal{E}$ and each $f \in \vars$, $T(E) \subtype
-    T(\add{ f }{ E })$.
-  \item 
-    % relational types are consistent under tiling:
-    For each $E \in \mathcal{E}$ and $E_0, E_1 \subseteq E$ such that
-    $E = E_0 \union E_1$, it holds that $T(E_0) \land T(E_1) \subtype
-    T(E)$.
-  \item 
-    % relational types are consistent under subtypes:
-    For all $e \in \expr$, $E \subseteq \expr$ such that $\add{ e }{ E
-    } \in \mathcal{ E }$, $\Gamma(\subexps{e} \union E) \judges
-    \subexps{ e } \union E : T( \subexps{e} \union E)$ supports that
-    $\Gamma(\add{ e }{ E }) \judges \add{ e }{ E } : T(\add{ e }{ E
-    })$.
-  \end{itemize}
-\end{defn}
-%
-\BH{patch to account for how predecessors actually work in typing
-  rules}
-%
-\BH{add choice conditions that make invariants evidence}
-
-% define when invariants are inductive:
-Unfolded invariants are inductive if they define a proof of the fact
-that $P_0$ and $P_1$ have type $\tau_{\equiv}$.
-% 
-\begin{defn}
-  \label{defn:ind-unfolded}
-  \BH{complete}
-\end{defn}
-
-% evidence is a valid proof of partial equivalence:
-If $P_0$ and $P_1$ have relational invariants, then $P_0 \equiv P_1$.
-%
-\begin{lemma}
-  \label{lemma:equiv-evidence}
-  If there are $R \in \relinvs{P_0}{P_1}$, then $P_0 \equiv P_1$.
-\end{lemma}
-%
-\sys, given programs $P_0$ and $P_1$, attempts to determine their
-partial equivalence by synthesizing inductive unfolded relational
-types.
-
-\subsubsection{A relational type-inference algorithm}
+% type-inference algorithm:
+\subsubsection{A procedure for inferring relational refinement types}
 \label{sec:infer-alg}
 
 \begin{figure}
@@ -847,100 +784,101 @@ types.
   % Declare sub-program (procedure) markers.
   \SetKwProg{myproc}{Procedure}{}{}
   % Inputs: a program
-  \Input{Programs $\cc{P}_0, \cc{P}_1 \in \stlc$.}
+  \Input{$e_0, \ldots, e_n \in \expr$ and
+    $\tau \in \reltypes{e_0, \ldots, e_n}$.}
   % Output: decision for safety
-  \Output{A decision as to whether $\cc{P}_0 \equiv \cc{P}_1$.}
-  % verify: main procedure
-  \myproc{$\verify(\cc{P}_0, \cc{P}_1)$ \label{line:core-begin}} %
-  { \myproc{$\verifyaux(\cc{P}_0' \in \unfoldings{ \cc{P}_0 }, %
-      \cc{P}_1' \in \unfoldings{ \cc{P}_1 })$}{ %
-      % try to verify the unfoldings:
-      \Switch{$\verifybnd(\cc{P}_0', \cc{P}_1')$ \label{line:ver-bnd} }{
-        % if the verifier returns that the unfoldings aren't equivalent
-        \lCase{$\nonequiv$}{ 
-          % then the top-level returns that the programs aren't
-          % equivalent
-          \Return{$\false$} \label{line:ret-non-eq} }
-        % if the verifier returns relational types of the unfoldings:
-        \Case{$T \in \subexptypes{ \cc{P}_0' }{ \cc{P}_1' }$ %
+  \Output{A decision whether $e_0, \ldots, e_n : \tau$ holds.}
+  % infer: top-level procedure
+  \myproc{ $\sys(e_0, \ldots, e_n, \tau)$ %
+    \label{line:infer-begin} }{ %
+    % infer helper procedure,
+    \myproc{$\inferaux(e_0', \ldots, e_n')$ %
+      \label{line:infer-aux-begin} }{ %
+      % try to infer types for the bounded unfoldings,
+      \Switch{$\inferbnd(e_0', \ldots, e_n', \tau)$ %
+        \label{line:infer-bnd} }{
+        % if inference returns bottom, give up
+        \lCase{$\bot$}{ 
+          % then expressions don't have the type
+          \Return{$\false$} \label{line:ret-no-has-ty} }
+        % if inference returns relational types,
+        \Case{$T \in \subexptypes{ e_0, \ldots, e_n }{ \tau }$ %
           \label{line:subexp-types} }{ %
           % then check if they're inductive:
-          \Switch{$\chkinductive(T)$ \label{line:chk-ind} }{ 
-            \lCase{$\isind$}{ \Return{$\true$} \label{line:ret-eq} }
-            \lCase{ %
-              $\cc{P}_0'' \in \unfoldings{ \cc{P}_0 }, %
-              \cc{P}_1'' \in \unfoldings{ \cc{P}_1 }$}{
-              \Return{$\verifyaux(\cc{P}_0'', \cc{P}_1'')$ %
-                \label{line:ret-rec} }
-            }
-          }
-        }
-      }
-    }
-    \Return{$\verifyaux(\folded(\cc{P}_0), \folded(\cc{P}_1))$ %
-      \label{line:core-base} }
+          \lIf{$\chkinductive(e_0, \ldots, e_n, T)$ %
+            \label{line:chk-ind} }{ 
+            \Return{ $\true$ } \label{line:ret-eq} } %
+          \lElse{
+            \Return{ $\inferaux(\unfoldexp(e_0', e_0), \ldots, %
+              \unfoldexp(e_n, e_n'))$ } \label{line:recurse} }
+        } %
+      } \label{line:infer-aux-end} }
+    \Return{$\inferaux(\initunfold(e_0), \ldots, \initunfold(e_n))$ %
+      \label{line:infer-base} }
   }
-  %
-  \caption{% interface of verify:
-    \verify: an equivalence verifier, which uses procedures
-    \verifybnd (\autoref{sec:verify-ders}) and %
-    \chkinductive (\autoref{sec:chk-ind}).  }
+  % 
+  \caption{ \sys: a type-inference procedure that uses procedures
+    \inferbnd, \chkinductive, $\initunfold$, and \unfoldexp. }
   \label{alg:infer}
 \end{algorithm}
 \end{figure}
 
-% verifier top-level:
-The equivalence verifier \verify is given in \autoref{alg:infer}.
+% inference procedure top-level:
+The type-inference procedure \sys is given in \autoref{alg:infer}.
 %
-\verify, given $P_0, P_1 \in \stlc$ (\autoref{line:core-begin}),
-defines a procedure $\verifyaux$ that, given $\cc{P}_0' \in
-\unfoldings{ \cc{P}_0 }$ and $\cc{P}_1' \in \unfoldings{ \cc{P}_1 }$,
-attempts to determine if $P_0 \equiv P_1$ by typed subexpressions of
-an unfolding 
+\sys (\autoref{alg:infer}) expressions $e_0, \ldots, e_n \in \expr$
+and relational type $\tau \in \reltypes{e_0, \ldots, e_n}$, attempts
+to decide if $e_0, \ldots, e_n : \tau$.
 %
-\BH{fix}
+\sys uses a procedure \inferaux
+(\autoref{line:infer-aux-begin}---\autoref{line:infer-aux-end}) that,
+given unfoldings $e_0', \ldots, e_n'$ of $e_0, \ldots, e_n$ attempts
+to determine if $e_0, \ldots, e_n : \tau$ by finding relational types
+over fixpoint expressions in $e_0, \ldots, e_n$ based on relational
+types of $e_0', \ldots, e_n'$.
 %
-of $\cc{P}_0'$ and $\cc{P}_1'$, or determines that $\cc{P}_0
-\not\equiv \cc{P}_1$
-(\autoref{line:core-aux-begin}---\autoref{line:core-aux-end}).
-%
-\verify calls \verifyaux on the complete folding of $\cc{P}_0$ and
-$\cc{P}_1$ and returns the result (\autoref{line:core-base}).
+\sys, given $e_0', \ldots, e_n'$, calls procedure \inferbnd on
+$e_0', \ldots, e_n'$ and $\tau$ (\autoref{line:infer-bnd}), which
+returns either $\bot$ to denote that $e_0', \ldots, e_n'$ do not have
+type $\tau$ or $T \in \subexptypes{ e_0, \ldots, e_n' }{ \tau }$.
+% case: bounded does not have type,
+If \inferbnd returns $\bot$, then \sys returns that
+$e_0, \ldots, e_n : \tau$ (\autoref{line:ret-no-has-ty}).
 
-% verify auxiliary procedure:
-\verifyaux, given $\cc{P}_0 \in \unfoldings{\cc{P}_0}$ and $\cc{P}_1
-\in \unfoldings{ \cc{P}_1 }$, runs procedure \verifybnd on $\cc{P}_0'$
-and $\cc{P}_1'$ (\autoref{line:ver-bnd}).
+% case: bounded has type,
+If \inferbnd returns sub-expression types $T$
+(\autoref{line:subexp-types}), then \inferaux calls procedure
+\chkinductive on $e_0, \ldots, e_n$ and $T$, which soundly determines
+if $e_0, \ldots, e_n : \tau$ by assigning types of fixpoint
+subexpressions of $e_0, \ldots, e_n$ that are relational subtypes of
+their unfoldings in $e_0', \ldots, e_n'$.
 %
-If \verifybnd returns $\nonequiv$, then \verify returns that $\cc{P}_0
-\not\equiv \cc{P}_1$ (\autoref{line:ret-non-eq}).
+If \chkinductive determines that $e_0, \ldots, e_n : \tau$, then \sys
+determines that $e_0, \ldots, e_n : \tau$ (\autoref{line:ret-eq}).
+%
+Otherwise, \chkinductive constructs expressions
+$e_0' \unfolding \unfold(e_0', e_0) \unfolding e_0, \ldots, e_n'
+\unfolding \unfold(e_n', e_n) \unfolding e_n$, recurses on the result,
+and returns the result of the recursion
+(\autoref{line:infer-recurse}).
 
+% sketch unfolding operations:
+The procedures $\initunfold$ and \unfoldexp are straightforward to
+implement.
 %
-Otherwise, if \verifybnd returns $T \in \subexptypes{ \cc{P}_0' }{
-  \cc{P}_1' }$,
+One satisfactory implementation of $\initunfold$, given $e \in \expr$,
+iteratively replaces sub-expressions of $e$ of the form $\fix{f}{e'}$
+with $e'$.
 %
-\BH{define sub-expression types}
+One implementation of \unfoldexp, given $e, e' \in \expr$ such that
+$e' \unfolding e$, replaces each occurrence of fixpoint variable $f$
+in $e'$ where $\fix{f}{e''}$ is a sub-expression of $e$, with
+$\initunfold(e'')$.
 %
-then \verify runs procedure \verifyaux on $T$
-(\autoref{line:subexp-types}), then \verifybnd runs procedure
-\chkinductive on $T$ (\autoref{line:chk-ind}).
-%
-If \chkinductive returns $\isind$, then \verify returns that $\cc{P}_0
-\equiv \cc{P}_1$ (\autoref{line:ret-eq}).
-% subcase: invariants are not inductive:
-Otherwise, if \chkinductive returns $\cc{P}_0'' \in \unfoldings{
-  \cc{P}_0 }$ and $\cc{P}_1'' \in \unfoldings{ \cc{P}_1 }$, then
-\verifyaux runs \verifyaux on $\cc{P}_0''$ and $\cc{P}_1''$ and
-returns the result (\autoref{line:ret-rec}).
+The procedures \inferbnd and \chkinductive are defined below.
 
-% overview the rest of the section
-\autoref{sec:type-unfoldings} gives an implementation of
-\autoref{sec:type-unfoldings};
-%
-\autoref{sec:chk-ind} gives an implementation of \chkinductive.
-
-\subsubsection{Typing subexpressions of unfoldings}
-\label{sec:type-unfoldings}
+\paragraph{Typing subexpressions of bounded expressions}
+\label{sec:type-bnd}
 % give an overview:
 \verifybnd, given $\cc{P}_0' \in \unfoldings{ \cc{P}_0 }$ and
 $\cc{P}_1' \in \unfoldings{ \cc{P}_1 }$, either returns types of the
