@@ -38,18 +38,29 @@ type Infer a = StateT Int (ExceptT InferenceError (Writer [Rule])) a
 --
 -- Second, we perform type inference over the subexpressions, recording new
 -- constrained Horn clause rules to the Writer Monad context as we go.
-typeConstraints :: Attr CoreExpr' (Map Var Type, Type) -> Either InferenceError Grammar
+typeConstraints :: Attr CoreExpr' (ExprID, Map Var Type, Type)
+                -> Either InferenceError (Clones, Grammar)
 typeConstraints e =
-  let e' = infer =<< contextualize <$> giveType (addFreeVars e)
-      ac = runExceptT (evalStateT e' 0)
+  let ac = runExceptT (evalStateT (do
+      hasHO <- giveType (addFreeVars e)
+      let cs = computeClones hasHO
+      let hasHO' = annMap snd hasHO
+      _ <- infer (contextualize hasHO')
+      pure cs) 0)
   in case runWriter ac of
     (Left err, _) -> Left err
-    (Right _, rs) -> Right (Grammar 0 rs)
+    (Right cs, rs) -> Right (cs, Grammar 0 rs)
   where
     -- | Mark each subexpression with the free variables which appear there.
-    addFreeVars = annZipWith (\(m, t) vs -> (m, S.toList vs, t)) . freeVars
+    addFreeVars = annZipWith (\(iden, m, t) vs -> (iden, m, S.toList vs, t)) . freeVars
     -- | Generate a new higher order relational type for every subexpression.
-    giveType = fmap unAttrib . traverse (\(m, vs, t) -> freshType m vs t) . Attrib
+    giveType = fmap unAttrib . traverse (\(iden, m, vs, t) -> (,) iden <$> freshType m vs t) . Attrib
+
+computeClones :: Attr CoreExpr' (ExprID, HORT) -> Clones
+computeClones ex = M.elems $ execState (mapM_ (modify . addToMap) (Attrib ex)) M.empty
+  where
+    addToMap (eid, hort) =
+      M.insertWith S.union eid (S.singleton $ nonterminalPrimary $ topPredicate hort)
 
 type Ctxt = Map Var (HORT, Maybe (Set Var))
 

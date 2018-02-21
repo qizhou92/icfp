@@ -30,7 +30,8 @@ type Ctxt = Map Var Type
 
 type Infer a = StateT InferenceState (Either InferenceError) a
 
-typeCheck :: CoreExpr -> Either InferenceError (Attr CoreExpr' (Ctxt, Type))
+typeCheck :: Attr CoreExpr' a
+          -> Either InferenceError (Attr CoreExpr' (a, Ctxt, Type))
 typeCheck e = evalStateT
   (contextualize e >>= infer >>= resolve)
   (InferenceState 0 M.empty)
@@ -65,12 +66,12 @@ unify t1 t2
 -- | Given an expression where each subexpression is annotated with its type,
 -- use the type table to replace type variables by their equivalent type, when
 -- possible.
-resolve :: Attr CoreExpr' (Ctxt, Type) -> Infer (Attr CoreExpr' (Ctxt, Type))
+resolve :: Attr CoreExpr' (a, Ctxt, Type) -> Infer (Attr CoreExpr' (a, Ctxt, Type))
 resolve = fmap unAttrib . traverse resolve' . Attrib
   where
     resolve' x = do
-      x' <- x & _1 . traverse %%~ res
-      x' & _2 %%~ res
+      x' <- x & _2 . traverse %%~ res
+      x' & _3 %%~ res
     res = \case
       TVar x -> M.lookup x <$> use typeTable >>= \case
         Nothing -> pure (TVar x)
@@ -87,12 +88,12 @@ freshType = do
 
 -- | Label each subexpression with the correct context, which is a mapping from
 -- expression variables to type variables.
-contextualize :: CoreExpr -> Infer (Attr CoreExpr' Ctxt)
-contextualize = inheritM (\e ctxt -> case e of
-  Fix (EFix x _) -> do
+contextualize :: Attr CoreExpr' a -> Infer (Attr CoreExpr' (a, Ctxt))
+contextualize = fmap annZip . inheritM (\(Fix (Ann _ e)) ctxt -> case e of
+  EFix x _ -> do
     s <- freshType
     pure (M.insert x s ctxt)
-  Fix (ELam x _) -> do
+  ELam x _ -> do
     s <- freshType
     pure (M.insert x s ctxt)
   _ -> pure ctxt) M.empty
@@ -100,10 +101,10 @@ contextualize = inheritM (\e ctxt -> case e of
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not
 -- be fully resolved, and may instead refer to type variables.
-infer :: Attr CoreExpr' Ctxt -> Infer (Attr CoreExpr' (Ctxt, Type))
-infer = fmap annZip .
+infer :: Attr CoreExpr' (a, Ctxt) -> Infer (Attr CoreExpr' (a, Ctxt, Type))
+infer = fmap (annZipWith (\(a, b) c -> (a, b, c))) .
   -- By using generics, each subexpression has been replaced by its type.
-  synthetiseM (\(Ann ctxt e) -> case e of
+  synthetiseM (\(Ann (_, ctxt) e) -> case e of
   -- A => IntLit : Int
   EInt _ -> pure TInt
 

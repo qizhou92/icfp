@@ -6,16 +6,14 @@ import           Control.Monad.State
 import qualified Language.TypeInference as TI
 import           Language.HOTypeInference
 import           Language.Types
-import           Language.Parser
 
-import           Text.Parsec
-import           Data.Generics.Fixplate.Draw
 import           Data.Generics.Fixplate.Base
 import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import           Data.Text.Prettyprint.Doc
 import           Data.Generics.Fixplate.Attributes
+
 
 import           Grammar
 import           Formula (runVocab)
@@ -25,11 +23,10 @@ import qualified Formula as F
 type Result = Either F.Model (Map Symbol F.Expr)
 
 solveCE :: F.Expr -> CoreExpr -> CoreExpr -> IO Result
-solveCE q e1' e2' =  do
+solveCE q e1' e2' =
   let (e1, e2) = evalState (
         (,) <$> numberExpressions e1' <*> numberExpressions e2') 0
-  loop e1 e2
-  undefined
+  in loop e1 e2
   where
     loop :: Attr CoreExpr' ExprID -> Attr CoreExpr' ExprID -> IO Result
     loop e1 e2 = do
@@ -63,8 +60,9 @@ addSymbolToSet fromPairToProduct pairs oldSet = case (M.lookup pairs fromPairToP
   Nothing -> error "addSymbolToSet has an error in Solve.hs"
   Just s  -> S.insert s oldSet
 exprGrammar :: Attr CoreExpr' ExprID -> IO (Clones, Grammar)
-exprGrammar e = undefined
-  -- case TI.typeCheck e of
-  --   Left (TI.UnificationError t1 t2) -> Left (UnificationError t1 t2)
-  --   Left (TI.UnboundError x) -> Left (UnboundError x)
-  --   Right e' -> typeConstraints e'
+exprGrammar e =
+  case TI.typeCheck e of
+    Left err -> error (show err)
+    Right e' -> case typeConstraints e' of
+      Left err' -> error (show err')
+      Right (cs, g) -> pure (cs, g)
