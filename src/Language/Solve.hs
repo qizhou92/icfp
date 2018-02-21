@@ -35,10 +35,8 @@ solveCE q e1' e2' =  do
       let e2' = runVocab (uniqueNames $ unwindFix e2)
       (cs1, g1) <- exprGrammar e1'
       (cs2, g2) <- exprGrammar e2'
-      let pm = undefined :: Map (Symbol, Symbol) Symbol
-          -- TODO grammar product should return this map
+      let (pm, g) = fullProduct g1 g2
       let cs = clonesProduct pm cs1 cs2
-      let g = Grammar.product g1 g2
       interpolate g q >>= \case
         Left e -> pure (Left e)
         Right m -> do

@@ -4,6 +4,7 @@ import           Control.Lens
 import           Data.Data.Lens
 import           Data.List (nub)
 
+import           Data.Map (Map)
 import qualified Data.Map as M
 import qualified Data.Set as S
 
@@ -11,7 +12,10 @@ import           Grammar.Grammar
 import           Formula hiding (Rule)
 
 product :: Grammar -> Grammar -> Grammar
-product g1' g2' = Grammar start (initial : rs1' ++ rs2')
+product g1 g2 = snd (fullProduct g1 g2)
+
+fullProduct :: Grammar -> Grammar -> (Map (Symbol, Symbol) Symbol, Grammar)
+fullProduct g1' g2' = (symTab, Grammar start (initial : rs1' ++ rs2'))
   where
     initial = Rule L (Nonterminal (ConcreteID 0) [Var "TMP" Int]) (LBool True) []
 
@@ -25,7 +29,8 @@ product g1' g2' = Grammar start (initial : rs1' ++ rs2')
     g2 = g2' & vars . varName %~ ("r/" ++)
              & biplate . _PhantomID . _3 . traverse %~ ("r/" ++)
 
-    tab = symbolTable ss1 ss2
+    symTab = symbolTable ss1 ss2
+    tab s s' = M.findWithDefault 0 (s, s') symTab
     start = tab (g1 ^. grammarStart) (g2 ^. grammarStart)
 
     rs1 = map removeEmpty (g1 ^. grammarRules)
@@ -47,11 +52,10 @@ removeEmpty r =
   then r & ruleRHS .~ [Nonterminal (ConcreteID $ -1) []]
   else r
 
-symbolTable :: [Symbol] -> [Symbol] -> Symbol -> Symbol -> Symbol
-symbolTable ss1 ss2 s s' =
+symbolTable :: [Symbol] -> [Symbol] -> Map (Symbol, Symbol) Symbol
+symbolTable ss1 ss2 =
   let pairs = [(s1, s2) | s1 <- ss1, s2 <- ss2]
-      m = M.fromList $ zip pairs [0..]
-  in M.findWithDefault 0 (s, s') m
+  in M.fromList $ zip pairs [0..]
 
 symbolVars :: Grammar -> Symbol -> [Var]
 symbolVars g s = case rulesFor s (g ^. grammarRules) of
