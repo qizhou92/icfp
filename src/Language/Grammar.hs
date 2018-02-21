@@ -97,7 +97,7 @@ parseE s = case parse parseExpr "" s of
 
 basicPlotE :: CoreExpr -> IO ()
 basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames $ (evalState (numberExpressions ex) 0)
+  let ex' = runVocab $ uniqueNames $ unwindFix (evalState (numberExpressions ex) 0)
   print (pretty (forget ex'))
   (cs, g) <- S.exprGrammar ex'
   let gs = simplify g

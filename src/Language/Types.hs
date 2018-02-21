@@ -177,11 +177,31 @@ numberExpressions = synthetiseM (\e -> do
 
 -- | Use alpha renaming to ensure every binding binds a different variable.
 uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
-uniqueNames = T.topDownTransformM (\(Fix node@(Ann a e)) -> case e of
-  EVar (Var x) -> Fix . Ann a . EVar . Var <$> fetch x
-  ELam (Var x) e -> (Fix . Ann a) <$> (ELam <$> (Var <$> fresh x) <*> pure e)
-  EFix (Var x) e -> (Fix . Ann a) <$> (EFix <$> (Var <$> fresh x) <*> pure e)
-  e' -> pure (Fix node))
+uniqueNames ex = runReaderT (go ex) M.empty
+  where
+    go (Fix (Ann a e)) = case e of
+      EFix (Var x) e' -> do
+        x' <- lift (fresh x)
+        e'' <- local (M.insert x x') (go e')
+        pure (Fix (Ann a (EFix (Var x') e'')))
+      ELam (Var x) e' -> do
+        x' <- lift (fresh x)
+        e'' <- local (M.insert x x') (go e')
+        pure (Fix (Ann a (ELam (Var x') e'')))
+      EVar (Var x) ->
+        Fix . Ann a . EVar . Var . M.findWithDefault x x <$> ask
+      _ -> do
+        e' <- traverse go e
+        pure (Fix (Ann a e'))
+
+
+
+
+--   T.topDownTransformM (\(Fix node@(Ann a e)) -> case e of
+--   EVar (Var x) -> Fix . Ann a . EVar . Var <$> fetch x
+--   ELam (Var x) e -> (Fix . Ann a) <$> (ELam <$> (Var <$> fresh x) <*> pure e)
+--   EFix (Var x) e -> (Fix . Ann a) <$> (EFix <$> (Var <$> fresh x) <*> pure e)
+--   e' -> pure (Fix node))
 
 unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
 unwindFix ex = runReader (unw ex) M.empty

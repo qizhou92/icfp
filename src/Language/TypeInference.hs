@@ -92,26 +92,25 @@ freshType = do
 contextualize :: Attr CoreExpr' a -> Infer (Attr CoreExpr' (a, Ctxt))
 contextualize ex = runReaderT (go ex) M.empty
   where
-    go (Fix node@(Ann a e'')) = case e'' of
-      -- In the case of a fix expression, unwind with the fix expression in the
-      -- context, removing the Fix.
-      EFix x e -> do
-                   currentConext <- ask
-                   s <- lift freshType
-                   e' <- local (M.insert x s) (go e)
-                   pure (Fix (Ann (a, currentConext) (EFix x e')))
-      -- In the case of a lambda expression, remove the matched fix variable
-      -- from the context before recursing over the subexpressions.
-      ELam x e -> do
-                   currentConext <- ask
-                   s <- lift freshType
-                   e' <- local (M.insert x s) (go e)
-                   pure (Fix (Ann (a, currentConext) (ELam x e')))
-      -- In all other cases, recurse over the subexpressions.
-      _ -> do 
-            currentConext <- ask
-            e' <- traverse go e''
-            pure (Fix (Ann (a, currentConext) e'))
+    go (Fix (Ann a e'')) = do
+      ctxt <- ask
+      case e'' of
+        -- In the case of a fix expression, unwind with the fix expression in the
+        -- context, removing the Fix.
+        EFix x e -> do
+          s <- lift freshType
+          e' <- local (M.insert x s) (go e)
+          pure (Fix (Ann (a, M.insert x s ctxt) (EFix x e')))
+        -- In the case of a lambda expression, remove the matched fix variable
+        -- from the context before recursing over the subexpressions.
+        ELam x e -> do
+          s <- lift freshType
+          e' <- local (M.insert x s) (go e)
+          pure (Fix (Ann (a, M.insert x s ctxt) (ELam x e')))
+        -- In all other cases, recurse over the subexpressions.
+        _ -> do
+          e' <- traverse go e''
+          pure (Fix (Ann (a, ctxt) e'))
 
 
 -- | Given an expression where each subexpression is annotated with its
@@ -166,7 +165,7 @@ infer = fmap (annZipWith (\(a, b) c -> (a, b, c))) .
   EFix x t -> pure t)
   where
     search x ctxt = case M.lookup x ctxt of
-      Nothing -> error (show ctxt)
+      Nothing -> error (show x ++ "\n" ++ show ctxt)
       Just s -> pure s
 
 opType :: Binop -> Infer Type
