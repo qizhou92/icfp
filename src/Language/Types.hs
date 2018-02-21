@@ -177,22 +177,10 @@ attach = synthetiseM (\e -> do
   put (x+1)
   pure x)
 
-unwind :: Attr CoreExpr' a -> Attr CoreExpr' a
-unwind = T.transform (\(Ann _ e) -> case e of
-  EVar v -> EVar v
-  ELet v v1 v2 -> ELet v v1 v2
-  ELam v vs    -> ELam v vs
-  EFix v vs    -> unwindFixExpr (EFix v vs)
-  EMatch tar nc v1 v2 cc -> EMatch tar nc v1 v2 cc
-  EBin b e1 e2     -> EBin b e1 e2
-  EIf c t e        -> EIf c t e
-  EApp e1 e2       -> EApp e1 e2 
-  ECon a b         -> ECon a b
-  EInt i           -> EInt i
-  EBool b          -> EBool b  
-  ENil             -> ENil)
+unwind :: Attr CoreExpr' a  -> Attr CoreExpr' a
+unwind = T.transform (\(Ann v e) -> unwindFixExpr e)
 
-unwindFixExpr :: Attr CoreExpr' a -> Attr CoreExpr' a
+unwindFixExpr :: CoreExpr -> CoreExpr 
 unwindFixExpr = undefined 
 
 -- Which variables are bound as part of the expression?
