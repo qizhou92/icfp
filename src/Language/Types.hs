@@ -4,6 +4,7 @@ import           Control.Lens hiding (para)
 import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
+import           Control.Monad.Reader
 
 import           Data.Data.Lens
 import           Data.Data (Data)
