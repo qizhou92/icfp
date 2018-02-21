@@ -13,12 +13,14 @@ import           Data.Generics.Fixplate.Draw
 import           Data.Generics.Fixplate.Base
 import           Data.Map (Map)
 import qualified Data.Map as M
+import qualified Data.Set as S
 import           Data.Text.Prettyprint.Doc
 import           Data.Generics.Fixplate.Attributes
 
 import           Grammar
 import           Formula (runVocab)
 import qualified Formula as F
+
 
 type Result = Either F.Model (Map Symbol F.Expr)
 
@@ -46,8 +48,20 @@ solveCE q e1' e2' =  do
           else loop e1' e2'
 
 clonesProduct :: Map (Symbol, Symbol) Symbol -> Clones -> Clones -> Clones
-clonesProduct = undefined
+clonesProduct fromPairToProduct clone1 clone2 = 
+  map (getProductClone fromPairToProduct)(concat (map (\x -> map (\y -> (x,y)) clone2) clone1))
+  where
+    getProductClone ::  Map (Symbol, Symbol) Symbol -> ((S.Set Symbol),(S.Set Symbol)) -> S.Set Symbol
+    getProductClone fromPairToProduct (set1,set2) = 
+      let list1 = S.toList set1
+          list2 = S.toList set2
+          allPairs =(concat (map (\x ->map (\y -> (x,y)) list2) list1))
+        in foldr (addSymbolToSet fromPairToProduct) S.empty allPairs
 
+addSymbolToSet :: Map (Symbol, Symbol) Symbol -> (Symbol,Symbol) -> S.Set Symbol -> S.Set Symbol
+addSymbolToSet fromPairToProduct pairs oldSet = case (M.lookup pairs fromPairToProduct) of
+  Nothing -> error "addSymbolToSet has an error in Solve.hs"
+  Just s  -> S.insert s oldSet
 exprGrammar :: Attr CoreExpr' ExprID -> IO (Clones, Grammar)
 exprGrammar e = undefined
   -- case TI.typeCheck e of
