@@ -22,9 +22,10 @@ parseE s = case parse parseExpr "" s of
 
 basicPlotE :: CoreExpr -> IO ()
 basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames $ unwindFix (evalState (numberExpressions ex) 0)
+  let ex' = runVocab $ uniqueNames $ unwindFix $ unwindFix (evalState (numberExpressions ex) 0)
   print (pretty (forget ex'))
-  (_, g) <- S.exprGrammar ex'
+  (cs, g) <- S.exprGrammar ex'
+  print cs
   let gs = simplify g
   plot "basic" g
   plot "simplified" gs

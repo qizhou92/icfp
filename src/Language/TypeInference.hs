@@ -40,28 +40,30 @@ typeCheck e = evalStateT
 -- failing when two known types are not the same and adding additional constraints
 -- to the type table when one or both types are unknown variables.
 unify :: Type -> Type -> Infer ()
-unify (TArr s s') (TArr t t') = unify s t >> unify s' t'
-unify (TVar x) (TVar y) = do
-  tab <- use typeTable
-  case (M.lookup x tab, M.lookup y tab) of
-    (Just s , Just t ) -> unify s t
-    (Just s , Nothing) -> typeTable %= M.insert y s
-    (Nothing, Just t ) -> typeTable %= M.insert x t
-    (Nothing, Nothing) -> typeTable %= M.insert x (TVar y)
-unify (TVar x) t = do
-  tab <- use typeTable
-  case M.lookup x tab of
-    Just s -> unify s t
-    Nothing -> typeTable %= M.insert x t
-unify s (TVar y) = do
-  tab <- use typeTable
-  case M.lookup y tab of
-    Just t -> unify s t
-    Nothing -> typeTable %= M.insert y s
-unify (TList s) (TList t) = unify s t
-unify t1 t2
-  | t1 == t2 = pure ()
-  | otherwise = throwError (UnificationError t1 t2)
+unify = go 
+  where
+    go (TArr s s') (TArr t t') = go s t >> go s' t'
+    go (TVar x) (TVar y) = unless (x == y) $ do
+      tab <- use typeTable
+      case (M.lookup x tab, M.lookup y tab) of
+        (Just s , Just t ) -> go s t
+        (Just s , Nothing) -> go s (TVar y)
+        (Nothing, Just t ) -> go (TVar x) t
+        (Nothing, Nothing) -> typeTable %= M.insert x (TVar y)
+    go (TVar x) t = do
+      tab <- use typeTable
+      case M.lookup x tab of
+        Just s -> go s t
+        Nothing -> typeTable %= M.insert x t
+    go s (TVar y) = do
+      tab <- use typeTable
+      case M.lookup y tab of
+        Just t -> go s t
+        Nothing -> typeTable %= M.insert y s
+    go (TList s) (TList t) = go s t
+    go t1 t2
+      | t1 == t2 = pure ()
+      | otherwise = throwError (UnificationError t1 t2)
 
 -- | Given an expression where each subexpression is annotated with its type,
 -- use the type table to replace type variables by their equivalent type, when
@@ -110,7 +112,6 @@ contextualize ex = runReaderT (go ex) M.empty
         _ -> do
           e' <- traverse go e''
           pure (Fix (Ann (a, ctxt) e'))
-
 
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not

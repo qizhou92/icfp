@@ -173,29 +173,15 @@ numberExpressions = synthetiseM (const $ do x <- get ; put (x+1) ; pure x)
 uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
 uniqueNames ex = runReaderT (go ex) M.empty
   where
-    go (Fix (Ann a e)) = case e of
-      EFix (Var x) e' -> do
-        x' <- lift (fresh x)
-        e'' <- local (M.insert x x') (go e')
-        pure (Fix (Ann a (EFix (Var x') e'')))
-      ELam (Var x) e' -> do
-        x' <- lift (fresh x)
-        e'' <- local (M.insert x x') (go e')
-        pure (Fix (Ann a (ELam (Var x') e'')))
-      EVar (Var x) ->
-        Fix . Ann a . EVar . Var . M.findWithDefault x x <$> ask
-      _ -> do
-        e' <- traverse go e
-        pure (Fix (Ann a e'))
+    go (Fix (Ann a e)) = Fix . Ann a <$> case e of
+      EFix x e'    -> newName EFix x e'
+      ELam x e'    -> newName ELam x e'
+      EVar (Var x) -> EVar . Var . M.findWithDefault x x <$> ask
+      _            -> traverse go e
 
-
-
-
---   T.topDownTransformM (\(Fix node@(Ann a e)) -> case e of
---   EVar (Var x) -> Fix . Ann a . EVar . Var <$> fetch x
---   ELam (Var x) e -> (Fix . Ann a) <$> (ELam <$> (Var <$> fresh x) <*> pure e)
---   EFix (Var x) e -> (Fix . Ann a) <$> (EFix <$> (Var <$> fresh x) <*> pure e)
---   e' -> pure (Fix node))
+    newName f (Var x) e = do
+      x' <- lift (fresh x)
+      f (Var x') <$> local (M.insert x x') (go e)
 
 unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
 unwindFix ex = runReader (unw ex) M.empty
