@@ -46,22 +46,19 @@ atom = try app <|> nonapp
               pure (foldl eapp v args))
 
 lambda :: CharParser st CoreExpr
-lambda = do
-  op "\\"
-  v <- var
-  char '.'
-  T.whiteSpace lexer
-  e <- parseExpr
-  pure (elam v e)
+lambda = binder elam (op "\\")
 
 fix :: CharParser st CoreExpr
-fix = do
-  res "fix"
+fix = binder efix (res "fix")
+
+binder :: (Var -> CoreExpr -> CoreExpr) -> CharParser st () -> CharParser st CoreExpr
+binder mkBind trigger = do
+  trigger
   v <- var
-  char '.'
+  _ <- char '.'
   T.whiteSpace lexer
   e <- parseExpr
-  pure (efix v e)
+  pure (mkBind v e)
 
 bool :: CharParser st CoreExpr
 bool = const (ebool True)  <$> res "true"
@@ -103,20 +100,8 @@ lexer = T.makeTokenParser (emptyDef { T.identStart = letter <|> char '_'
                                                           , "\\", "."
                                                           ]
                                     , T.reservedNames = [ "fix"
-                                                        , "not", "distinct"
-                                                        , "and", "or"
-                                                        , "add", "mul"
-                                                        , "def"
                                                         , "true", "false"
-                                                        , "call"
-                                                        , "anything"
-                                                        , "cond"
-                                                        , "return"
-                                                        , "assert"
                                                         , "Int", "Bool", "Real", "Arr"
-                                                        , "jump"
-                                                        , "done"
-                                                        , "skip"
                                                         ]
                                     })
 

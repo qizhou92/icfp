@@ -4,7 +4,6 @@ module Language.TypeInference where
 import           Control.Lens
 import           Control.Monad.Except
 import           Control.Monad.State
-import           Control.Monad.Writer
 import           Control.Monad.Reader
 
 import           Data.Data.Lens
@@ -162,7 +161,11 @@ infer = fmap (annZipWith (\(a, b) c -> (a, b, c))) .
   -- A => \x.e : s -> t
   ELam x t -> (`TArr` t) <$> search x ctxt
 
-  EFix x t -> pure t)
+  EFix _ t -> pure t
+
+  EMatch{} -> undefined
+  ECon{} -> undefined
+  ELet{} -> undefined)
   where
     search x ctxt = case M.lookup x ctxt of
       Nothing -> error (show x ++ "\n" ++ show ctxt)

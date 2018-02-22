@@ -1,18 +1,15 @@
 module Language.Types where
 
 import           Control.Lens hiding (para)
-import           Control.Monad.Reader
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           Control.Monad.Reader
 
 import           Data.Data.Lens
 import           Data.Data (Data)
+import qualified Data.Map as M
 import           Data.Set (Set)
 import qualified Data.Set as S
-import           Data.Map (Map)
-import qualified Data.Map as M
-import           Data.Monoid
 import           Data.Text.Prettyprint.Doc hiding ((<>))
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Morphisms
@@ -21,7 +18,7 @@ import qualified Data.Generics.Fixplate.Traversals as T
 
 import           GHC.Exts(IsString(..))
 
-import           Formula (MonadVocab, fresh, fetch)
+import           Formula (MonadVocab, fresh)
 
 type Program = [Bind]
 type Bind    = (Var, CoreExpr)
@@ -159,7 +156,7 @@ freeVars = synthetise (\(Ann _ e) -> case e of
   EMatch tar nc v1 v2 cc -> tar <> nc <> S.delete v1 (S.delete v2 cc)
   -- All other expressions propogate the transitive closure.
   EBin _ e1 e2           -> e1 <> e2
-  EIf c t e              -> c <> t <> e
+  EIf c t e'             -> c <> t <> e'
   EApp e1 e2             -> e1 <> e2
   ECon a b               -> a <> b
   EInt _                 -> S.empty
@@ -170,10 +167,7 @@ type ExprID = Int
 
 numberExpressions :: MonadState ExprID m
                   => CoreExpr -> m (Attr CoreExpr' ExprID)
-numberExpressions = synthetiseM (\e -> do
-  x <- get
-  put (x+1)
-  pure x)
+numberExpressions = synthetiseM (const $ do x <- get ; put (x+1) ; pure x)
 
 -- | Use alpha renaming to ensure every binding binds a different variable.
 uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
@@ -206,13 +200,13 @@ uniqueNames ex = runReaderT (go ex) M.empty
 unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
 unwindFix ex = runReader (unw ex) M.empty
   where
-    unw (Fix node@(Ann a e')) = case e' of
+    unw (Fix node@(Ann _ e')) = case e' of
       -- In the case of a fix expression, unwind with the fix expression in the
       -- context, removing the Fix.
       EFix x e -> local (M.insert x node) (unw e)
       -- In the case of a lambda expression, remove the matched fix variable
       -- from the context before recursing over the subexpressions.
-      ELam x e -> T.descendM (local (M.delete x) . unw) (Fix node)
+      ELam x _ -> T.descendM (local (M.delete x) . unw) (Fix node)
       -- In the case of a variable try to replace it by value in the context.
       EVar x -> Fix . M.findWithDefault node x <$> ask
       -- In all other cases, recurse over the subexpressions.
@@ -221,13 +215,13 @@ unwindFix ex = runReader (unw ex) M.empty
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
 boundVars = attribute . synthetise (\(Ann _ e) -> case e of
-  EVar v                 -> S.empty
+  EVar _                 -> S.empty
   ELam v vs              -> S.insert v vs
   ELet v _ vs            -> S.insert v vs
-  EFix v vs              -> vs
+  EFix _ vs              -> vs
   EMatch tar nc v1 v2 cc -> S.fromList [v1, v2] <> tar <> nc <> cc
   EBin _ e1 e2           -> e1 <> e2
-  EIf c t e              -> c <> t <> e
+  EIf c t e'             -> c <> t <> e'
   EApp e1 e2             -> e1 <> e2
   ECon a b               -> a <> b
   EInt _                 -> S.empty

@@ -14,7 +14,6 @@ import           Data.List (partition)
 import           Language.Types
 import           Grammar
 import qualified Formula as F
-import           Formula (MonadVocab, fetch, fresh)
 
 data HORT = HORT
   -- the type list is the list of flat basic type
@@ -46,16 +45,16 @@ isPrim = isPrimitiveType . getBasicType
 -- | Given a list of free variables and a basic type, construct
 -- a higher order refinement type.
 freshType :: MonadState Int m => Map Var Type -> [Var] -> Type -> m HORT
-freshType varTypes freeVars exprType = do
-  let fvs = map (\v -> (v, varTypes M.! v)) freeVars
+freshType varTypes fVars eType = do
+  let fvs = map (\v -> (v, varTypes M.! v)) fVars
   let primFvs = filter (\(_, basicType) -> isPrimitiveType basicType) fvs
-  HORT <$> mkTree primFvs exprType <*> pure exprType
+  HORT <$> mkTree primFvs eType <*> pure eType
   where
-    mkTree primFreeVars exprType = do
-      let (prims, hots) = partition isPrimitiveType $ flattenType exprType
-      pred <- mkPredicate primFreeVars prims
+    mkTree primFreeVars eType' = do
+      let (prims, hots) = partition isPrimitiveType $ flattenType eType'
+      predicate <- mkPredicate primFreeVars prims
       subTrees <- mapM (mkTree []) hots
-      return (Node (pred, prims) subTrees)
+      return (Node (predicate, prims) subTrees)
 
     mkPredicate freeVarsWithType types = do
       idNumber <- get
@@ -78,6 +77,7 @@ flattenType = \case
   TInt -> [TInt]
   TBool -> [TBool]
   TArr s t -> s : flattenType t
+  t -> error ("error in flattenType " ++ show t)
 
 mkFreeVar :: (Var, Type) -> F.Var
 mkFreeVar (Var name, t) = case t of
@@ -108,11 +108,11 @@ subtype :: MonadWriter [Rule] m => F.Expr -> [HORT] -> HORT -> HORT -> m ()
 subtype constraint witnesses t' t =
   tell $ subtype' constraint (map topPredicate witnesses) (getHORT t') (getHORT t)
   where
-    subtype' constraint witnesses
+    subtype' cnstrt wtnss
       (Node (sub, ts1) subTrees1)
       (Node (super, ts2) subTrees2) =
       let expr = carryBound (length ts1) (length ts2) sub super
-          rule = Rule L super (constraint `F.mkAnd` expr) (sub:witnesses)
+          rule = Rule L super (cnstrt `F.mkAnd` expr) (sub:wtnss)
           rules = subTreeRules subTrees2 subTrees1
       in rule : rules
     -- Construct constraints for the subtrees.

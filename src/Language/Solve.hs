@@ -10,10 +10,8 @@ import           Language.Types
 import           Data.Generics.Fixplate.Base
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Set (Set)
 import qualified Data.Set as S
-import           Data.Text.Prettyprint.Doc
-import           Data.Generics.Fixplate.Attributes
-
 
 import           Grammar
 import           Formula (runVocab)
@@ -23,9 +21,9 @@ import qualified Formula as F
 type Result = Either F.Model (Map Symbol F.Expr)
 
 solveCE :: F.Expr -> CoreExpr -> CoreExpr -> IO Result
-solveCE q e1' e2' =
+solveCE q ex1 ex2 =
   let (e1, e2) = evalState (
-        (,) <$> numberExpressions e1' <*> numberExpressions e2') 0
+        (,) <$> numberExpressions ex1 <*> numberExpressions ex2) 0
   in loop e1 e2
   where
     loop :: Attr CoreExpr' ExprID -> Attr CoreExpr' ExprID -> IO Result
@@ -45,20 +43,17 @@ solveCE q e1' e2' =
           else loop e1' e2'
 
 clonesProduct :: Map (Symbol, Symbol) Symbol -> Clones -> Clones -> Clones
-clonesProduct fromPairToProduct clone1 clone2 = 
-  map (getProductClone fromPairToProduct)(concat (map (\x -> map (\y -> (x,y)) clone2) clone1))
+clonesProduct fromPairToProduct clone1 clone2 =
+  [getProductClone (x, y) | x <- clone1, y <- clone2]
   where
-    getProductClone ::  Map (Symbol, Symbol) Symbol -> ((S.Set Symbol),(S.Set Symbol)) -> S.Set Symbol
-    getProductClone fromPairToProduct (set1,set2) = 
-      let list1 = S.toList set1
-          list2 = S.toList set2
-          allPairs =(concat (map (\x ->map (\y -> (x,y)) list2) list1))
-        in foldr (addSymbolToSet fromPairToProduct) S.empty allPairs
+    getProductClone ::  (Set Symbol, Set Symbol) -> Set Symbol
+    getProductClone (set1, set2) =
+      mconcat [singleSymbol (x, y) | x <- S.toList set1, y <- S.toList set2]
 
-addSymbolToSet :: Map (Symbol, Symbol) Symbol -> (Symbol,Symbol) -> S.Set Symbol -> S.Set Symbol
-addSymbolToSet fromPairToProduct pairs oldSet = case (M.lookup pairs fromPairToProduct) of
-  Nothing -> error "addSymbolToSet has an error in Solve.hs"
-  Just s  -> S.insert s oldSet
+    singleSymbol :: (Symbol, Symbol) -> Set Symbol
+    singleSymbol pairs = case M.lookup pairs fromPairToProduct of
+      Nothing -> error "addSymbolToSet has an error in Solve.hs"
+      Just s  -> S.singleton s
 
 exprGrammar :: Attr CoreExpr' ExprID -> IO (Clones, Grammar)
 exprGrammar e =

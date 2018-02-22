@@ -48,12 +48,6 @@ dependencies:
 - extra
 - fixplate
 
-executables:
-  equivalence-check:
-    main: EquivalenceCheck.hs
-    source-dirs: app
-    dependencies: equivalence-check
-
 library:
   source-dirs: src
 

@@ -2,7 +2,6 @@ module Grammar.Simplify where
 
 import           Control.Lens
 
-import           Data.Foldable
 import qualified Data.Set as S
 import qualified Data.Map as M
 
@@ -30,7 +29,7 @@ inline :: Grammar -> Grammar
 inline g@(Grammar start rs) =
   let preserve = S.insert start $ foldMap (\(s, tar, _) -> S.fromList [s, tar]) (phantoms g)
       toInline = S.filter (\inst -> inst `notElem` preserve && cardinality inst rs == 1) (instances rs)
-      rs' = foldr (\inst rs' -> inlineRule (head $ rulesFor inst rs') rs') rs toInline
+      rs' = foldr (\inst rs'' -> inlineRule (head $ rulesFor inst rs'') rs'') rs toInline
   in Grammar start rs'
 
 -- | Substitute occurrences of the rule left hand side instance with the body of the rule.

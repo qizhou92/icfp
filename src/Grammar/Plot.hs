@@ -7,7 +7,6 @@ import           Control.Monad.State
 import           Data.Data.Lens
 import           Data.Monoid ((<>))
 import           Data.List (intercalate, nub)
-import qualified Data.Set as S
 import           Data.Text.Prettyprint.Doc hiding ((<>), dot)
 
 import qualified Turtle
@@ -42,8 +41,8 @@ dot g =
           vs' = unwords (map (view varName) vs)
           lbl = case view nonterminalID nt of
             ConcreteID i -> "\"" ++ show i ++ "\n" ++ vs' ++ "\""
-            PhantomID i j bound -> "\"" ++ show i ++ ":" ++ show j ++ "\n" ++
-                                   unwords bound ++ "\n" ++ vs' ++ "\", " ++
+            PhantomID i j toRename -> "\"" ++ show i ++ ":" ++ show j ++ "\n" ++
+                                   unwords toRename ++ "\n" ++ vs' ++ "\", " ++
                                      "style=dashed"
       in show (nonterminalPrimary nt) ++ " [label=" ++ lbl ++ "];"
     rule (Rule ct lhs f rhs) =

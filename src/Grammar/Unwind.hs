@@ -7,8 +7,6 @@ import           Data.Data.Lens
 import qualified Data.Map as M
 import           Data.Set (Set)
 import qualified Data.Set as S
-import           Data.List (partition)
-import           Data.List.Split
 import           Data.Foldable (foldrM, traverse_)
 
 import           Grammar.Grammar
@@ -43,16 +41,10 @@ unwindOnPhantom (s, tar, vs) (cs, g) = do
     maxSym = maximum (g ^.. biplate) :: Symbol
     pasteSyms = toPaste ^.. biplate :: [Symbol]
     symMap = M.insert tar s $ M.fromList (zip pasteSyms [maxSym+1..])
-    toPaste' = toPaste & biplate %~ (\s -> M.findWithDefault s s symMap)
+    toPaste' = toPaste & biplate %~ (\s' -> M.findWithDefault s' s' symMap)
     renameBound v = if baseName (view varName v) `elem` vs
                     then v & varName %%~ (fetch . baseName)
                     else pure v
-
-    renameSpecial v = case splitOn "/" (view varName v) of
-      [vn] -> v
-      [vn, s] -> let s' = M.findWithDefault (read s) (read s) symMap
-                 in v & varName .~ (vn ++ "/" ++ show s')
-      _ -> error "bad variable name in renameSpecial"
 
 reaches :: Symbol -> [Rule] -> [Rule]
 reaches start rs = evalState (reach start) S.empty

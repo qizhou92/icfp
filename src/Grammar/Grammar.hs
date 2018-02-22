@@ -40,7 +40,7 @@ data Nonterminal = Nonterminal
 makeLenses ''Nonterminal
 
 nonterminalPrimary :: Nonterminal -> Symbol
-nonterminalPrimary (Nonterminal id _) = primaryID id
+nonterminalPrimary (Nonterminal iden _) = primaryID iden
 
 data Category = L | R
   deriving (Show, Read, Eq, Ord, Data)

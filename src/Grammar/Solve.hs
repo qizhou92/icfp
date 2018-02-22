@@ -33,8 +33,8 @@ solve cs g f = loop (cs, g)
     onInductive g' clones m ind = do
       let indS = M.keysSet $ M.filter id ind
       let invs = synthesizeInvariants indS clones g' m
-      m <- traverse simpBoth invs
-      pure (Right m)
+      m' <- traverse simpBoth invs
+      pure (Right m')
 
     simpBoth (x, y) = (,) <$> Z3.superSimplify x <*> Z3.superSimplify y
 

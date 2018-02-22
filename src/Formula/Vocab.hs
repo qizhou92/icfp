@@ -4,13 +4,9 @@ module Formula.Vocab where
 import           Control.Lens
 import           Control.Monad.State
 
-import           Data.Foldable
-import           Data.Data (Data)
 import qualified Data.Map as M
 import           Data.Map (Map)
 import           Data.List.Split
-
-import           Formula.Var
 
 class Monad m => MonadVocab m where
   fresh :: String -> m String
