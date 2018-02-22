@@ -111,21 +111,24 @@ infer = fmap (annMap snd . annZip) .
         pure t
 
     ELam x t' ->
-      if x `M.notMember` ctxt -- x is HO
-      then do
-        -- When the lambda argument, x, is primitive, we can directly substitute
-        -- the bound argument for the free variable, x, in the body.
-        let ta = argumentOf t
-        let vx = F.Var (getVar x) (F.exprType ta)
-        subtype [F.expr|$ta = @vx|] [] t' t
-        pure t
-      else do
-        -- When the lambda argument is not primitive, all we can do is claim that
-        -- the type of the body is a subtype of the output type of the lambda
-        -- expression.
-        let (_ , t'') = split t
-        t' <: t''
-        pure t
+      case M.lookup x ctxt of
+        Nothing -> error "each variable should corresponding a predicate"
+        Just (s, _) ->
+          if isPrim s
+          then do
+            -- When the lambda argument, x, is primitive, we can directly substitute
+            -- the bound argument for the free variable, x, in the body.
+            let ta = argumentOf t
+            let vx = F.Var (getVar x) (F.exprType ta)
+            subtype [F.expr|$ta = @vx|] [] t' t
+            pure t
+          else do
+            -- When the lambda argument is not primitive, all we can do is claim that
+            -- the type of the body is a subtype of the output type of the lambda
+            -- expression.
+            let (_ , t'') = split t
+            t' <: t''
+            pure t
 
     EBin op r s ->
       -- For a primitive operation, we can constrain the output of the operation

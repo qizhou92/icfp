@@ -22,7 +22,7 @@ parseE s = case parse parseExpr "" s of
 
 basicPlotE :: CoreExpr -> IO ()
 basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames $ unwindFix $ unwindFix (evalState (numberExpressions ex) 0)
+  let ex' = runVocab $ uniqueNames $ unwindFix (evalState (numberExpressions ex) 0)
   print (pretty (forget ex'))
   (cs, g) <- S.exprGrammar ex'
   print cs
@@ -50,3 +50,9 @@ qiTest2 :: String
 qiTest2 =
   let addF = "fix f . \\f1.\\f2.\\x.(f f1 (f1 x) (x-1))"
   in "(" ++ addF ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+
+simple :: String
+simple = "(\\x.x+x)2"
+
+notSoSimple :: String
+notSoSimple = "(\\f.f 1)(\\x.x+2)"
