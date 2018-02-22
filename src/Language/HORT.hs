@@ -51,9 +51,10 @@ freshType varTypes fVars eType = do
   HORT <$> mkTree primFvs eType <*> pure eType
   where
     mkTree primFreeVars eType' = do
-      let (prims, hots) = partition isPrimitiveType $ flattenType eType'
+      let flattedTypes = flattenType eType'
+      let prims  = filter (\t ->(isPrimitiveType t)) flattedTypes
       predicate <- mkPredicate primFreeVars prims
-      subTrees <- mapM (mkTree []) hots
+      subTrees <- mapM (mkTree []) (tail flattedTypes)
       return (Node (predicate, prims) subTrees)
 
     mkPredicate freeVarsWithType types = do
