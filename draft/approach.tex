@@ -287,8 +287,8 @@ $(\Phi'', \mathcal{M}'')$ is a relational refinement type.
 
 % define relational product:
 \paragraph{Relational refinement product types}
-The relational product of relational type $\tau$ from indices $i$ and
-$j$ to index $k$ is a relational type in which the type at $k$ is the
+The indexed product of relational type $\tau$ from indices $i$ and $j$
+to index $k$ is a relational type in which the type at $k$ is the
 product of types at $i$ and $j$.
 %
 I.e., for space of indices $I$, indices $i, j, k \in I$,
@@ -314,8 +314,48 @@ It is straightforward to prove that if $(\Phi, \mathcal{M})$ is a
 relational refinement types, then $(\Phi', \mathcal{M}')$ is a
 relational refinement type.
 
-\paragraph{Relational refinement unfoldings}
-\BH{define unfolding of fixpoint type}
+\paragraph{Relational refinement least-fixed points}
+The indexed least-fixed point of relational type $\tau$ at index $i$
+defines a relational type over unbounded unfoldings of the relational
+type at $i$.
+%
+I.e., for space of indices $I$ and index $i \in I$, $X \in \lfpvars$,
+$\Phi \subseteq \refpreds{ \idxpos{I} }$, and
+$\mathcal{M} \subseteq \pset(\idxpos{I})$, the least-fixed point of
+$(\Phi, \mathcal{M})$ at $i$, denoted $\mu_i X. (\Phi, \mathcal{M})$,
+is $(\Phi', \mathcal{M}')$, where
+%
+\begin{align*}
+  \Phi' = & \setformer{ %
+            \replace{ \varphi }{ %
+            (i, p_0), \ldots, (i, p_n) }{ %
+            (i, \mu_X \cons p_0), \ldots, (i, \mu_X \cons p_n) } }{ %
+            \varphi \in \Phi } \\
+  \mathcal{M}' = & \setformer{ %
+                  \replace{ M }{ (i, p_0), \ldots, (i, p_n) }{ %
+                  (i, \mu_X \cons p_0), \ldots, (i, \mu_X \cons p_n) } }{
+                  M \in \mathcal{M} }
+\end{align*}
+
+\paragraph{Replacing type variables in relational refinement types}
+%
+The replacement of type variable $X$ with relational refinement type
+$\tau'$ in relational refinement type $\tau$ expands $\tau$, replacing
+each occurrence of $X$ in $\tau$ with a copy of $\tau'$.
+%
+I.e., for space of indices $I$, $i \in X$, $X \in \lfpvars$,
+$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
+$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the
+replacement of $X$ with $(\Phi', \mathcal{M}')$ in
+$(\Phi, \mathcal{M})$, denoted
+$\replace{(\Phi, \mathcal{M})}{X}{(\Phi', \mathcal{M}')}_i$, is
+$(\Phi'', \mathcal{M}'')$, where
+%
+\begin{align*}
+  \Phi'' = & \\
+  \mathcal{M}'' = &
+\end{align*}
+\BH{complete}
 %
 
 % define refinement predicates, variance
@@ -326,7 +366,7 @@ program values then the property to which $\tau'$ corresponds.
 % define variance of type positions
 The variance of a data position denotes if it
 %
-\BH{connect to this some known FP idiom}
+\BH{connect this to some known FP idiom}
 %
 \begin{defn}
   \label{defn:variance}
@@ -569,9 +609,9 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
-      \Gamma, \gamma \judges E : \unfold{\tau} }{ 
+      \Gamma, \gamma \judges E : \replace{ \tau }{ X }{ \tau }_p }{ 
       % then expressions have folded type
-      \Gamma, \gamma \judges E : \tau } 
+      \Gamma, \gamma \judges E : \mu_p X. \tau } 
     % subtype:
     \inference[ SUB ]{
       % if expressions have tau,
