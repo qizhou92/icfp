@@ -740,33 +740,24 @@ such collections of relational refinement types
 %
 \sys, given expressions $e_0, \ldots, e_n$ and relational type
 $\tau \in \reltypes{e_0, \ldots, e_n}$, attempts to determine if
-$e_0, \ldots, e_n : \tau$ by finding types for non-recursive
-expressions that under-approximate the behaviors of
+$e_0, \ldots, e_n : \tau$ by finding types of expansions of
 $e_0, \ldots, e_n$.
-%
-Expression $e \in \expr$ is \emph{bounded} if it does not contain a
-sub-expression of the form $\fix{f}{e'}$ for some $f \in \fixvars$ and
-$e' \in \expr$.
-
-% structures maintained by inference algorithm. Unfoldings:
-\BH{update this}
 %
 \begin{defn}
   \label{defn:unfoldings}
-  For each $f \in \vars$ and $e \in \expr$, the \emph{unfoldings} of
-  $\fix{f}{e}$, denoted $\unfoldings{ \fix{f}{e} }$
-
- are the smallest set of expressions such that:
+  For each $e \in \expr$, the \emph{unfoldings} of $e$, denoted
+  $\unfoldings{ \fix{f}{e} }$ are defined inductively as follows:
   %
   \begin{enumerate}
-  \item $f \in \unfoldings{ \fix{f}{e} }$;
-  \item For each $e' \in \unfoldings{ \fix{f}{e} }$, $\replace{
-      \fix{f}{e} }{ f }{ e' } \in \unfoldings{ \fix{f}{e} }$.
+  \item % expression is unfolding
+    $e \in \unfoldings{ e }$;
+  \item % replacement:
+    For $e \in \expr$ and $e' \in \unfoldings{e}$ that contains
+    subexpressions $\fix{f_0}{e_0}, \ldots, \fix{f_n}{e_n}$
+    $\replace{e'}{f_0, \ldots, f_n}{ \fix{f_0}{e_0}, \ldots,
+      \fix{f_n}{e_n} }$.
   \end{enumerate}
 \end{defn}
-%
-\BH{fix defn of unfoldings above to allow the unfolded expressions to
-  occur as subexpressions of the main expressions}
 %
 \BH{give examples}
 
@@ -808,17 +799,17 @@ $e' \in \expr$.
           \lIf{$\chkinductive(e_0, \ldots, e_n, T)$ %
             \label{line:chk-ind} }{ 
             \Return{ $\true$ } \label{line:ret-eq} } %
-          \lElse{
-            \Return{ $\inferaux(\unfoldexp(e_0', e_0), \ldots, %
-              \unfoldexp(e_n, e_n'))$ } \label{line:recurse} }
+          \lElse{ %
+            \Return{ $\inferaux(\unfoldexp(e_0'), \ldots, %
+              \unfoldexp(e_n))$ } \label{line:recurse} }
         } %
       } \label{line:infer-aux-end} }
-    \Return{$\inferaux(\initunfold(e_0), \ldots, \initunfold(e_n))$ %
+    \Return{$\inferaux(e_0, \ldots, e_n)$ %
       \label{line:infer-base} }
   }
   % 
   \caption{ \sys: a type-inference procedure that uses procedures
-    \inferbnd, \chkinductive, $\initunfold$, and \unfoldexp. }
+    \inferbnd, \chkinductive, and \unfoldexp. }
   \label{alg:infer}
 \end{algorithm}
 \end{figure}
@@ -863,17 +854,11 @@ and returns the result of the recursion
 (\autoref{line:infer-recurse}).
 
 % sketch unfolding operations:
-The procedures $\initunfold$ and \unfoldexp are straightforward to
-implement.
+The procedure \unfoldexp is straightforward to implement.
 %
-One satisfactory implementation of $\initunfold$, given $e \in \expr$,
-iteratively replaces sub-expressions of $e$ of the form $\fix{f}{e'}$
-with $e'$.
-%
-One implementation of \unfoldexp, given $e, e' \in \expr$ such that
-$e' \unfolding e$, replaces each occurrence of fixpoint variable $f$
-in $e'$ where $\fix{f}{e''}$ is a sub-expression of $e$, with
-$\initunfold(e'')$.
+One implementation of \unfoldexp, given $e \in \expr$, iteratively
+replaces each occurrence of fixpoint variable $f$ in $e$ with
+$\fix{f}{e'}$, where $\fix{f}{e'}$ is a sub-expression of $e$.
 %
 The procedures \inferbnd and \chkinductive are defined below.
 
