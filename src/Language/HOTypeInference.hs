@@ -107,18 +107,6 @@ infer = fmap (annMap snd . annZip) .
       -- the argument.
       let (s', t') = split st
       s <: s'
-      -- if isPrim s
-      -- then
-      --   -- When the argument to the application is primitive, we can constrain
-      --   -- the output of the argument to the argument of the applicand directly.
-      --   let sv = valueOf s
-      --       sta = argumentOf st
-      --   in subtype [F.expr|$sta = $sv|] [s] st t
-      -- else
-      --   -- When the argument is not primitive, all we can do is indicate that
-      --   -- the output type of the applicand should be a subtype of the full
-      --   -- application and that the input of the applicand is a supertype of
-      --   -- the argument.
       t' <: t
       pure t
 

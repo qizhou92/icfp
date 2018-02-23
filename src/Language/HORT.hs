@@ -130,3 +130,6 @@ topPredicate = (\(Node (c, _) _) -> c) . getHORT
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
+
+copyContext :: MonadState Int m => Map Var HORT -> m (Map Var HORT)
+copyContext = undefined

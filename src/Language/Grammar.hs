@@ -56,3 +56,9 @@ simple = "(\\x.x+x)2"
 
 notSoSimple :: String
 notSoSimple = "(\\f.f 1)(\\x.x+2)"
+
+doubleCall :: String
+doubleCall = "(\\f.(f 1) + (f 2))(\\x.x+3)"
+
+doubleCall2 :: String
+doubleCall2 = "(\\f.f (f 1))(\\x.x+2)"
