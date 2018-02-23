@@ -132,4 +132,14 @@ lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
 
 copyContext :: MonadState Int m => Map Var HORT -> m (Map Var HORT)
-copyContext = undefined
+copyContext oldContext = do
+  let contextList = M.toList oldContext
+  newConext <- mapM (\(name,hort) -> do
+                                       newHort <- copyeHORTWithOutFreeVariable hort
+                                       return (name,newHort)
+                    ) contextList
+  return (M.fromList newConext)
+
+
+copyeHORTWithOutFreeVariable :: MonadState Int m => HORT -> m (HORT)
+copyeHORTWithOutFreeVariable oldHort = freshType M.empty [] (getBasicType oldHort)
