@@ -89,26 +89,38 @@ infer = fmap (annMap snd . annZip) .
         Nothing -> error "each variable should corresponding a predicate"
         -- When x is in the context, we say that its type in the context is a subtype
         -- of the type of the current expression.
-        Just (t', Nothing) -> 
+        Just (t', Nothing) ->
           if isPrim t then do
              let tv = valueOf t
              let tv' = valueOf t'
              let vx = F.Var (getVar x) (F.exprType tv)
              constrain [F.expr|$tv = @vx && $tv' = @vx|] [t'] t
-             pure t 
-          else do  t' <: t >> pure t
+             pure t
+          else t' <: t >> pure t
         Just (t', Just vs) ->
           pure (convertToFix vs t' t)
 
     EApp st s -> do
-        -- When expression is app is indicate that
-        -- the output type of the applicand should be a subtype of the full
-        -- application and that the input of the applicand is a supertype of
-        -- the argument.
-        let (s', t') = split st
-        t' <: t
-        s <: s'
-        pure t
+      -- When expression is app is indicate that
+      -- the output type of the applicand should be a subtype of the full
+      -- application and that the input of the applicand is a supertype of
+      -- the argument.
+      let (s', t') = split st
+      s <: s'
+      -- if isPrim s
+      -- then
+      --   -- When the argument to the application is primitive, we can constrain
+      --   -- the output of the argument to the argument of the applicand directly.
+      --   let sv = valueOf s
+      --       sta = argumentOf st
+      --   in subtype [F.expr|$sta = $sv|] [s] st t
+      -- else
+      --   -- When the argument is not primitive, all we can do is indicate that
+      --   -- the output type of the applicand should be a subtype of the full
+      --   -- application and that the input of the applicand is a supertype of
+      --   -- the argument.
+      t' <: t
+      pure t
 
     ELam x t' ->
       case M.lookup x ctxt of

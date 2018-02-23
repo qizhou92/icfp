@@ -22,7 +22,7 @@ parseE s = case parse parseExpr "" s of
 
 basicPlotE :: CoreExpr -> IO ()
 basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames $ unwindFix (evalState (numberExpressions ex) 0)
+  let ex' = runVocab $ uniqueNames (evalState (numberExpressions ex) 0)
   print (pretty (forget ex'))
   (cs, g) <- S.exprGrammar ex'
   print cs
@@ -40,8 +40,8 @@ testSumF =
   [F.expr|n > 0 && l/arg1/0 = n && r/arg1/0 = n - 1 -> l/out/0 = r/out/0 + n|]
 
 addFunction :: String
-addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
-                "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1) (y+1))"
+addFunction = "fix f . \\f1 . \\f2 . \\x . " ++
+                "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1))"
 
 qiTest :: String
 qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
