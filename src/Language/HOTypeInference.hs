@@ -45,7 +45,10 @@ typeConstraints e =
       hasHO <- giveType (addFreeVars e)
       let cs = computeClones hasHO
       let hasHO' = annMap snd hasHO
-      _ <- infer (contextualize hasHO')
+      wCtxt <- contextualize hasHO'
+      let wCtxt' = restrictContext (annZip $ freeVars wCtxt)
+      _ <- ctxtSubtyping wCtxt'
+      _ <- infer wCtxt'
       pure cs) 0)
   in case runWriter ac of
     (Left err, _) -> Left err
@@ -56,26 +59,59 @@ typeConstraints e =
     -- | Generate a new higher order relational type for every subexpression.
     giveType = fmap unAttrib . traverse (\(iden, m, vs, t) -> (,) iden <$> freshType m vs t) . Attrib
 
+    restrictContext :: Attr CoreExpr' ((HORT, Ctxt), Set Var) -> Attr CoreExpr' (HORT, Ctxt)
+    restrictContext = annMap (\((t, c), vs) -> (t, M.filterWithKey (\k _ -> k `elem` vs) c))
+
 computeClones :: Attr CoreExpr' (ExprID, HORT) -> Clones
 computeClones ex = M.elems $ execState (mapM_ (modify . addToMap) (Attrib ex)) M.empty
   where
     addToMap (eid, hort) =
       M.insertWith S.union eid (S.singleton $ nonterminalPrimary $ topPredicate hort)
 
-type Ctxt = Map Var (HORT, Maybe (Set Var))
+type Ctxt = Map Var HORT
 
 -- | Annotate each subexpression with the context which maps variables
 -- to their corresponding context.
-contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
-contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
-  -- We insert x into the context, regardless of its type for fix expressions.
-  EFix x e' -> M.insert x (t, Just (boundVars e')) ctxt
-  -- For lambda expressions, we only add x to the context if it is not primitive.
-  -- Otherwise, we can constrain x directly.
-  ELam x _ ->
-    let (s, _) = split t
-    in M.insert x (s, Nothing) ctxt
-  _ -> ctxt) M.empty
+contextualize :: MonadState Int m => Attr CoreExpr' HORT -> m (Attr CoreExpr' (HORT, Ctxt))
+contextualize =
+  fmap annZip . inheritM
+  (\(Fix (Ann t e)) ctxt -> do
+    ctxt' <- copyContext ctxt
+    pure $ case e of
+      -- We insert x into the context, regardless of its type for fix expressions.
+      EFix x _ -> M.insert x t ctxt'
+      -- For lambda expressions, we only add x to the context if it is not primitive.
+      -- Otherwise, we can constrain x directly.
+      ELam x _ ->
+        let (s, _) = split t
+        in M.insert x s ctxt'
+      _ -> ctxt') M.empty
+
+-- | Declare that the types of the variables in the first context are subtypes
+-- of their corresponding types in the second context.
+constrainCtxt :: Ctxt -> Ctxt -> Infer ()
+constrainCtxt c1 c2 =
+  let c' = M.intersectionWith (,) c1 c2 in
+  mapM_ (uncurry (<:)) (M.elems c')
+
+ctxtSubtyping :: Attr CoreExpr' (a, Ctxt) -> Infer (Attr CoreExpr' Ctxt)
+ctxtSubtyping = fmap (annMap snd . annZip) .
+  synthetiseM (\(Ann (_, t) e) -> do
+    case e of
+      EApp st s -> do
+        constrainCtxt t st
+        constrainCtxt t s
+      ELam _ t' -> constrainCtxt t t'
+      EBin _ r s -> do
+        constrainCtxt t r
+        constrainCtxt t s
+      EIf q r s -> do
+        constrainCtxt t q
+        constrainCtxt t r
+        constrainCtxt t s
+      EFix _ s -> constrainCtxt t s
+      _ -> pure ()
+    pure t)
 
 -- | Given an expression where every subexpression has a higher order relational
 -- type and has access to the correct context, generate constraints which
@@ -89,7 +125,7 @@ infer = fmap (annMap snd . annZip) .
         Nothing -> error "each variable should corresponding a predicate"
         -- When x is in the context, we say that its type in the context is a subtype
         -- of the type of the current expression.
-        Just (t', Nothing) ->
+        Just t' ->
           if isPrim t then do
              let tv = valueOf t
              let tv' = valueOf t'
@@ -97,8 +133,6 @@ infer = fmap (annMap snd . annZip) .
              constrain [F.expr|$tv = @vx && $tv' = @vx|] [t'] t
              pure t
           else t' <: t >> pure t
-        Just (t', Just vs) ->
-          pure (convertToFix vs t' t)
 
     EApp st s -> do
       -- When expression is app is indicate that
@@ -113,7 +147,7 @@ infer = fmap (annMap snd . annZip) .
     ELam x t' ->
       case M.lookup x ctxt of
         Nothing -> error "each variable should corresponding a predicate"
-        Just (s, _) ->
+        Just s ->
           if isPrim s
           then do
             -- When the lambda argument, x, is primitive, we can directly substitute
@@ -188,4 +222,3 @@ infer = fmap (annMap snd . annZip) .
 -- | The first type is a subtype of the second with no additional constraints.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
 (<:) = subtype (F.LBool True) []
-
