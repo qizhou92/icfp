@@ -1,13 +1,15 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Language.HOTypeInference where
 
+import           Control.Lens
 import           Control.Monad.Except
 import           Control.Monad.State
 import           Control.Monad.Writer
+import           Control.Monad.Reader
 
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Set (Set)
 import qualified Data.Set as S
 import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Attributes
@@ -24,7 +26,13 @@ data InferenceError
   | InvalidSplit HORT
   deriving (Show, Read, Eq)
 
-type Infer a = StateT Int (ExceptT InferenceError (Writer [Rule])) a
+data Ctxt = Ctxt
+  { _varTyping :: Map Var HORT
+  , _varEnvs :: Map Var HORT
+  } deriving (Show, Read, Eq)
+makeLenses ''Ctxt
+
+type Infer a = ReaderT Ctxt (StateT Int (ExceptT InferenceError (Writer [Rule]))) a
 
 -- | Given an expression that is annotated with basic types and a context for
 -- variable basic types, generate the constraints which relate the higher
@@ -41,12 +49,12 @@ type Infer a = StateT Int (ExceptT InferenceError (Writer [Rule])) a
 typeConstraints :: Attr CoreExpr' (ExprID, Map Var Type, Type)
                 -> Either InferenceError (Clones, Grammar)
 typeConstraints e =
-  let ac = runExceptT (evalStateT (do
+  let ac = runExceptT (evalStateT (runReaderT (do
       hasHO <- giveType (addFreeVars e)
       let cs = computeClones hasHO
       let hasHO' = annMap snd hasHO
-      _ <- infer (contextualize hasHO')
-      pure cs) 0)
+      _ <- infer hasHO'
+      pure cs) (Ctxt M.empty M.empty)) 0)
   in case runWriter ac of
     (Left err, _) -> Left err
     (Right cs, rs) -> Right (cs, Grammar 0 rs)
@@ -62,135 +70,114 @@ computeClones ex = M.elems $ execState (mapM_ (modify . addToMap) (Attrib ex)) M
     addToMap (eid, hort) =
       M.insertWith S.union eid (S.singleton $ nonterminalPrimary $ topPredicate hort)
 
-type Ctxt = Map Var (HORT, Maybe (Set Var))
+-- | Given an expression where every subexpression has a higher order
+-- relational type, generate constraints which encode the typing relationships
+-- in the expression and propogate the type to the parent expression.
+infer :: Attr CoreExpr' HORT -> Infer HORT
+infer (Fix (Ann t e)) = do
+  case e of
+    EVar x -> M.lookup x <$> view varTyping >>= \case
+      Nothing ->
+        let tv = valueOf t
+            vx = F.Var (getVar x) (F._varType tv)
+        in constrain [F.expr|@tv = @vx|] [] t
+      -- When x is in the context, we say that its type in the context is a subtype
+      -- of the type of the current expression.
+      Just t' ->
+        M.lookup x <$> view varEnvs >>= \case
+          Nothing -> t' <: t
+          Just env -> subtype (F.LBool True) [env] t' t
 
--- | Annotate each subexpression with the context which maps variables
--- to their corresponding context.
-contextualize :: Attr CoreExpr' HORT -> Attr CoreExpr' (HORT, Ctxt)
-contextualize = annZip . inherit (\(Fix (Ann t e)) ctxt -> case e of
-  -- We insert x into the context, regardless of its type for fix expressions.
-  EFix x e' -> M.insert x (t, Just (boundVars e')) ctxt
-  -- For lambda expressions, we only add x to the context if it is not primitive.
-  -- Otherwise, we can constrain x directly.
-  ELam x _ ->
-    let (s, _) = split t
-    in if isPrim s
-    then ctxt
-    else M.insert x (s, Nothing) ctxt
-  _ -> ctxt) M.empty
-
--- | Given an expression where every subexpression has a higher order relational
--- type and has access to the correct context, generate constraints which
--- encode the typing relationships in the expression and propogate the
--- type to the parent expression.
-infer :: Attr CoreExpr' (HORT, Ctxt) -> Infer (Attr CoreExpr' HORT)
-infer = fmap (annMap snd . annZip) .
-  synthetiseM (\(Ann (t, ctxt) e) -> case e of
-    EVar x ->
-      case M.lookup x ctxt of
-        -- When x is not in the context (and hence is a primitive lambda bound variable),
-        -- we just match x to the output of the expression.
-        Nothing ->
-          let tv = valueOf t
-              vx = F.Var (getVar x) (F.exprType tv)
-          in constrain [F.expr|$tv = @vx|] [] t >> pure t
-        -- When x is in the context, we say that its type in the context is a subtype
-        -- of the type of the current expression.
-        Just (t', Nothing) -> t' <: t >> pure t
-        Just (t', Just vs) ->
-          pure (convertToFix vs t' t)
-
-    EApp st s ->
+    EApp app@(Fix (Ann appT _)) arg -> do
+      s <- infer arg
+      st <- infer app
       if isPrim s
-      then
-        -- When the argument to the application is primitive, we can constrain
-        -- the output of the argument to the argument of the applicand directly.
+      then do
         let sv = valueOf s
-            sta = argumentOf st
-        in subtype [F.expr|$sta = $sv|] [s] st t >> pure t
+        let sta = argumentOf st
+        subtype [F.expr|@sta = @sv|] [s] st t
       else do
         -- When the argument is not primitive, all we can do is indicate that
         -- the output type of the applicand should be a subtype of the full
         -- application and that the input of the applicand is a supertype of
         -- the argument.
+        let sta = convertVar (argumentOf appT)
+        -- st <- local (varEnvs %~ M.insert sta s) (infer app)
         let (s', t') = split st
         t' <: t
         s <: s'
-        pure t
 
-    ELam x t' ->
-      if x `M.notMember` ctxt -- x is HO
+    ELam x e' ->
+      let (s, t'') = split t
+      in if isPrim s
       then do
-        -- When the lambda argument, x, is primitive, we can directly substitute
-        -- the bound argument for the free variable, x, in the body.
+        t' <- infer e'
         let ta = argumentOf t
-        let vx = F.Var (getVar x) (F.exprType ta)
-        subtype [F.expr|$ta = @vx|] [] t' t
-        pure t
+        let vx = F.Var (getVar x) (F._varType ta)
+        subtype [F.expr|@ta = @vx|] [] t' t
       else do
-        -- When the lambda argument is not primitive, all we can do is claim that
-        -- the type of the body is a subtype of the output type of the lambda
-        -- expression.
-        let (_ , t'') = split t
+        t' <- local (varTyping %~ M.insert x s) (infer e')
         t' <: t''
-        pure t
 
-    EBin op r s ->
+    EFix{} -> pure ()
+
+    EIf cond consequent alternative -> do
+      s <- infer cond
+      t' <- infer consequent
+      t'' <- infer alternative
+      -- If expressions generate two sets of constraints.
+      let sv = valueOf s
+      -- One says that the consequence is a subtype of the full expression,
+      -- as witnessed by the output of the condition being true.
+      subtype [F.expr|@sv|] [s] t' t
+      -- The other says taht the alternative is a subtype of the full
+      -- expression, as witnessed by the output of the condition being false.
+      subtype [F.expr|not @sv|] [s] t'' t
+
+    EBin bin arg1 arg2 -> do
       -- For a primitive operation, we can constrain the output of the operation
       -- expression to be equal to performing the actual operation on the outputs
       -- of the subexpressions.
+      r <- infer arg1
+      s <- infer arg2
       let rv = valueOf r
           sv = valueOf s
           tv = valueOf t
-          f = case op of
-            Plus  -> [F.expr|$tv = $rv + $sv|]
-            Minus -> [F.expr|$tv = $rv - $sv|]
-            Mul   -> [F.expr|$tv = $rv * $sv|]
-            Div   -> [F.expr|$tv = $rv / $sv|]
-            Eq    -> [F.expr|$tv = ($rv = $sv)|]
-            Ne    -> [F.expr|$tv = (not ($rv = $sv))|]
-            Lt    -> [F.expr|$tv = ($rv < $sv)|]
-            Le    -> [F.expr|$tv = ($rv <= $sv)|]
-            And   -> [F.expr|$tv = ($rv && $sv)|]
-            Or    -> [F.expr|$tv = ($rv || $sv)|]
+          f = case bin of
+            Plus  -> [F.expr|@tv = @rv + @sv|]
+            Minus -> [F.expr|@tv = @rv - @sv|]
+            Mul   -> [F.expr|@tv = @rv * @sv|]
+            Div   -> [F.expr|@tv = @rv / @sv|]
+            Eq    -> [F.expr|@tv = (@rv = @sv)|]
+            Ne    -> [F.expr|@tv = (not (@rv = @sv))|]
+            Lt    -> [F.expr|@tv = (@rv < @sv)|]
+            Le    -> [F.expr|@tv = (@rv <= @sv)|]
+            And   -> [F.expr|@tv = (@rv && @sv)|]
+            Or    -> [F.expr|@tv = (@rv || @sv)|]
             Cons  -> undefined
-      in constrain f [r, s] t >> pure t
+      constrain f [r, s] t
 
     EInt i ->
       -- Int literals constrain their output to be equal to the literal.
       let tv = valueOf t
           i' = F.LInt $ toInteger i
-      in constrain [F.expr|$tv = $i'|] [] t >> pure t
+      in constrain [F.expr|@tv = $i'|] [] t
 
     EBool b ->
       -- Bool literals constrain their output to be equal to the literal.
       let tv = valueOf t
           b' = F.LBool b
-      in constrain [F.expr|$tv = $b'|] [] t >> pure t
-
-    EIf s t' t'' -> do
-      -- If expressions generate two sets of constraints.
-      let sv = valueOf s
-      -- One says that the consequence is a subtype of the full expression,
-      -- as witnessed by the output of the condition being true.
-      subtype [F.expr|$sv|] [s] t' t
-      -- The other says taht the alternative is a subtype of the full
-      -- expression, as witnessed by the output of the condition being false.
-      subtype [F.expr|not $sv|] [s] t'' t
-      pure t
-
-    -- Fix expressions are deceptively simple: We merely state that body of
-    -- the fix expression is a subtype of the full expression. Keep in mind
-    -- that the variable has already been bound to type `t`, causing a
-    -- recursive system of constraints.
-    EFix _ t' -> t' <: t >> pure t
+      in constrain [F.expr|@tv = $b'|] [] t
 
     ENil -> undefined
     EMatch{} -> undefined
     ECon{} -> undefined
-    ELet{} -> undefined)
+    ELet{} -> undefined
+  pure t
 
 -- | The first type is a subtype of the second with no additional constraints.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
 (<:) = subtype (F.LBool True) []
 
+convertVar :: F.Var -> Var
+convertVar = Var . view F.varName
