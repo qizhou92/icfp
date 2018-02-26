@@ -46,9 +46,9 @@ typeConstraints e =
       let cs = computeClones hasHO
       let hasHO' = annMap snd hasHO
       wCtxt <- contextualize hasHO'
-      let wCtxt' = restrictContext (annZip $ freeVars wCtxt)
-      _ <- ctxtSubtyping wCtxt'
-      _ <- infer wCtxt'
+      -- let wCtxt' = restrictContext (annZip $ freeVars wCtxt)
+      _ <- ctxtSubtyping wCtxt
+      _ <- infer wCtxt
       pure cs) 0)
   in case runWriter ac of
     (Left err, _) -> Left err
@@ -73,26 +73,31 @@ type Ctxt = Map Var HORT
 -- | Annotate each subexpression with the context which maps variables
 -- to their corresponding context.
 contextualize :: MonadState Int m => Attr CoreExpr' HORT -> m (Attr CoreExpr' (HORT, Ctxt))
-contextualize =
-  fmap annZip . inheritM
-  (\(Fix (Ann t e)) ctxt -> do
-    ctxt' <- copyContext ctxt
-    pure $ case e of
-      -- We insert x into the context, regardless of its type for fix expressions.
-      EFix x _ -> M.insert x t ctxt'
-      -- For lambda expressions, we only add x to the context if it is not primitive.
-      -- Otherwise, we can constrain x directly.
-      ELam x _ ->
-        let (s, _) = split t
-        in M.insert x s ctxt'
-      _ -> ctxt') M.empty
+contextualize = copyCtxts . annZip . inherit
+  (\(Fix (Ann t e)) ctxt -> case e of
+    -- We insert x into the context, regardless of its type for fix expressions.
+    EFix x _ -> M.insert x t ctxt
+    -- For lambda expressions, we only add x to the context if it is not primitive.
+    -- Otherwise, we can constrain x directly.
+    ELam x _ ->
+      let (s, _) = split t
+      in M.insert x s ctxt
+    _ -> ctxt) M.empty
+  where
+    copyCtxts (Fix (Ann (t, c) e)) = Fix <$> case e of
+      ELam x e' -> pure $ Ann (t, c) (ELam x e')
+      e' -> do c' <- copyContext c
+               pure $ Ann (t, c') e'
+
 
 -- | Declare that the types of the variables in the first context are subtypes
 -- of their corresponding types in the second context.
 constrainCtxt :: Ctxt -> Ctxt -> Infer ()
 constrainCtxt c1 c2 =
-  let c' = M.intersectionWith (,) c1 c2 in
-  mapM_ (uncurry (<:)) (M.elems c')
+  if c1 == c2
+  then pure ()
+  else let c' = M.intersectionWith (,) c1 c2 in
+       mapM_ (uncurry (<:)) (M.elems c')
 
 ctxtSubtyping :: Attr CoreExpr' (a, Ctxt) -> Infer (Attr CoreExpr' Ctxt)
 ctxtSubtyping = fmap (annMap snd . annZip) .
@@ -101,7 +106,7 @@ ctxtSubtyping = fmap (annMap snd . annZip) .
       EApp st s -> do
         constrainCtxt t st
         constrainCtxt t s
-      ELam _ t' -> constrainCtxt t t'
+      ELam _ t' -> pure ()
       EBin _ r s -> do
         constrainCtxt t r
         constrainCtxt t s
