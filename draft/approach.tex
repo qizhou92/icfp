@@ -41,77 +41,8 @@ $\tyleftprod$, $\tyrightprod$, $\tyleftsum$, $\tyrightsum$, and for
 each $X \in \lfpvars$, $\mu_X$.
 %
 The space of positions is denoted $\typos = \typosfields^{*}$.
-%
-\begin{defn}
-  \label{defn:ty-at-pos}
-  For $\tau, \tau' \in T$ and $p \in \typos$, the fact that $\tau'$ is
-  the type in $\tau$ at $p$ is defined by induction on $p$ as follows.
-  %
-  $\tau$ is the type in $\tau$ at $\epsilon$. Furthermore,
-  %
-  \begin{itemize}
-  \item % function:
-    For all $\tau, \tau', \tau'' \in T$ and each $p \in \typos$ such
-    that $\tau' \to \tau''$ is in $\tau$ at $p$, $\tau'$ is in $\tau$
-    at $\typaramfield \cons p$ and $\tau''$ is in $\tau$ at
-    $\tyresfield \cons p$.
-  \item % sum:
-    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
-    that $\tau_l + \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in $\tau$
-    at $\tyleftsum \cons p$ and $\tau_r$ is in $\tau$ at
-    $\tyrightsum \cons p$.
-  \item % prod:
-    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
-    that $\tau_l \times \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in
-    $\tau$ at $\tyleftprod \cons p$ and $\tau_r$ is in $\tau$ at
-    $\tyrightprod \cons p$.
-  \item % lfp:
-    For all $\tau, \tau' \in T$, each $X \in \lfpvars$ and each
-    $p \in \typos$ such that $\mu X. \tau'$ is in $\tau$ at $p$,
-    $\tau'$ is in $\tau$ at $\mu_X \cons p$.
-  \end{itemize}
-\end{defn}
-%
-For each $\tau \in T$, the space of all $p \in \typos$ such that there
-is some $\tau' \in T$ in $\tau$ at $p$ is denoted $\typosty{\tau}$.
-% define data positions.
-For each $\tau \in T$ and $p \in \typosty{\tau}$, if $D$ is in $\tau$
-at $p$, $p$ is a \emph{data} position of $\tau$;
-% define variable positions,
-for each $X \in \lfpvars$ in $\tau$ at $p$, $p$ is a \emph{variable}
-position of $\tau$; %
-% define lfp positions,
-for each $X \in \lfpvars$ and $\tau' \in T$ such that $\mu X. \tau$ is
-in $\tau$ at $p$, $p$ is a \emph{least-fixed point} position of
-$\tau$.
 
-% define relatable type positions:
-Type positions are relatable if they are identical or are positions of
-distinct factors of a component product type.
-%
-\begin{defn}
-  \label{defn:relatable}
-  For each $\tau \in T$ and all $p, q \in \typosty{\tau}$, $p$ and $q$
-  are \emph{relatable in $\tau$} if:
-  \begin{itemize}
-  \item % identity:
-    Each $p \in \typosty{\tau}$ is relatable with itself as a position
-    of $\tau$;
-  \item % distinct factors:
-    For all $\tau_l, \tau_r \in T$ and all $p, q_l, q_r \in \typos$
-    such that $\tau_l \times \tau_r$ is in $\tau$ at $p$ and
-    $q_l \concat [ \tyleftprod ] \concat p, q_r \concat [ \tyrightprod
-    ] \concat p \in \typosty{\tau}$,
-    $q_l \concat [ \tyleftprod ] \concat p$ and
-    $q_r \concat [ \tyrightprod ] \concat p$ are relatable positions
-    of $\tau$.
-  \end{itemize}
-\end{defn}
-%
-The fact that $p, q \in \typos$ are relatable positions of
-$\tau \in T$ is denoted $\relatable{\tau}{p}{q}$.
-
-% define induction structure. Partial induction set:
+% define refinement predicates
 Each relational refinement type defines a property of a map from
 indices to types.
 %
@@ -204,6 +135,77 @@ defined by mutual induction.
 \end{defn}
 %
 The space of relational types over $I$ is denoted $\reltypes{I}$.
+
+%
+\begin{defn}
+  \label{defn:ty-at-pos}
+  For $\tau, \tau' \in T$ and $p \in \typos$, the fact that $\tau'$ is
+  the type in $\tau$ at $p$ is defined by induction on $p$ as follows.
+  %
+  $\tau$ is the type in $\tau$ at $\epsilon$. Furthermore,
+  %
+  \begin{itemize}
+  \item % function:
+    For all $\tau, \tau', \tau'' \in T$ and each $p \in \typos$ such
+    that $\tau' \to \tau''$ is in $\tau$ at $p$, $\tau'$ is in $\tau$
+    at $\typaramfield \cons p$ and $\tau''$ is in $\tau$ at
+    $\tyresfield \cons p$.
+  \item % sum:
+    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
+    that $\tau_l + \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in $\tau$
+    at $\tyleftsum \cons p$ and $\tau_r$ is in $\tau$ at
+    $\tyrightsum \cons p$.
+  \item % prod:
+    For all $\tau, \tau_l, \tau_r \in T$ and each $p \in \typos$ such
+    that $\tau_l \times \tau_r$ is in $\tau$ at $p$, $\tau_l$ is in
+    $\tau$ at $\tyleftprod \cons p$ and $\tau_r$ is in $\tau$ at
+    $\tyrightprod \cons p$.
+  \item % lfp:
+    For all $\tau, \tau' \in T$, each $X \in \lfpvars$ and each
+    $p \in \typos$ such that $\mu X. \tau'$ is in $\tau$ at $p$,
+    $\tau'$ is in $\tau$ at $\mu_X \cons p$.
+  \end{itemize}
+\end{defn}
+%
+For each $\tau \in T$, the space of all $p \in \typos$ such that there
+is some $\tau' \in T$ in $\tau$ at $p$ is denoted $\typosty{\tau}$.
+% define data positions.
+For each $\tau \in T$ and $p \in \typosty{\tau}$, if $D$ is in $\tau$
+at $p$, $p$ is a \emph{data} position of $\tau$;
+% define variable positions,
+for each $X \in \lfpvars$ in $\tau$ at $p$, $p$ is a \emph{variable}
+position of $\tau$; %
+% define lfp positions,
+for each $X \in \lfpvars$ and $\tau' \in T$ such that $\mu X. \tau$ is
+in $\tau$ at $p$, $p$ is a \emph{least-fixed point} position of
+$\tau$.
+
+% define relatable type positions:
+Type positions are relatable if they are identical or are positions of
+distinct factors of a component product type.
+%
+\begin{defn}
+  \label{defn:relatable}
+  For each $\tau \in T$ and all $p, q \in \typosty{\tau}$, $p$ and $q$
+  are \emph{relatable in $\tau$} if:
+  \begin{itemize}
+  \item % identity:
+    Each $p \in \typosty{\tau}$ is relatable with itself as a position
+    of $\tau$;
+  \item % distinct factors:
+    For all $\tau_l, \tau_r \in T$ and all $p, q_l, q_r \in \typos$
+    such that $\tau_l \times \tau_r$ is in $\tau$ at $p$ and
+    $q_l \concat [ \tyleftprod ] \concat p, q_r \concat [ \tyrightprod
+    ] \concat p \in \typosty{\tau}$,
+    $q_l \concat [ \tyleftprod ] \concat p$ and
+    $q_r \concat [ \tyrightprod ] \concat p$ are relatable positions
+    of $\tau$.
+  \end{itemize}
+\end{defn}
+%
+The fact that $p, q \in \typos$ are relatable positions of
+$\tau \in T$ is denoted $\relatable{\tau}{p}{q}$.
+
 
 % declare typing relation:
 A key contribution of our work is the definition of a typing relation
@@ -352,11 +354,30 @@ $\replace{(\Phi, \mathcal{M})}{X}{(\Phi', \mathcal{M}')}_i$, is
 $(\Phi'', \mathcal{M}'')$, where
 %
 \begin{align*}
-  \Phi'' = & \\
-  \mathcal{M}'' = &
+  % extend base set of refinement predicates
+  \Phi'' = & \Phi \union %
+             \setformer{
+               % relational predicate with each i-symbol in the vocab
+               % extended
+             \replace{ \varphi' }{ (i, q_0), \ldots, (i, q_n) }{ (i, p \concat q_0), \ldots, (i, p \concat q_n) } }{
+             % for each relational predicate in the transplant and
+             % each position of X in the base
+             \varphi' \in \Phi', p \in \typos, %
+             X \cons p \in \mathcal{M} } \\
+  % extend mutual base mutual induction set
+  \mathcal{M}'' = & \mathcal{M} \union %
+                    \setformer{
+                      % mutual-induction set with each i-position extended
+                    (M' \setminus \elts{ (i, q_0), \ldots, (i, q_n) }) \union
+                    \elts{ (i, p \concat q_0), \ldots, (i, p \concat q_n) }
+                    }{
+                      % for each mutual induction set in the
+                      % transplant and each position of X in the base:
+                    M' \in \mathcal{M'}, p \in \typos, %
+                    X \cons p \in \mathcal{M} }
 \end{align*}
-\BH{complete}
 %
+\BH{rethink simultaneous unfolding}
 
 % define refinement predicates, variance
 \paragraph{Refinements of a relational refinement type}
