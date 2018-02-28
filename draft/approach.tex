@@ -89,7 +89,24 @@ over features unique to relational types.
 
 \paragraph{Atomic relational refinement types}
 %
-\BH{complete}
+An atomic relational refinement type directly defines a set of
+relational refinement predicates and a mutual induction set.
+% 
+Let the space of singleton type positions over type-variables be
+denoted $[ \lfpvars ]$.
+%
+For indices $I$, $T : I \to [ \lfpvars ]$ and $M \subseteq I$, let
+$T(M) = \setformer{ (i, T(i)) }{ i \in I }$, and for
+$\mathcal{M} \subseteq \pset(I)$ and let
+$T(\mathcal{M}) = \setformer{ T(M) }{ M \in \mathcal{M}}$.
+%
+Then for indices $I$, 
+% each set of refinement predicates over trivial type positions,
+each $\Phi \subseteq \refpreds{ I \times [ \lfpvars] }$,
+% each mutual induction set,
+$T : I \to [ \lfpvars ]$, and $\mathcal{M} \subseteq \pset(I)$, define
+the \emph{atomic} relational type
+$A_{\Phi, T, \mathcal{M}} = (\Phi, T(\mathcal{M}))$.
 
 \paragraph{Relational refinement function types}
 %
@@ -127,8 +144,6 @@ $(\Phi, \mathcal{M}) \to^i_x (\Phi', \mathcal{M}') = (\typaramfield
 \prepend{i}{i} \Phi \union \Phi'', \typaramfield \prepend{i}{i}
 \mathcal{M} \union \mathcal{M}'')$, where
 %
-\BH{only let this be defined in cases in which resulting mutual
-  induction sets work}
 \begin{align*}
   % renamed result predicates,
   \Phi'' \equiv & \setformer{ %
@@ -173,6 +188,9 @@ $(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$, is
 $\times_{i, j}^k (\Phi, \mathcal{M}) = (\tyleftprod \prepend{i}{k}
 \tyrightprod \prepend{j}{k} \Phi, \tyleftprod \prepend{i}{k}
 \tyrightprod \prepend{j}{k} \mathcal{M})$.
+%
+\BH{only let this be defined in cases in which resulting mutual
+  induction sets work}
 
 \paragraph{Relational refinement least-fixed points}
 The indexed least-fixed point of relational type $\tau$ at index $i$
