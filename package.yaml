@@ -29,7 +29,7 @@ dependencies:
 - base >=4.9 && <5
 - ghc-paths
 - temporary
-- containers
+- containers >=0.5.8
 - parsec
 - parsec-numbers
 - unordered-containers
