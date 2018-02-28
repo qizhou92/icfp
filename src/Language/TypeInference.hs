@@ -31,7 +31,7 @@ type Ctxt = Map Var Type
 type Infer a = StateT InferenceState (Either InferenceError) a
 
 typeCheck :: Attr CoreExpr' a
-          -> Either InferenceError (Attr CoreExpr' (a, Ctxt, Type))
+          -> Either InferenceError (Attr CoreExpr' (Ctxt, Type, a))
 typeCheck e = evalStateT
   (contextualize e >>= infer >>= resolve)
   (InferenceState 0 M.empty)
@@ -68,12 +68,12 @@ unify = go
 -- | Given an expression where each subexpression is annotated with its type,
 -- use the type table to replace type variables by their equivalent type, when
 -- possible.
-resolve :: Attr CoreExpr' (a, Ctxt, Type) -> Infer (Attr CoreExpr' (a, Ctxt, Type))
+resolve :: Attr CoreExpr' (Ctxt, Type, a) -> Infer (Attr CoreExpr' (Ctxt, Type, a))
 resolve = fmap unAttrib . traverse resolve' . Attrib
   where
     resolve' x = do
-      x' <- x & _2 . traverse %%~ res
-      x' & _3 %%~ res
+      x' <- x & _1 . traverse %%~ res
+      x' & _2 %%~ res
     res = \case
       TVar x -> M.lookup x <$> use typeTable >>= \case
         Nothing -> pure (TVar x)
@@ -90,7 +90,7 @@ freshType = do
 
 -- | Label each subexpression with the correct context, which is a mapping from
 -- expression variables to type variables.
-contextualize :: Attr CoreExpr' a -> Infer (Attr CoreExpr' (a, Ctxt))
+contextualize :: Attr CoreExpr' a -> Infer (Attr CoreExpr' (Ctxt, a))
 contextualize ex = runReaderT (go ex) M.empty
   where
     go (Fix (Ann a e'')) = do
@@ -101,26 +101,26 @@ contextualize ex = runReaderT (go ex) M.empty
         EFix x e -> do
           s <- lift freshType
           e' <- local (M.insert x s) (go e)
-          pure (Fix (Ann (a, M.insert x s ctxt) (EFix x e')))
+          pure (Fix (Ann (M.insert x s ctxt, a) (EFix x e')))
         -- In the case of a lambda expression, remove the matched fix variable
         -- from the context before recursing over the subexpressions.
         ELam x e -> do
           s <- lift freshType
           e' <- local (M.insert x s) (go e)
-          pure (Fix (Ann (a, M.insert x s ctxt) (ELam x e')))
+          pure (Fix (Ann (M.insert x s ctxt, a) (ELam x e')))
         -- In all other cases, recurse over the subexpressions.
         _ -> do
           e' <- traverse go e''
-          pure (Fix (Ann (a, ctxt) e'))
+          pure (Fix (Ann (ctxt, a) e'))
 
 
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not
 -- be fully resolved, and may instead refer to type variables.
-infer :: Attr CoreExpr' (a, Ctxt) -> Infer (Attr CoreExpr' (a, Ctxt, Type))
-infer = fmap (annZipWith (\(a, b) c -> (a, b, c))) .
+infer :: Attr CoreExpr' (Ctxt, a) -> Infer (Attr CoreExpr' (Ctxt, Type, a))
+infer = fmap (annZipWith (\(ctxt, a) t -> (ctxt, t, a))) .
   -- By using generics, each subexpression has been replaced by its type.
-  synthetiseM (\(Ann (_, ctxt) e) -> case e of
+  synthetiseM (\(Ann (ctxt, _) e) -> case e of
   -- A => IntLit : Int
   EInt _ -> pure TInt
 

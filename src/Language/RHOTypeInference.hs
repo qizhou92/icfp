@@ -10,6 +10,8 @@ import           Control.Monad.Reader
 
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import           Data.Generics.Fixplate.Base
@@ -20,11 +22,15 @@ import           Grammar
 import qualified Formula as F
 
 data RHORT = RHORT
-  deriving (Show, Read, Eq)
+  deriving (Show, Read, Eq, Ord)
 
 -- TODO signature is not correct
-fresh :: MonadState Int m => m RHORT
-fresh = undefined
+freshType :: MonadState Int m
+          => Set (Var, Type)
+          -> Seq Type
+          -> Seq Int
+          -> m RHORT
+freshType = undefined
 
 subtype :: MonadWriter [Rule] m
         => F.Expr -> [RHORT] -> RHORT -> RHORT -> m ()
@@ -45,12 +51,20 @@ isPrim = undefined
 split :: Int -> RHORT -> (RHORT, RHORT)
 split = undefined
 
-type IExpr = Attr CoreExpr' (ExprID, [(Var, Type)])
+data Annotation = Annotation
+  { fixID :: FixID
+  , uniqueID :: ExprID
+  , availVars :: Set (Var, Type)
+  , expressionType :: Type
+  } deriving (Show, Read, Eq, Ord)
+
+type IExpr = Attr CoreExpr' Annotation
 
 data InferenceState = InferenceState
   { _typeCounter :: Int
   , _typeMap :: Map (Seq ExprID) RHORT
-  } deriving (Show, Read, Eq)
+  , _cloneMap :: Map (Seq FixID) (Set RHORT)
+  } deriving (Show, Read, Eq, Ord)
 makeLenses ''InferenceState
 
 data InferenceError
@@ -68,10 +82,17 @@ type Infer a =
     (ExceptT InferenceError
     (Writer [Rule]))) a
 
+runInfer :: Infer a -> Either InferenceError (a, InferenceState, [Rule])
+runInfer ac =
+  let (res, rs) =
+        runWriter (runExceptT (runStateT (runReaderT ac undefined)
+          (InferenceState 0 M.empty M.empty)))
+  in fmap (\(a, st) -> (a, st, rs)) res
+
 infer :: Seq IExpr -> Infer RHORT
 infer Empty = ask
 infer es =
-  let idxs = fmap (fst.attribute) es in
+  let idxs = fmap (uniqueID . attribute) es in
   M.lookup idxs <$> use typeMap >>= \case
     -- We've already performed type judgements on this expression index,
     -- so just propogate the type rather than doing it again.
@@ -79,10 +100,19 @@ infer es =
     -- We need to perform type judgements over every index in the array.
     Nothing -> do
       -- Construct a fresh type.
-      t <- zoom typeCounter fresh
+      let available = foldMap (availVars . attribute) es
+      let ts = fmap (expressionType . attribute) es
+      t <- zoom typeCounter (freshType available ts idxs)
+
       -- Now perform inference on every index in the expression sequence.
       mapM_ (infer' t es) [0..Seq.length es-1]
-      -- Then just propogate the type.
+
+      -- Next, we will add the type to the clones map so we can check
+      -- inductiveness later.
+      let fixIds = fmap (fixID . attribute) es
+      cloneMap %= M.insertWith S.union fixIds (S.singleton t)
+
+      -- Then propogate the type.
       pure t
 
 infer' :: RHORT -> Seq IExpr -> Int -> Infer ()
@@ -92,11 +122,11 @@ infer' t esSeq idx =
   let (Fix (Ann _ e)) = Seq.index esSeq idx
       es = Seq.deleteAt idx esSeq
   in case e of
-    EVar x ->
+    EVar x -> do
+      t' <- infer es
       let tv = valueOf idx t
-          vx = F.Var (getVar x) (view F.varType tv)
-      in constrain [F.expr|@tv = @vx|] [] t
-      -- TODO Do we constrain the variable if it is HO?
+      let vx = F.Var (getVar x) (view F.varType tv)
+      subtype [F.expr|@tv = @vx|] [] t' t
 
     EApp app arg -> do
       st <- infer (Seq.insertAt idx app es)
@@ -168,17 +198,18 @@ infer' t esSeq idx =
       constrain f [s] t
 
     -- For integer constants, we just bind the value to the constant.
-    EInt i ->
-      -- TODO are we supposed to infer here?
+    EInt i -> do
+      t' <- infer es
       let tv = valueOf idx t
-          i' = F.LInt $ toInteger i
-      in constrain [F.expr|@tv = $i'|] [] t
+      let i' = F.LInt $ toInteger i
+      subtype [F.expr|@tv = $i'|] [] t' t
 
     -- For boolean constants, we just bind the value to the constant.
-    EBool b ->
+    EBool b -> do
+      t' <- infer es
       let tv = valueOf idx t
-          b' = F.LBool b
-      in constrain [F.expr|@tv = $b'|] [] t
+      let b' = F.LBool b
+      subtype [F.expr|@tv = $b'|] [] t' t
 
     ENil -> undefined
     EMatch{} -> undefined
