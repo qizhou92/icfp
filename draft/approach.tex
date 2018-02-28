@@ -126,9 +126,10 @@ $\rename{\Phi}{i}{j} = \setformer{ \rename{\varphi}{i}{j} }{ \varphi
   \in \Phi }$.
 % define renaming over sets of indexed positions,
 For $M \subseteq \idxpos{I}$, the naming of $M$ from $i$ to $j$ is
-$\rename{M}{i}{j} = %
-\setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M } \union %
-\setformer{ (j, p) }{ p \in \typos, (i, p) \in M }$.
+\[ \rename{M}{i}{j} = %
+  \setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M }
+  \union %
+  \setformer{ (j, p) }{ p \in \typos, (i, p) \in M } \]
 % define renaming over sets of sets of indexed variables,
 For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
 $\mathcal{M}$ from $i$ to $j$ is
@@ -159,7 +160,8 @@ $f \prepend{i} \mathcal{M} = \setformer{ f \prepend{i} M }{ M
 For index $i \in I$, $x \in \absvars$ %
 $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
 $\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the function
-from $(\Phi, \mathcal{M})$ to $(\Phi', \mathcal{M}')$ at $i$ is
+from $(\Phi, \mathcal{M})$ to $(\Phi', \mathcal{M}')$ over $x$ at $i$
+is
 $(\Phi, \mathcal{M}) \to_x^i (\Phi', \mathcal{M}') = (\Phi'',
 \mathcal{M}'')$, where
 % define refinement predicates,
