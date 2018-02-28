@@ -135,6 +135,10 @@ For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
 $\mathcal{M}$ from $i$ to $j$ is
 $\rename{\mathcal{M}}{i}{j} = \setformer{ \rename{M}{i}{j} }{ M \in
   \mathcal{M} }$.
+% define renaming over relational refinement types
+The naming of each relational refinement type is
+$\rename{(\Phi, \mathcal{M})}{i}{j} = (\rename{\Phi}{i}{j}, \rename{
+  \mathcal{M}}{i}{j})$.
   
 % update defn of prepending,
 For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
@@ -181,18 +185,13 @@ types $\tau$ and $\tau'$ from indices $i$ and $j$ to index $k$ is a
 relational refinement type in which the type at $k$ is the sum of
 types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
-I.e., for space of indices $I$, indices $i, j, k \in I$,
+I.e., for space of indices $I$, index $i \in I$,
 $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the sum of
-$(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ from $i$ and $j$ to
-$k$ is $(\Phi, \mathcal{M}) +_{i, j}^k (\Phi', \mathcal{M}') = (\Phi'', \mathcal{M}'')$, where
-%
-\begin{align*}
-  \Phi'' = & \tyleftsum \prepend{k} \rename{ \Phi }{ i }{ k } \union %
-             \tyrightsum \prepend{k} \rename{ \Phi }{ j }{ k } \\
-  \mathcal{M}'' = & \tyleftsum \prepend{k} \rename{ \mathcal{M} }{ i }{ k } \union
-                    \tyrightsum \prepend{k} \rename{ \mathcal{M}' }{ j }{ k }
-\end{align*}
+$(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ at $i$ is
+$(\Phi, \mathcal{M}) +^i (\Phi', \mathcal{M}') = (\tyleftsum
+\prepend{i} \Phi \union \tyrightsum \prepend{i} \Phi, \tyleftsum
+\prepend{i} \mathcal{M} \union \tyrightsum \prepend{i} \mathcal{M}')$.
 
 % define relational product:
 \paragraph{Relational refinement product types}
@@ -479,23 +478,25 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
       \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
       \Gamma, \gamma \judges \upd{E}{p}{ \injl\ e} : %
-      \tau +_{p, p}^p \tau' } 
+      \tau +^p \tau' } 
     % right injection:
     \inference[ RIGHT ]{
       % get type of the nested exp,
       \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
       \Gamma, \gamma \judges \upd{E}{p}{ \injr\ e} : %
-      \tau' +_{p, p}^p \tau } \\
+      \tau' +^p \tau } \\
     % match:
     \inference[ MATCH ]{
       % get type of matched exp,
       \Gamma, \gamma \judges \epsilon \mapsto e_0 : %
-      \gamma' +_{x, y}^\epsilon \gamma'' \\
+      \gamma' +^\epsilon \gamma'' \\
       % get type of left branch under context that binds x to left op,
-      \Gamma, \gamma' \judges \upd{E}{p}{e_1} : \tau &
+      \Gamma, \rename{ \gamma' }{ \epsilon }{ x } \judges %
+      \upd{E}{p}{e_1} : \tau \\
       % get type of right branch under context that binds y to right op,
-      \Gamma, \gamma'' \judges \upd{E}{p}{e_2} : \tau }{
+      \Gamma, \rename{ \gamma'' }{ \epsilon }{ y } \judges %
+      \upd{E}{p}{e_2} : \tau }{
       % then type of match exp is type of both branches,
       \Gamma, \gamma \judges %
       \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } 
