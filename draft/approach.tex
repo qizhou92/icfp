@@ -105,8 +105,7 @@ Then for indices $I$,
 each $\Phi \subseteq \refpreds{ I \times [ \lfpvars] }$,
 % each mutual induction set,
 $T : I \to [ \lfpvars ]$, and $\mathcal{M} \subseteq \pset(I)$, define
-the \emph{atomic} relational type
-$A_{\Phi, T, \mathcal{M}} = (\Phi, T(\mathcal{M}))$.
+the \emph{atomic} relational type $(\Phi, T(\mathcal{M}))$.
 
 \paragraph{Relational refinement function types}
 %
@@ -115,48 +114,63 @@ abstraction variable $x$ is a relational refinement type in which the
 type at $i$ is a function from the type at $i$ in $\tau$ to the type
 at $i$ in $\tau'$, and all references to $x$ in $\tau'$ are replaced
 with references to components of $\tau$.
-% define type position field prepended to formulas
-For indices $I$, $i, j \in I$, $\varphi \in \refpreds{ \idxpos{I} }$,
-and $f \in \typosfields$, $f$ prepended to $\varphi$ is
-$f \prepend{i}{j} \varphi = \varphi[ \setformer{ (j, f \cons p) /
-  (i, f)}{ p \in \typos } ]$.
-% 
+% define index renaming over formulas,
+For $\varphi \in \refpreds{ \idxpos{I} }$, the \emph{renaming} of
+$\varphi$ from $i$ to $j$ is
+$\rename{\varphi}{i}{j} = \varphi[ \setformer{(j, p) / (i, p)}{ p \in
+  \typos} ]$;
+% define renaming over sets of predicates,
+for $\Phi \subseteq \refpreds{\idxpos{I}}$, the renaming of $\Phi$
+from $i$ to $j$ is denoted
+$\rename{\Phi}{i}{j} = \setformer{ \rename{\varphi}{i}{j} }{ \varphi
+  \in \Phi }$.
+% define renaming over sets of indexed positions,
+For $M \subseteq \idxpos{I}$, the naming of $M$ from $i$ to $j$ is
+$\rename{M}{i}{j} = %
+\setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M } \union %
+\setformer{ (j, p) }{ p \in \typos, (i, p) \in M }$.
+% define renaming over sets of sets of indexed variables,
+For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
+$\mathcal{M}$ from $i$ to $j$ is
+$\rename{\mathcal{M}}{i}{j} = \setformer{ \rename{M}{i}{j} }{ M \in
+  \mathcal{M} }$.
+  
+% update defn of prepending,
+For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
+$f$ prepended to $\varphi$ at $i$ is denoted
+$f \prepend{i} \varphi = \varphi[ \setformer{ (i, f \cons p) / (i,
+  f)}{ p \in \typos } ]$.
+%  
 For $\Phi \subseteq \refpreds{ \idxpos{I} }$, $f$ prepended to $\Phi$
-is
-$f \prepend{i}{j} \Phi = \setformer{ f \prepend{i}{j} \varphi }{
-  \varphi \in \Phi }$.
+at $i$ is
+$f \prepend{i} \Phi = \setformer{ f \prepend{i} \varphi }{ \varphi \in
+  \Phi }$.
 % define type position field prepended to mutual induction sets,
-For $M \subseteq \idxpos{I}$, $f$ prepended to $M$ is
-$f \prepend{i}{j} M = \setformer{ (i, f \cons p) }{ p \in \typos,
+For $M \subseteq \idxpos{I}$, $f$ prepended to $M$ at $i$ is
+$f \prepend{i} M = \setformer{ (i, f \cons p) }{ p \in \typos,
   (i, p) \in M}$.
 %
 For $\mathcal{M} \subseteq \pset(\idxpos{I})$, $f$ prepended to
-$\mathcal{M}$ is
-$f \prepend{i}{j} \mathcal{M} = \setformer{ f \prepend{i}{j} M }{ M
+$\mathcal{M}$ at $i$ is
+$f \prepend{i} \mathcal{M} = \setformer{ f \prepend{i} M }{ M
   \in \mathcal{M} }$.
 
-% define function operator,
+% define function relational type operator,
 For index $i \in I$, $x \in \absvars$ %
 $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
 $\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the function
 from $(\Phi, \mathcal{M})$ to $(\Phi', \mathcal{M}')$ at $i$ is
-$(\Phi, \mathcal{M}) \to^i_x (\Phi', \mathcal{M}') = (\typaramfield
-\prepend{i}{i} \Phi \union \Phi'', \typaramfield \prepend{i}{i}
-\mathcal{M} \union \mathcal{M}'')$, where
-%
+$(\Phi, \mathcal{M}) \to_x^i (\Phi', \mathcal{M}') = (\Phi'',
+\mathcal{M}'')$, where
+% define refinement predicates,
 \begin{align*}
-  % renamed result predicates,
-  \Phi'' \equiv & \setformer{ %
-                  \varphi[ (j, \typaramfield \cons p) / %
-                  (x, \tyresfield \cons p) ] }{ %
-                  \varphi \in \tyresfield \prepend{i}{i} \Phi' } \\
-  % tricky mutual induction sets are 
-  \mathcal{M}'' \equiv & \setformer{
-                         \setformer{ (j, p) }{ %
-                         j \not= x, p \in \typos, (j, p) \in M } \union
-                         \setformer{ (i, \typaramfield \cons p) }{ %
-                         p \in \typos, (x, \tyresfield \cons p) \in M } }{
-                         M \in \tyresfield \prepend{i}{i} \mathcal{M}' }
+  \Phi'' = & \typaramfield \prepend{i} \rename{\Phi}{x}{i} \union %
+  \rename{ \typaramfield \prepend{x} \tyresfield \prepend{i} \Phi' }{ x }{ i
+  } \\
+  % define mutual induction sets,
+  \mathcal{M}'' = & \typaramfield \prepend{i} \rename{ \mathcal{M} }{ x }{ i } \union %
+                    \rename{ \typaramfield \prepend{x} \tyresfield \prepend{i}
+                    \mathcal{M}' }{ x }{ i }
 \end{align*}
 
 % define relational sum:
@@ -169,11 +183,14 @@ I.e., for space of indices $I$, indices $i, j, k \in I$,
 $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the sum of
 $(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ from $i$ and $j$ to
-$k$ is
-$(\Phi, \mathcal{M}) +_{i, j}^k (\Phi', \mathcal{M}') = (\tyleftsum
-\prepend{i}{k} \Phi \union \tyrightsum \prepend{j}{k} \Phi',
-\tyleftsum \prepend{i}{k} \mathcal{M} \union \tyrightsum
-\prepend{j}{k} \mathcal{M}')$.
+$k$ is $(\Phi, \mathcal{M}) +_{i, j}^k (\Phi', \mathcal{M}') = (\Phi'', \mathcal{M}'')$, where
+%
+\begin{align*}
+  \Phi'' = & \tyleftsum \prepend{k} \rename{ \Phi }{ i }{ k } \union %
+             \tyrightsum \prepend{k} \rename{ \Phi }{ j }{ k } \\
+  \mathcal{M}'' = & \tyleftsum \prepend{k} \rename{ \mathcal{M} }{ i }{ k } \union
+                    \tyrightsum \prepend{k} \rename{ \mathcal{M}' }{ j }{ k }
+\end{align*}
 
 % define relational product:
 \paragraph{Relational refinement product types}
@@ -185,12 +202,14 @@ I.e., for space of indices $I$, indices $i, j, k \in I$,
 $\Phi \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M} \subseteq \pset(\idxpos{I})$, the relational product of
 $(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$, is
-$\times_{i, j}^k (\Phi, \mathcal{M}) = (\tyleftprod \prepend{i}{k}
-\tyrightprod \prepend{j}{k} \Phi, \tyleftprod \prepend{i}{k}
-\tyrightprod \prepend{j}{k} \mathcal{M})$.
+$\times_{i, j}^k (\Phi, \mathcal{M}) = %
+(\rename{ (\tyleftprod \prepend{i} \tyrightprod \prepend{j} \Phi) }{i,
+  j}{ k }, %
+\rename{ (\tyleftprod \prepend{i} \tyrightprod \prepend{j}
+  \mathcal{M}) }{i, j}{ k })$.
 %
 \BH{only let this be defined in cases in which resulting mutual
-  induction sets work}
+  induction are well-defined}
 
 \paragraph{Relational refinement least-fixed points}
 The indexed least-fixed point of relational type $\tau$ at index $i$
@@ -200,9 +219,8 @@ type at $i$.
 I.e., for space of indices $I$ and index $i \in I$, $X \in \lfpvars$,
 $\Phi \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M} \subseteq \pset(\idxpos{I})$, the least-fixed point of
-$(\Phi, \mathcal{M})$ at $i$ is
-$\mu_i X. (\Phi, \mathcal{M}) = (\mu_X \prepend{i}{i} \Phi, \mu_X
-\prepend{i}{i} \mathcal{M})$.
+$(\Phi, \mathcal{M})$ at $i$ is $\mu_i X. (\Phi, \mathcal{M}) = %
+(\mu_X \prepend{i} \Phi, \mu_X \prepend{i} \mathcal{M})$.
 
 \paragraph{Replacing type variables in relational refinement types}
 %
