@@ -22,10 +22,9 @@ parseE s = case parse parseExpr "" s of
 
 basicPlotE :: CoreExpr -> IO ()
 basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames (evalState (numberExpressions ex) 0)
+  let ex' = runVocab $ uniqueNames $ unwindFix $ unwindFix (evalState (numberExpressions ex) 0)
   print (pretty (forget ex'))
-  (cs, g) <- S.exprGrammar ex'
-  print cs
+  (_, g) <- S.exprGrammar ex'
   let gs = simplify g
   plot "basic" g
   plot "simplified" gs
@@ -44,21 +43,17 @@ addFunction = "fix f . \\f1 . \\f2 . \\x . " ++
                 "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1))"
 
 qiTest :: String
-qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)3"
 
 qiTest2 :: String
 qiTest2 =
   let addF = "fix f . \\f1.\\f2.\\x.(f f1 (f1 x) (x-1))"
   in "(" ++ addF ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
 
-simple :: String
-simple = "(\\x.x+x)2"
+davidTest :: String
+davidTest =
+  "((\\f.f 1)((\\x.\\y.x + y)a))"
 
-notSoSimple :: String
-notSoSimple = "(\\f.f 1)(\\x.x+2)"
-
-doubleCall :: String
-doubleCall = "(\\f.(f 1) + (f 2))(\\x.x+3)"
-
-doubleCall2 :: String
-doubleCall2 = "(\\f.f (f 1))(\\x.x+2)"
+davidTest2 :: String
+davidTest2 =
+  "(\\a.((\\f.f 1 + f 2)((\\x.\\y.x + y)a)))"

@@ -40,7 +40,7 @@ typeCheck e = evalStateT
 -- failing when two known types are not the same and adding additional constraints
 -- to the type table when one or both types are unknown variables.
 unify :: Type -> Type -> Infer ()
-unify = go 
+unify = go
   where
     go (TArr s s') (TArr t t') = go s t >> go s' t'
     go (TVar x) (TVar y) = unless (x == y) $ do
@@ -112,6 +112,7 @@ contextualize ex = runReaderT (go ex) M.empty
         _ -> do
           e' <- traverse go e''
           pure (Fix (Ann (a, ctxt) e'))
+
 
 -- | Given an expression where each subexpression is annotated with its
 -- context, reannotate the subexpressions with their type. The types may not

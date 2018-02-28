@@ -7,9 +7,6 @@ import           Data.Data (Data)
 import           Data.Tree
 import           Data.Map (Map)
 import qualified Data.Map as M
-import           Data.Set (Set)
-import qualified Data.Set as S
-import           Data.List (partition)
 
 import           Language.Types
 import           Grammar
@@ -23,19 +20,19 @@ data HORT = HORT
 
 -- | Given a higher order refinement type, fetch the formula (variable) which
 -- represents the value of the expression.
-valueOf :: HORT -> F.Expr
+valueOf :: HORT -> F.Var
 valueOf hort1 = do
  let (Node (nonterminal,_) _) = getHORT hort1
  let (Nonterminal _ vars) = nonterminal
- F.V (last vars)
+ last vars
 
 -- | Given a higher order refinement type, fetch the formula (variable) which
 -- represents the first argument of the expression and its type is primitive type.
-argumentOf :: HORT -> F.Expr
+argumentOf :: HORT -> F.Var
 argumentOf hort =
   let (Node (Nonterminal pid _, _) _) = getHORT hort
   in case getBasicType hort of
-     TArr t _ -> F.V $ mkArg (primaryID pid) (t, 1)
+     TArr t _ -> mkArg (primaryID pid) (t, 1)
      _ -> error "this type is not supported (argumentOf in HORT)"
 
 -- | Whether or not this type is primitive.
@@ -66,12 +63,6 @@ freshType varTypes fVars eType = do
       put (idNumber+1)
       return nonterminal
     mkOut pid t = mkFreeVar (Var ("out/" ++ show pid), t)
-
-convertToFix :: Set Var -> HORT -> HORT -> HORT
-convertToFix bound ref (HORT (Node (Nonterminal iden vs, ts) sub) t)  =
-  HORT (Node (Nonterminal (PhantomID (primaryID iden)
-                                     (nonterminalPrimary $ topPredicate ref)
-                                     (map getVar (S.toList bound))) vs, ts) sub) t
 
 flattenType :: Type -> [Type]
 flattenType = \case
@@ -130,15 +121,3 @@ topPredicate = (\(Node (c, _) _) -> c) . getHORT
 
 lastN :: Int -> [a] -> [a]
 lastN n xs = drop (length xs - n) xs
-
-copyContext :: MonadState Int m => Map Var HORT -> m (Map Var HORT)
-copyContext oldContext = do
-  let contextList = M.toList oldContext
-  newConext <- mapM (\(name,hort) -> do newHort <- copyHORTWithoutFreeVariable hort
-                                        return (name,newHort)
-                    ) contextList
-  return (M.fromList newConext)
-
-
-copyHORTWithoutFreeVariable :: MonadState Int m => HORT -> m HORT
-copyHORTWithoutFreeVariable oldHort = freshType M.empty [] (getBasicType oldHort)
