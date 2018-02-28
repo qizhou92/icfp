@@ -1,7 +1,7 @@
 module Language
   ( module Language.Types
-  , module Language.HORT
+  , module Language.RHORT
   ) where
 
 import Language.Types
-import Language.HORT
+import Language.RHORT
