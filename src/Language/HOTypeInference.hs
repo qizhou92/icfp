@@ -1,5 +1,4 @@
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
 module Language.HOTypeInference where
 
 import           Control.Lens
@@ -26,11 +25,7 @@ data InferenceError
   | InvalidSplit HORT
   deriving (Show, Read, Eq)
 
-data Ctxt = Ctxt
-  { _varTyping :: Map Var HORT
-  , _varEnvs :: Map Var HORT
-  } deriving (Show, Read, Eq)
-makeLenses ''Ctxt
+type Ctxt = Map Var HORT
 
 type Infer a = ReaderT Ctxt (StateT Int (ExceptT InferenceError (Writer [Rule]))) a
 
@@ -54,7 +49,7 @@ typeConstraints e =
       let cs = computeClones hasHO
       let hasHO' = annMap snd hasHO
       _ <- infer hasHO'
-      pure cs) (Ctxt M.empty M.empty)) 0)
+      pure cs) M.empty) 0)
   in case runWriter ac of
     (Left err, _) -> Left err
     (Right cs, rs) -> Right (cs, Grammar 0 rs)
@@ -76,23 +71,21 @@ computeClones ex = M.elems $ execState (mapM_ (modify . addToMap) (Attrib ex)) M
 infer :: Attr CoreExpr' HORT -> Infer HORT
 infer (Fix (Ann t e)) = do
   case e of
-    EVar x -> M.lookup x <$> view varTyping >>= \case
+    EVar x ->
+     M.lookup x <$> ask >>= \case
       Nothing ->
         let tv = valueOf t
             vx = F.Var (getVar x) (F._varType tv)
         in constrain [F.expr|@tv = @vx|] [] t
       -- When x is in the context, we say that its type in the context is a subtype
       -- of the type of the current expression.
-      Just t' ->
-        M.lookup x <$> view varEnvs >>= \case
-          Nothing -> t' <: t
-          Just env -> subtype (F.LBool True) [env] t' t
+      Just t' -> t' <: t
 
-    EApp app@(Fix (Ann appT _)) arg -> do
+    EApp app arg -> do
       s <- infer arg
-      st <- infer app
       if isPrim s
       then do
+        st <- infer app
         let sv = valueOf s
         let sta = argumentOf st
         subtype [F.expr|@sta = @sv|] [s] st t
@@ -101,22 +94,21 @@ infer (Fix (Ann t e)) = do
         -- the output type of the applicand should be a subtype of the full
         -- application and that the input of the applicand is a supertype of
         -- the argument.
-        let sta = convertVar (argumentOf appT)
-        -- st <- local (varEnvs %~ M.insert sta s) (infer app)
+        st <- infer app
         let (s', t') = split st
         t' <: t
         s <: s'
 
-    ELam x e' ->
+    ELam x e' -> do
       let (s, t'') = split t
-      in if isPrim s
+      let ta = argumentOf t
+      let vx = F.Var (getVar x) (view F.varType ta)
+      if isPrim s
       then do
         t' <- infer e'
-        let ta = argumentOf t
-        let vx = F.Var (getVar x) (F._varType ta)
         subtype [F.expr|@ta = @vx|] [] t' t
       else do
-        t' <- local (varTyping %~ M.insert x s) (infer e')
+        t' <- local (M.insert x s) (infer e')
         t' <: t''
 
     EFix{} -> pure ()
@@ -178,6 +170,3 @@ infer (Fix (Ann t e)) = do
 -- | The first type is a subtype of the second with no additional constraints.
 (<:) :: MonadWriter [Rule] m => HORT -> HORT -> m ()
 (<:) = subtype (F.LBool True) []
-
-convertVar :: F.Var -> Var
-convertVar = Var . view F.varName

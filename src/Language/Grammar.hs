@@ -39,13 +39,21 @@ testSumF =
   [F.expr|n > 0 && l/arg1/0 = n && r/arg1/0 = n - 1 -> l/out/0 = r/out/0 + n|]
 
 addFunction :: String
-addFunction = "fix f . \\f1 . \\f2 . \\x . \\y . " ++
-                "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1) (y+1))"
+addFunction = "fix f . \\f1 . \\f2 . \\x . " ++
+                "if (x <= 0) (f2 x) (f f1 (f1 x) (x-1))"
 
 qiTest :: String
-qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+qiTest = "(" ++ addFunction ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)3"
 
 qiTest2 :: String
 qiTest2 =
   let addF = "fix f . \\f1.\\f2.\\x.(f f1 (f1 x) (x-1))"
   in "(" ++ addF ++ ") (\\x1. \\y1. x1+y1) (\\x2. x2+1)"
+
+davidTest :: String
+davidTest =
+  "((\\f.f 1)((\\x.\\y.x + y)a))"
+
+davidTest2 :: String
+davidTest2 =
+  "(\\a.((\\f.f 1 + f 2)((\\x.\\y.x + y)a)))"
