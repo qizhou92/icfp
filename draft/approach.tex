@@ -6,7 +6,7 @@ In this section, we describe our technical approach in detail.
 In \autoref{sec:rel-types}, we define a type system for proving
 equivalence of programs.
 %
-In \autoref{sec:infer-rel-types}, we present an algorithm for
+In \autoref{sec:infer}, we present an algorithm for
 inferring such types.
 
 \subsection{Relational properties as relational types}
@@ -221,55 +221,77 @@ $\mathcal{M} \subseteq \pset(\idxpos{I})$, the least-fixed point of
 $(\Phi, \mathcal{M})$ at $i$ is $\mu_i X. (\Phi, \mathcal{M}) = %
 (\mu_X \prepend{i} \Phi, \mu_X \prepend{i} \mathcal{M})$.
 %
-For $M : I \partto X$, the \emph{mutual} least fixed point of $\tau$
-over $M$ is
-$\mu_M \tau = \mu_{i_0} M(i_0). \mu_{i_1} M(i_1) \ldots \tau$ for all
-indices $i_k$ in the domain of $M$.
+For $\mathcal{X} : I \partto \lfpvars$, the \emph{mutual} least fixed
+point of $\tau$ over $\mathcal{X}$ is
+$\mu_\mathcal{X} \tau = \mu_{i_0} \mathcal{X}(i_0). \mu_{i_1}
+\mathcal{X}(i_1) \ldots \tau$ for all indices
+$i_k \in \domain(\mathcal{X})$.
 
-\paragraph{Replacing components of relational refinement types}
+\paragraph{Substituting components of relational refinement types}
 %
 The substitution of relational refinement type $\tau'$ in $\tau$ at
 indexed least-fixed-point type variables $\mathcal{X}$ expands $\tau$
 to replace occurrences of type variables indexed in $\mathcal{X}$ with
 $\tau'$.
-% define closure of indexed lfp vars under a set of 
-For space of indices $I$, $\mathcal{X} \subseteq \lfpvars$, and
-$M \in \pset(\idxpos{I})$, $\mathcal{X}$ is \emph{closed} under
-$\mathcal{M}$ if for all $i, j \in I$ and all $p, q \in \typos$...
-% range over sets of indexed type positions:
-$\mathcal{X}$ is closed under
-$\mathcal{M} \subseteq \pset(\idxpos{I})$ if $\mathcal{X}$ is closed
-under $M$ for all $M \in \mathcal{M}$.
+% define concatenation of mutual-induction map with refinement predicate
+For indices $I$, $M \in \mutinds{I}$, and
+$\varphi \in \refpreds{ \idxpos{ \domain(M) } }$, the prefixing of
+$\varphi$ with $M$ is
+$M \concat \varphi = \varphi[ \setformer{ (i, p \concat \justpos{M}(i)
+  / (i, p) }{ i \in I, p \in \typos } ]$.
+% define concatenation of mutual-induction maps 
+For $N \in \mutinds{I}$ such that $\domain(M) = \domain(N)$, the
+concatenation of $M$ with $N$ is
+$M \concat N = \setformer{ i \mapsto \justpos{M}(i) \concat
+  \justpos{M}(i) }{ i \in \domain(M) }$.
+
+% define closure of indexed lfp vars 
+For space of indices $I$, $\mathcal{X} : I \partto \lfpvars$, and
+$M \subseteq \idxpos{I}$, $M$ \emph{terminates} at $\mathcal{X}$,
+denoted $\terminates{ \mathcal{X} }{ M }$, if for each $i \in I$,
+$p \in \typos$, and $Y \in \lfpvars$ such that
+$(i, p \concat [ Y ]) \in M$, it holds that $\mathcal{X}(i) = Y$.
+%
+$\mathcal{X}$ is \emph{closed} under $M$ if either $M$ terminates at
+$\mathcal{X}$ or
+$\domain(\mathcal{X}) \intersection \domain(M) = \emptyset$;
+%
+$\mathcal{X}$ is closed over $\mathcal{M} \subseteq \pset(\idxpos{I})$
+if $\mathcal{X}$ is closed for each $M \in \mathcal{M}$.
 
 % define replacement:
 For $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$ and %
-$\mathcal{M}' \subseteq \pset(\idxpos{I})$, the replacement of
+$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$ such that
+$\mathcal{X}$ is closed over $\mathcal{M}$, the replacement of
 $(\Phi', \mathcal{M}')$ in $(\Phi, \mathcal{M})$ at $\mathcal{X}$,
 denoted
-$\replace{(\Phi, \mathcal{M})}{X}{(\Phi',
-  \mathcal{M}')}_{\mathcal{X}}$, is $(\Phi'', \mathcal{M}'')$, where
+$\replace{(\Phi, \mathcal{M})}{ \mathcal{X} }{(\Phi', \mathcal{M}')}$,
+is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
 %
 \begin{align*}
   % refinement predicates are base refinement predicates and
-  \Phi'' = & \Phi \union %
-             % concatenation of M and phi
+  \Phi'' = & % concatenation of M and phi
              \setformer{ M \concat \varphi' }{ 
              % for each mutual induction set M in base type and
-             M \in \mathcal{M}_{\mathcal{X}},
+             M \in \mathcal{M}, \terminates{ \mathcal{X} }{ M },
              % each refinement predicate in substituted type,
-             \varphi' \in \Phi'_{\mathcal{X}} } \\
+             \varphi' \in \Phi', %
+             \varphi' \in \refpreds{ \idxpos{ \domain(M) } } } \\
   % mutual induction sets are base mutual induction sets and
-  \mathcal{M}'' = & \mathcal{M} \union %
-                    % concatenation of M and M'
+  \mathcal{M}'' = & % concatenation of M and M'
                     \setformer{ M \concat M' }{
                       % for each mutual induction set M in the base and
-                    M \in \mathcal{M}_{\mathcal{X}},
+                    M \in \mathcal{M},
+                    % such that M terminates at X,
+                    \terminates{ \mathcal{X} }{ M },
                     % each mutual induction set M' in subst type
-                    M' \in \mathcal{M}'_{\mathcal{X}} }
+                    M' \in \mathcal{M}',
+                    % with equal domains,
+                    \domain(M) = \domain(M') }
 \end{align*}
 
 % define refinement predicates, variance
-\paragraph{Refinements of a relational refinement type}
+\paragraph{Refinements of relational refinement types}
 Relational refinement type $\tau$ is a subtype of relational
 refinement type $\tau'$ if it corresponds to a stronger property over
 program values then the property to which $\tau'$ corresponds.
