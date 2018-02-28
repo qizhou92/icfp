@@ -208,10 +208,8 @@ $\times_{i, j}^k (\Phi, \mathcal{M}) = %
   j}{ k }, %
 \rename{ (\tyleftprod \prepend{i} \tyrightprod \prepend{j}
   \mathcal{M}) }{i, j}{ k })$.
-%
-\BH{only let this be defined in cases in which resulting mutual
-  induction are well-defined}
 
+% define lfp:
 \paragraph{Relational refinement least-fixed points}
 The indexed least-fixed point of relational type $\tau$ at index $i$
 defines a relational type over unbounded unfoldings of the relational
@@ -222,46 +220,53 @@ $\Phi \subseteq \refpreds{ \idxpos{I} }$, and
 $\mathcal{M} \subseteq \pset(\idxpos{I})$, the least-fixed point of
 $(\Phi, \mathcal{M})$ at $i$ is $\mu_i X. (\Phi, \mathcal{M}) = %
 (\mu_X \prepend{i} \Phi, \mu_X \prepend{i} \mathcal{M})$.
+%
+For $M : I \partto X$, the \emph{mutual} least fixed point of $\tau$
+over $M$ is
+$\mu_M \tau = \mu_{i_0} M(i_0). \mu_{i_1} M(i_1) \ldots \tau$ for all
+indices $i_k$ in the domain of $M$.
 
-\paragraph{Replacing type variables in relational refinement types}
+\paragraph{Replacing components of relational refinement types}
 %
-The replacement of type variable $X$ with relational refinement type
-$\tau'$ in relational refinement type $\tau$ expands $\tau$, replacing
-each occurrence of $X$ in $\tau$ with a copy of $\tau'$.
-%
-I.e., for space of indices $I$, $i \in X$, $X \in \lfpvars$,
-$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
-$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the
-replacement of $X$ with $(\Phi', \mathcal{M}')$ in
-$(\Phi, \mathcal{M})$, denoted
-$\replace{(\Phi, \mathcal{M})}{X}{(\Phi', \mathcal{M}')}_i$, is
-$(\Phi'', \mathcal{M}'')$, where
+The substitution of relational refinement type $\tau'$ in $\tau$ at
+indexed least-fixed-point type variables $\mathcal{X}$ expands $\tau$
+to replace occurrences of type variables indexed in $\mathcal{X}$ with
+$\tau'$.
+% define closure of indexed lfp vars under a set of 
+For space of indices $I$, $\mathcal{X} \subseteq \lfpvars$, and
+$M \in \pset(\idxpos{I})$, $\mathcal{X}$ is \emph{closed} under
+$\mathcal{M}$ if for all $i, j \in I$ and all $p, q \in \typos$...
+% range over sets of indexed type positions:
+$\mathcal{X}$ is closed under
+$\mathcal{M} \subseteq \pset(\idxpos{I})$ if $\mathcal{X}$ is closed
+under $M$ for all $M \in \mathcal{M}$.
+
+% define replacement:
+For $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$ and %
+$\mathcal{M}' \subseteq \pset(\idxpos{I})$, the replacement of
+$(\Phi', \mathcal{M}')$ in $(\Phi, \mathcal{M})$ at $\mathcal{X}$,
+denoted
+$\replace{(\Phi, \mathcal{M})}{X}{(\Phi',
+  \mathcal{M}')}_{\mathcal{X}}$, is $(\Phi'', \mathcal{M}'')$, where
 %
 \begin{align*}
-  % extend base set of refinement predicates
+  % refinement predicates are base refinement predicates and
   \Phi'' = & \Phi \union %
-             \setformer{
-               % relational predicate with each i-symbol in the vocab
-               % extended
-             \replace{ \varphi' }{ (i, q_0), \ldots, (i, q_n) }{ (i, p \concat q_0), \ldots, (i, p \concat q_n) } }{
-             % for each relational predicate in the transplant and
-             % each position of X in the base
-             \varphi' \in \Phi', p \in \typos, %
-             X \cons p \in \mathcal{M} } \\
-  % extend mutual base mutual induction set
+             % concatenation of M and phi
+             \setformer{ M \concat \varphi' }{ 
+             % for each mutual induction set M in base type and
+             M \in \mathcal{M}_{\mathcal{X}},
+             % each refinement predicate in substituted type,
+             \varphi' \in \Phi'_{\mathcal{X}} } \\
+  % mutual induction sets are base mutual induction sets and
   \mathcal{M}'' = & \mathcal{M} \union %
-                    \setformer{
-                      % mutual-induction set with each i-position extended
-                    (M' \setminus \elts{ (i, q_0), \ldots, (i, q_n) }) \union
-                    \elts{ (i, p \concat q_0), \ldots, (i, p \concat q_n) }
-                    }{
-                      % for each mutual induction set in the
-                      % transplant and each position of X in the base:
-                    M' \in \mathcal{M'}, p \in \typos, %
-                    X \cons p \in \mathcal{M} }
+                    % concatenation of M and M'
+                    \setformer{ M \concat M' }{
+                      % for each mutual induction set M in the base and
+                    M \in \mathcal{M}_{\mathcal{X}},
+                    % each mutual induction set M' in subst type
+                    M' \in \mathcal{M}'_{\mathcal{X}} }
 \end{align*}
-%
-\BH{rethink simultaneous unfolding}
 
 % define refinement predicates, variance
 \paragraph{Refinements of a relational refinement type}
@@ -346,7 +351,7 @@ $\tau$ replaced with the following predicate:
 
 \paragraph{Relational refinement subtypes}
 %
-\BH{complete}
+\BH{complete: define subtyping relation}
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
@@ -516,9 +521,10 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
-      \Gamma, \gamma \judges E : \replace{ \tau }{ X }{ \tau }_p }{ 
+      \Gamma, \gamma \judges E : %
+      \replace{ \tau }{ \mathcal{X} }{ \tau }_p }{ 
       % then expressions have folded type
-      \Gamma, \gamma \judges E : \mu_p X. \tau } 
+      \Gamma, \gamma \judges E : \mu_{\mathcal{X}}. \tau } 
     % subtype:
     \inference[ SUB ]{
       % if expressions have tau,
@@ -539,8 +545,9 @@ $\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
     $\tau$ ranges over relational types, %
     $c$ ranges over constants, %
     $x$ and $y$ range over abstraction variables, %
-    $f$ ranges over fixpoint variables, and %
-    $a$ ranges over variables. }
+    $f$ ranges over fixpoint variables, %
+    $a$ ranges over variables, and
+    $\mathcal{X}$ ranges over indexed least-fixed-point variables. }
   \label{fig:reltypes-rules}
 \end{figure}
 

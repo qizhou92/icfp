@@ -175,6 +175,8 @@
 
 \newcommand{\matchexp}[5]{\cc{match } #1 \cc{ with } #2 \cc{->} #3 \cc{|} #4 \cc{->} #5}
 
+\newcommand{\mutclosure}[2]{\mathcal{C}_{#1}^{#2}}
+
 \newcommand{\nilrel}{\mathsf{NilRel}}
 
 \newcommand{\nodes}[1]{\mathsf{Nodes}[ #1 ]}
@@ -235,7 +237,7 @@
 
 \newcommand{\reltypestypes}[1]{\mathsf{RelTypes}[ #1 ]}
 
-\newcommand{\rename}[3]{ #1[ #3 / #2 ] }
+\newcommand{\rename}[3]{ #1[ #2 \rightharpoonup #3 ] }
 
 \newcommand{\resvar}[1]{\nu[ #1 ]}
 
