@@ -167,21 +167,23 @@ freeVars = synthetise (\(Ann _ e) -> case e of
   EBool _                -> S.empty
   ENil                   -> S.empty)
 
-availableVars :: Attr CoreExpr' a -> Attr CoreExpr' (a, Set Var)
+availableVars :: Attr CoreExpr' a -> Attr CoreExpr' (Set Var, a)
 availableVars ex = runReader (go ex) S.empty
   where
     go (Fix (Ann a e)) = do
       vs <- ask
-      (Fix . Ann (a, vs)) <$> case e of
+      (Fix . Ann (vs, a)) <$> case e of
         ELam x e' -> ELam x <$> local (S.insert x) (go e')
         EFix x e' -> EFix x <$> local (S.insert x) (go e')
         e' -> traverse go e'
 
+type FixID = Int
 type ExprID = Int
 
 numberExpressions :: MonadState ExprID m
-                  => CoreExpr -> m (Attr CoreExpr' ExprID)
-numberExpressions = synthetiseM (const $ do x <- get ; put (x+1) ; pure x)
+                  => Attr CoreExpr' a -> m (Attr CoreExpr' (ExprID, a))
+numberExpressions = fmap (annZipWith (\a eid -> (eid, a)))
+                  . synthetiseM (const $ do x <- get ; put (x+1) ; pure x)
 
 -- | Use alpha renaming to ensure every binding binds a different variable.
 uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
