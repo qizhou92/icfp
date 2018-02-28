@@ -15,6 +15,7 @@ import           Data.Generics.Fixplate.Base
 import           Data.Generics.Fixplate.Morphisms
 import           Data.Generics.Fixplate.Attributes
 import qualified Data.Generics.Fixplate.Traversals as T
+import           Data.Generics.Fixplate.Draw
 
 import           GHC.Exts(IsString(..))
 
@@ -141,6 +142,9 @@ instance Pretty Binop where
 prettyCtxt :: Show b => Ann CoreExpr' b a -> String
 prettyCtxt (Ann ctx _) = show ctx
 
+showTreeCtxt :: Show a => Attr CoreExpr' a -> String
+showTreeCtxt = showTreeWith prettyCtxt
+
 freeVars :: Attr CoreExpr' a -> Attr (Ann CoreExpr' a) (Set Var)
 freeVars = synthetise (\(Ann _ e) -> case e of
   -- In the case of a variable, add that variable as a free variable.
@@ -162,6 +166,16 @@ freeVars = synthetise (\(Ann _ e) -> case e of
   EInt _                 -> S.empty
   EBool _                -> S.empty
   ENil                   -> S.empty)
+
+availableVars :: Attr CoreExpr' a -> Attr CoreExpr' (a, Set Var)
+availableVars ex = runReader (go ex) S.empty
+  where
+    go (Fix (Ann a e)) = do
+      vs <- ask
+      (Fix . Ann (a, vs)) <$> case e of
+        ELam x e' -> ELam x <$> local (S.insert x) (go e')
+        EFix x e' -> EFix x <$> local (S.insert x) (go e')
+        e' -> traverse go e'
 
 type ExprID = Int
 
