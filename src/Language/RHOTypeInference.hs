@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Language.RHOTypeInference where
 
-import           Control.Lens
+import           Control.Lens hiding (argument)
 import           Control.Monad.Except
 import           Control.Monad.State
 import           Control.Monad.Writer
@@ -17,39 +17,10 @@ import qualified Data.Sequence as Seq
 import           Data.Generics.Fixplate.Base
 
 import           Language.Types
+import           Language.RHORT
 
 import           Grammar
 import qualified Formula as F
-
-data RHORT = RHORT
-  deriving (Show, Read, Eq, Ord)
-
--- TODO signature is not correct
-freshType :: MonadState Int m
-          => Set (Var, Type)
-          -> Seq Type
-          -> Seq Int
-          -> m RHORT
-freshType = undefined
-
-subtype :: MonadWriter [Rule] m
-        => F.Expr -> [RHORT] -> RHORT -> RHORT -> m ()
-subtype = undefined
-
-constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
-constrain = undefined
-
-valueOf :: Int -> RHORT -> F.Var
-valueOf = undefined
-
-argumentOf :: Int -> RHORT -> F.Var
-argumentOf = undefined
-
-isPrim :: Int -> RHORT -> Bool
-isPrim = undefined
-
-split :: Int -> RHORT -> (RHORT, RHORT)
-split = undefined
 
 data Annotation = Annotation
   { fixID :: FixID
@@ -72,8 +43,6 @@ data InferenceError
   | UnboundError Var
   deriving (Show, Read, Eq)
 
--- TODO should the context have free variables or just the type?
--- type Ctxt = ([Var], RHORT)
 type Ctxt = RHORT
 
 type Infer a =
@@ -85,7 +54,9 @@ type Infer a =
 runInfer :: Infer a -> Either InferenceError (a, InferenceState, [Rule])
 runInfer ac =
   let (res, rs) =
-        runWriter (runExceptT (runStateT (runReaderT ac undefined)
+        runWriter (runExceptT (runStateT (do
+          ctx0 <- zoom typeCounter (freshType mempty mempty mempty)
+          runReaderT ac ctx0)
           (InferenceState 0 M.empty M.empty)))
   in fmap (\(a, st) -> (a, st, rs)) res
 
@@ -100,9 +71,7 @@ infer es =
     -- We need to perform type judgements over every index in the array.
     Nothing -> do
       -- Construct a fresh type.
-      let available = foldMap (availVars . attribute) es
-      let ts = fmap (expressionType . attribute) es
-      t <- zoom typeCounter (freshType available ts idxs)
+      t <- mkRHORT es
 
       -- Now perform inference on every index in the expression sequence.
       mapM_ (infer' t es) [0..Seq.length es-1]
@@ -115,26 +84,38 @@ infer es =
       -- Then propogate the type.
       pure t
 
+mkRHORT :: Seq IExpr -> Infer RHORT
+mkRHORT es =
+  let idxs = fmap (uniqueID . attribute) es
+      available = foldMap (availVars . attribute) es
+      ts = fmap (expressionType . attribute) es
+  in zoom typeCounter (freshType available ts idxs)
+
+mkCtxt :: Seq IExpr -> Infer RHORT
+mkCtxt es =
+  let available = foldMap (availVars . attribute) es
+  in zoom typeCounter (freshType available Empty Empty)
+
 infer' :: RHORT -> Seq IExpr -> Int -> Infer ()
 infer' t esSeq idx =
   -- Indexed type judgements are a dispatch over the form of the expression
   -- at the index.
-  let (Fix (Ann _ e)) = Seq.index esSeq idx
+  let (Fix (Ann a e)) = Seq.index esSeq idx
       es = Seq.deleteAt idx esSeq
+      arg = argumentOf (uniqueID a) idx
+      val = valueOf (uniqueID a)
   in case e of
-    EVar x -> do
+    EVar _ -> do
       t' <- infer es
-      let tv = valueOf idx t
-      let vx = F.Var (getVar x) (view F.varType tv)
-      subtype [F.expr|@tv = @vx|] [] t' t
+      t' <: t
 
-    EApp app arg -> do
-      st <- infer (Seq.insertAt idx app es)
-      s <- infer (Seq.insertAt idx arg es)
+    EApp applicand argument -> do
+      st <- infer (Seq.insertAt idx applicand es)
+      s <- infer (Seq.insertAt idx argument es)
       if isPrim idx s
       then do
-        let sv = valueOf idx s
-        let sta = argumentOf idx st
+        let sv = val idx s
+        let sta = arg st
         subtype [F.expr|@sta = @sv|] [s] st t
       else do
         -- When the argument is not primitive, all we can do is indicate that
@@ -146,33 +127,39 @@ infer' t esSeq idx =
         s <: s'
 
     ELam x e' -> do
-      -- TODO how do we add x to the context?
       let (s, t'') = split idx t
-      let ta = argumentOf idx t
-      let vx = F.Var (getVar x) (view F.varType ta)
       if isPrim idx s
       then do
-        -- TODO
+        let ta = arg t
+        let vx = F.Var (getVar x) (view F.varType ta)
         t' <- infer (Seq.insertAt idx e' es)
         subtype [F.expr|@ta = @vx|] [] t' t
       else do
-        -- TODO
-        t' <- local undefined (infer (Seq.insertAt idx e' es))
+        ctx <- ask
+        ctx' <- mkCtxt (Seq.insertAt idx e' es)
+        subtype (F.LBool True) [s] ctx ctx'
+        t' <- local (const ctx') (infer (Seq.insertAt idx e' es))
         t' <: t''
 
     -- Fix expressions have no impact on the system of constraints.
-    EFix{} ->
-      pure ()
+    EFix{} -> pure ()
 
     EIf cond consequent alternative -> do
-      t'  <- infer ((Seq.insertAt idx cond . Seq.insertAt idx consequent) es)
-      t'' <- infer ((Seq.insertAt idx cond . Seq.insertAt idx alternative) es)
+      r <- infer (Seq.insertAt idx cond es)
+      let b  = val idx r
 
-      let b'  = valueOf idx t'
-      let b'' = valueOf idx t''
+      ctx <- ask
+      ctx'  <- mkCtxt (Seq.insertAt idx consequent es)
+      ctx'' <- mkCtxt (Seq.insertAt idx alternative es)
 
-      subtype [F.expr|@b'|] [] t' t
-      subtype [F.expr|@b''|] [] t'' t
+      subtype [F.expr|@b|] [r] ctx ctx'
+      subtype [F.expr|not @b|] [r] ctx ctx''
+
+      t'  <- local (const ctx')  (infer (Seq.insertAt idx consequent es))
+      t'' <- local (const ctx'') (infer (Seq.insertAt idx alternative es))
+
+      t' <: t
+      t'' <: t
 
     -- First, we infer the type obtained by replacing the expression at the
     -- index by both arguments. Then, the constraint formed is a first
@@ -180,9 +167,9 @@ infer' t esSeq idx =
     -- variables in the two known types.
     EBin bin arg1 arg2 -> do
       s <- infer ((Seq.insertAt idx arg1 . Seq.insertAt idx arg2) es)
-      let rv = valueOf idx s
-          sv = valueOf (idx+1) s
-          tv = valueOf idx t
+      let rv = val idx s
+          sv = val (idx+1) s
+          tv = val idx t
           f = case bin of
             Plus  -> [F.expr|@tv = @rv + @sv|]
             Minus -> [F.expr|@tv = @rv - @sv|]
@@ -200,14 +187,14 @@ infer' t esSeq idx =
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
       t' <- infer es
-      let tv = valueOf idx t
+      let tv = valueOf (uniqueID a) idx t
       let i' = F.LInt $ toInteger i
       subtype [F.expr|@tv = $i'|] [] t' t
 
     -- For boolean constants, we just bind the value to the constant.
     EBool b -> do
       t' <- infer es
-      let tv = valueOf idx t
+      let tv = valueOf (uniqueID a) idx t
       let b' = F.LBool b
       subtype [F.expr|@tv = $b'|] [] t' t
 

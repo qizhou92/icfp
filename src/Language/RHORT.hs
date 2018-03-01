@@ -8,8 +8,11 @@ import           Data.Data (Data)
 import           Data.Tree
 import           Data.Map (Map)
 import qualified Data.Map as M
-import qualified Data.List as L
+import           Data.Set (Set)
 import qualified Data.Set as S
+import           Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
+import qualified Data.List as L
 
 import           Language.Types
 import           Grammar
@@ -116,7 +119,7 @@ isPrim index rhort =
     in isPrimitiveType t
 
 
-freshType :: MonadState Int m => [(Var,Type)] -> [Type] -> [Int] -> m RHORT
+freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
 freshType  = undefined
 
 
@@ -229,8 +232,12 @@ split index rhort = case (safeGet "split is over index" index (getBasicTypes rho
   _ ->  error "not a supported type (split in RHORT)"
 
 
-subtype :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> m ()
+subtype :: MonadWriter [Rule] m
+        => F.Expr -> [RHORT] -> RHORT -> RHORT -> m ()
 subtype = undefined
+
+constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
+constrain = undefined
 
 subtype' :: MonadWriter [Rule] m => [(Int,Int)] -> F.Expr -> [F.Var] -> RHORTNode -> RHORTNode -> m ()
 subtype' indexPairs constraint fVars node1 node2 = case (getPredicate node1) of
