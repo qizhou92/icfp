@@ -227,7 +227,7 @@ $\mu_\mathcal{X} \tau = \mu_{i_0} \mathcal{X}(i_0). \mu_{i_1}
 \mathcal{X}(i_1) \ldots \tau$ for all indices
 $i_k \in \domain(\mathcal{X})$.
 
-\paragraph{Substituting components of relational refinement types}
+\paragraph{Substitution of relational refinement types}
 %
 The substitution of relational refinement type $\tau'$ in $\tau$ at
 indexed least-fixed-point type variables $\mathcal{X}$ expands $\tau$
@@ -243,7 +243,7 @@ $M \concat \varphi = \varphi[ \setformer{ (i, p \concat \justpos{M}(i)
 For $N \in \mutinds{I}$ such that $\domain(M) = \domain(N)$, the
 concatenation of $M$ with $N$ is
 $M \concat N = \setformer{ i \mapsto \justpos{M}(i) \concat
-  \justpos{M}(i) }{ i \in \domain(M) }$.
+  \justpos{N}(i) }{ i \in \domain(M) }$.
 
 % define closure of indexed lfp vars 
 For space of indices $I$, $\mathcal{X} : I \partto \lfpvars$, and
@@ -290,90 +290,134 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
                     \domain(M) = \domain(M') }
 \end{align*}
 
-% define refinement predicates, variance
+% define refinement relation over types
 \paragraph{Refinements of relational refinement types}
-Relational refinement type $\tau$ is a subtype of relational
-refinement type $\tau'$ if it corresponds to a stronger property over
-program values then the property to which $\tau'$ corresponds.
-% define variance of type positions
-The variance of a data position denotes if it
-%
-\BH{connect this to some known FP idiom}
-%
-\begin{defn}
-  \label{defn:variance}
-  The \emph{co-variance} and \emph{contra-variance} of type positions
-  is defined inductively on the structure of type positions as
-  follows:
-  %
-  \begin{itemize}
-  \item % base case:
-    $\epsilon \in \typos$ is \emph{covariant};
-  \item % case that doesn't change variance:
-    For each $p \in \typos$ and
-    $f \not= \typaramfield \in \typosfields$, if $p$ is co-variant then
-    $f \cons p$ is \emph{co-variant};
+\begin{figure}
+  \centering
+  \begin{gather*}
+    % refine atomics:
+    \inference[ ATOMICS ]{ }{ } \\
+    % refine when relational type is function
+    \inference[ FNS-REL ]{
+      % get refinement for parameter,
+      \tau_0 \refines{ i }{ t }{ \tau } \tau_1 &
+      % get refinement for result,
+      \tau_0' \refines{ i }{ t }{ \tau } \tau_1' }{
+      \tau_0 \to_x^j \tau_0' \refines{ i }{ t }{ \tau }
+      \tau_1 \to_x^j \tau_1' }
+    % subtype atomic with sum
+    \inference[ SUM-REL ]{
+      % get refinement for lhs,
+      \tau_l \refines{i}{t}{\tau} \tau_l' &
+      % get refinement for rhs,
+      \tau_r \refines{i}{t}{\tau} \tau_r' }{
+      % complete type is sum
+      \tau_l +^j \tau_r \refines{i}{t}{\tau} \tau_l' +^j \tau_r' } \\
+    % subtype atomic with product
+    \inference[ PROD-REL ]{
+      % get refinement for nested type,
+      \tau' \refines{i}{t}{\tau} \tau'' }{
+      % complete type is product
+      \times_{j, k}^l \tau' \refines{i}{t}{\tau} %
+      \times_{j, k}^{l} \tau'' } 
+    % refine relational LFP
+    \inference[ LFP-REL ]{ }{ } \\
+    % refine individual function type:
+    \inference[ FNS-IND ]{ }{
+      % compose individual function type
+      A \refines{ i }{ t }{ \tau_i \to \tau_i' } A' }
+    % refine individual sum type:
+    \inference[ SUM-IND ]{ }{
+      % complete type is sum
+      A \refines{i}{t}{ \tau_i^l + \tau_i^r } A' } \\
+    % refine individual product type:
+    \inference[ PROD-IND ]{ }{
+      % complete type is product
+      A \refines{i}{t}{\tau_i^l \times \tau_i^r} %
+      A' } 
+    % refine individual lfp type:
+    \inference[ LFP-IND ]{ }{ } \\
+  \end{gather*}
+  \caption{Inductive inference rules that define the refinement relation over relational refinement types.
     %
-    if $p$ is contra-variant, then $f \cons p$ is
-    \emph{contra-variant}.
-  \item % abstraction case:
-    For each $p \in \typos$, if $p$ is covariant, then
-    $\typaramfield \cons p$ is contra-variant, and if $p$ is
-    contra-variant, then $\typaramfield \cons p$ is \emph{co-variant}.
-  \end{itemize}
-\end{defn}
+    \BH{define metavariables used in rules} }
+  \label{fig:refine}
+\end{figure}
 
-% lift variance to refinement predicates
-If some indexed position in $\vocab(\varphi)$ is co-variant, then
-$\varphi$ is co-variant;
+% define the relational refinement relation:
+A refinement of relational refinement type $\tau$ that binds index $i$
+to typed symbolic term $t$ extends $\tau$ with a fresh index $i$ and
+constrains its value.
 %
-if some indexed position in $\vocab(\varphi)$ is contra-variant, then
-$\varphi$ is contra-variant;
+The refinement relation establishes when relational refinement type
+$\tau$ is refined by $\tau'$ under the constraint that index $i$ is
+bound to symbolic term $t$ typed $\tau$.
 %
-if $\varphi$ is both co-variant and contra-variant, then $\varphi$ is
-bi-variant.
+Such a fact is denoted $\refines{\tau}{i}{t}{\tau_t}{\tau'}$
 
-% define refinement
-A refinement of relational type $\tau$ is $\tau$ extended to model
-information about an index not in $\tau$.
+% walk through the inductive inference rules:
+The refinement relation is defined by the inductive inference rules
+given in \autoref{fig:refine}.
 %
-Let the space of \emph{base refinement terms} consist of constants and
-operations applied to indexed positions or variables.
-%
-For indices $I$, $\tau \in \reltypes{I}$, indexed position $p$, and
-base term $t$, the \emph{refinement} of $\tau$ that equates $p$ with
-$t$ is $\tau$ the relational refinement type with indices and fixpoint
-structure identical to $\tau$, and with each refinement predicate
-$\varphi$ replaced with the following predicate:
-%
-\begin{itemize}
-\item % co-variant:
-  If $\varphi$ is covariant, then $p = t \land \varphi$;
-\item % contra-variant:
-  If $\varphi$ is contravariant, then $p = t \implies \varphi$;
-\item % bi-variant:
-  If $\varphi$ is bi-variant, then $\varphi$.
-\end{itemize}
-%
-For each $y \in \vars$, the refinement of $\tau$ that equates $x$ and
-$y$ is the relational type with indices and fixpoint structure
-identical to $\tau$, and with reach refinement predicate $\varphi$ of
-$\tau$ replaced with the following predicate:
-%
-\begin{itemize}
-\item % co-variant:
-  If $\varphi$ is co-variant, then
-  $(\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p)) \land \varphi$.
-\item % contra-variant:
-  If $\varphi$ is contra-variant, then
-  $(\bigland_{(x, p) \in \vocab(\varphi)} (x, p) = (y, p)) \implies \varphi$.
-\item % bi-variant:
-  If $\varphi$ is bi-variant, then $\varphi$.
-\end{itemize}
+\BH{complete}
 
+% define the subtyping relation:
 \paragraph{Relational refinement subtypes}
 %
-\BH{complete: define subtyping relation}
+\begin{figure}
+  \centering
+  \begin{gather*}
+    % subtype pair of atomic types:
+    \inference[ ATOMICS ]{ }{ \Phi \subtype \Phi' } \\
+    % subtype function with atomic
+    \inference[ FNS-L]{ \tau \subtype A & A \subtype \tau' }{
+      A \subtype \tau \rightarrow_x^i \tau'} 
+    % subtype atomic with sum
+    \inference[ SUM-L ]{ A \subtype \tau & A \subtype \tau' }{
+      A \subtype \tau +^i \tau' } 
+    % subtype atomic with product
+    \inference[ PROD-L ]{ A \subtype \tau }{
+      A \subtype \times^k_{i, j} \tau } \\
+    % subtype function with atomic
+    \inference[ FNS-R]{ A \subtype \tau & \tau' \subtype A }{
+      \tau \rightarrow_x^i \tau' \subtype A} 
+    % subtype sum with atomic
+    \inference[ SUM-R ]{ \tau \subtype A & \tau' \subtype A }{
+      \tau +^i \tau' \subtype A} 
+    % subtype product with atomic
+    \inference[ PROD-R ]{ \tau \subtype A }{
+      \times^k_{i, j} \tau \subtype A} \\
+    % rules that deconstruct both sides. Relational functions:
+    \inference[ FNS ]{
+      % if parameter 1 subtypes parameter 0,
+      \tau_1 \subtype \tau_0 &
+      % and result 0 subtypes result 1
+      \tau_0' \subtype \tau_1' }{
+      % then function types are subtypes,
+      \tau_0 \to_x^i \tau_0' \subtype \tau_1 \to_x^i \tau_1' } 
+    % sums:
+    \inference[ SUMS ]{
+      % if component types subtype each other,
+      \tau_l \subtype \tau_l' & \tau_r \subtype \tau_r' }{
+      % then sums are subtypes
+      \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } 
+    % products:
+    \inference[ PRODS ]{ \tau \subtype \tau'}{
+      \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'} 
+    % lfps:
+    \inference[ LFPS ]{}{} 
+  \end{gather*}
+  \caption{Inductive inference rules that define relational refinement
+    subtypes.
+    %
+    \BH{define metavariables}
+  }
+  \label{fig:subtypes}
+\end{figure}
+
+\BH{define subtyping relation over indexed relational predicates}
+
+\BH{walk through subtyping rules}
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
@@ -425,13 +469,13 @@ let $\gamma_{\emptyset}$ denote the unique contextual relational type
 over the empty set of variables.
 %
 Then for all $e_0, \ldots, e_{n - 1} \in \expr$ and
-$\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$,
-\[ e_0, \ldots, e_{n - 1} : \tau \equiv \cdot, \gamma_{\emptyset}
-  \judges [ \pos{0} \mapsto e_0, \ldots, \pos{n - 1} \mapsto e_{n - 1}
-  ] : \replace{ \tau }{ e_0, \ldots, e_{n - 1} }{ \pos{0}, \ldots,
-    \pos{n - 1} } \]
+$\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$, the typing relation
+$e_0, \ldots, e_{n - 1} : \tau$ is
+\[ \cdot, \gamma_{\emptyset} \judges [ \pos{0} \mapsto e_0, \ldots,
+  \pos{n - 1} \mapsto e_{n - 1} ] : \rename{ \tau }{ e_0, \ldots,
+    e_{n - 1} }{ \pos{0}, \ldots, \pos{n - 1} } \]
 
-% rules for determining if expression sequences have a relational type:
+% typing judgments:
 \begin{figure}
   \centering
   \begin{gather*}
