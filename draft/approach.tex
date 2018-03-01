@@ -324,7 +324,7 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
     % structural lfp:
     \inference[ LFP ]{
       % get relational type of nested type,
-      \sigma \reltyof \tau }{
+      \upd{ T }{ p }{ \sigma } \reltyof \tau }{
       % operate using the lfp operator
       \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
   \end{gather*}
@@ -407,12 +407,12 @@ to $\sigma_l + \sigma_r$ has relational refinement type
 $\tau_l +^{p} \tau_r$.
 %
 Rule~LFP establishes that if %
-\textbf{(1)}
-
-\BH{walk through rules}
+$T$ extended to bind $p$ to $\sigma$ has relational type $\tau$, then
+$T$ extended to bind $p$ to $\tylfp_p X. \tau$ has relational type
+$\mu_p X. \tau$.
 
 % define refinement relation over types
-\paragraph{Refinements of relational refinement types}
+\paragraph{Joining relational refinement types}
 
 % inference rules that define join:
 \begin{figure}
@@ -426,62 +426,126 @@ Rule~LFP establishes that if %
       \mathcal{M} \join{ \varphi } \mathcal{M}' \subtype_V \mathcal{M}'' }{
       (\Phi, \mathcal{M}) \join{ \varphi } (\Phi', \mathcal{M}') \subtype_V %
       (\Phi', \mathcal{M}'') } \\
-    % join function on lhs:
+    % join shared function:
     \inference[ FNS ]{
-      % get refinement for parameter,
-      \tau_{\alpha} \join{ \varphi } \tau \subtype_{ \invert{V}{i} } \tau' &
-      % get refinement for result,
-      \tau_{\nu} \join{ \varphi } \tau \subtype_{ V } %
-      \tau' }{
+      % join the nested relational types:
+      \tau \join{ \varphi } \tau' \subtype \tau'' }{
       % combine results using relational function,
-      \tau_{\alpha} \to_x^i \tau_{\nu} \join{ \varphi } \tau \subtype_{V} %
-      \tau' }
-    % join sum on lhs:
+      \to^i \tau \join{ \varphi } \to^i \tau' \subtype \to^i \tau'' }
+    % join shared sum:
     \inference[ SUM ]{
-      % get refinement for lhs,
-      \tau_l \join{ \varphi } \tau \subtype_V \tau' &
-      % get refinement for rhs,
-      \tau_r \join{ \varphi } \tau \subtype_V \tau' }{
+      % join the lhs's
+      \tau_l \join{ \varphi } \tau_l' \subtype_V \tau_l'' &
+      % join the rhs's
+      \tau_r \join{ \varphi } \tau_r' \subtype_V \tau_r'' }{
       % complete type is sum
-      \tau_l +^i \tau_r \join{ \varphi } \tau \subtype_V \tau' } \\
-    % join product on lhs:
+      \tau_l +^i \tau_r \join{ \varphi } \tau_l' +^i \tau_r' %
+      \subtype_V \tau_l'' +^i \tau_r'' } \\
+    % join shared product:
     \inference[ PROD ]{
       % get refinement for nested type,
       \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
       % complete type is product
-      \times_{i, j}^k \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
-    % join is symmetric on first two components:
+      \times_{i, j}^k \tau \join{ \varphi } %
+      \times_{i, j}^k \tau' \subtype_V \times_{i, j}^k \tau'' }
+    % join shared lfps:
+    \inference[ LFP ]{
+      % join types of bodies of lfp's,
+      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      % wrap up the result,
+      \mu_i X. \tau \join{ \varphi } \mu_i X. \tau' \subtype %
+      \mu_i X. \tau'' } \\
+    % join unshared function:
+    \inference[ FNS-A ]{
+      % join the nested relational types:
+      \tau \join{ \varphi } \tau' \subtype \tau'' }{
+      % combine results using relational function,
+      \to^i \tau \join{ \varphi } \tau' \subtype \to^i \tau'' }
+    % join unshared sum:
+    \inference[ SUM-A ]{
+      % join the lhs's
+      \tau_l \join{ \varphi } \tau' \subtype_V \tau_l'' &
+      % join the rhs's
+      \tau_r \join{ \varphi } \tau' \subtype_V \tau_r'' }{
+      % complete type is sum
+      \tau_l +^i \tau_r \join{ \varphi } \tau' %
+      \subtype_V \tau_l'' +^i \tau_r'' } \\
+    % join unshared product:
+    \inference[ PROD-A ]{
+      % get refinement for nested type,
+      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      % complete type is product
+      \times_{i, j}^k \tau \join{ \varphi } \tau' \subtype_V %
+      \times_{i, j}^k \tau'' } 
+    % join unshared lfp:
+    \inference[ LFP-A ]{
+      % get refinement for nested type,
+      \tau \join \tau' \subtype_V \tau'' }{
+      % wrap lhs type in lfp constructor,
+      \mu_i X. \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
+    % join is symmetric on first two component relational types:
     \inference[ SYM ]{ %
       \tau' \join{ \varphi } \tau \subtype_V \tau'' }{ %
-      \tau \join{ \varphi } \tau' \subtype_V \tau'' } \\
-    % join fixpoints:
-    \inference[ LFP ]{ }{ } 
+      \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
   \end{gather*}
   \caption{Inductive inference rules that define the join of two relational types.
     %
     \BH{define metavariables used in rules} }
   \label{fig:join}
 \end{figure}
-
-\BH{rework this so that join is parameterized on indexed variance, to
-  support lfp}
-
-% define the relational refinement relation:
-A refinement of relational refinement type $\tau$ that binds index $i$
-to typed symbolic term $t$ extends $\tau$ with a fresh index $i$ and
-constrains its value.
+% give overview:
+The join of relational refinement types $\tau$ and $\tau'$ combines
+their relationships over common indices.
 %
-The refinement relation establishes when relational refinement type
-$\tau$ is refined by $\tau'$ under the constraint that index $i$ is
-bound to symbolic term $t$ typed $\tau$.
-%
-Such a fact is denoted $\refines{\tau}{i}{t}{\tau_t}{\tau'}$
+For indices $I$, refinement predicate $\varphi \in \refpreds{I}$, and
+all $\tau, \tau', \tau'' \in \reltypes{I}$, the fact that $\tau$ and
+$\tau'$ \emph{join to form} $\tau''$ is denoted
+$\tau \join{ \varphi } \tau' = \tau''$.
 
-% walk through the inductive inference rules:
-The refinement relation is defined by the inductive inference rules
-given in \autoref{fig:refine}.
+% walk through the rules:
+The join operation is defined by the inductive inference rules given
+in \autoref{fig:join}.
+% atomic relational types:
+Rule~ATOMICS
 %
 \BH{complete}
+
+% synchronous rules: functions:
+Rules~FNS, SUM, PROD, and LFP establish that the join relation is
+preserved by the abstraction, sum, production, and least-fixed point
+operators over relational refinement types on common indices.
+%
+For relational refinement types $\tau$, $\tau'$, and $\tau''$, if
+$\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then the
+abstractions of each of $\tau$ and $\tau'$ at index $i$ join to form
+$\tau''$ abstracted at $i$.
+% relational sums:
+For relational refinement types $\tau_l$, $\tau_l'$, $\tau_l''$,
+$\tau_r$, $\tau_r'$, and $\tau_r''$, if %
+\textbf{(1)} $\tau_l$ joins with $\tau_l'$ on $\varphi$ to form
+$\tau_l''$ and %
+\textbf{(2)} $\tau_r$ joins with $\tau_r'$ on $\varphi$ to form
+$\tau_r''$, then $\tau_l +^i \tau_r$ joins with $\tau_l' +^i \tau_r'$
+to form $\tau_l'' +^i \tau_r''$.
+% relational products:
+If $\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then %
+$\times_{i, j}^k \tau$ joins with $\times_{i, j}^k \tau'$ to form
+$\times_{i, j}^k \tau''$.
+% relational lfp:
+If $\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then %
+$\mu_i X. \tau$ joins with $\mu_i X. \tau'$ on $\varphi$ to from
+$\mu_i X. \tau''$.
+
+% walkthrough asynchronous rules:
+Rules~FNS-A, SUM-A, PROD-A, and LFP-A are defined similarly to
+Rules~FNS, SUM, PROD, and LFP, but define the join relation over pairs
+of relational refinement types that may not share all indices.
+%
+Rule~SYM establishes if $\tau$ joins with $\tau'$ to form $\tau''$,
+then $\tau'$ joins with $\tau$ to form $\tau''$ as well.
+%
+I.e., the binary relations defined by fixing the third relational
+refinement type in the (ternary) join relation are symmetric.
 
 % define the subtyping relation:
 \paragraph{Relational refinement subtypes}
