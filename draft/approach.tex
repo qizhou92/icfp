@@ -290,18 +290,34 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
                     \domain(M) = \domain(M') }
 \end{align*}
 
-% define refinement relation over types
-\paragraph{Refinements of relational refinement types}
+\paragraph{Structual types lifted to relational refinement types}
 
 % inference rules that define relational type of a structural type:
 \begin{figure}
   \centering
   \begin{gather*}
-    \inference[ UNIT ]{}{} \\
-    \inference[ DATA ]{}{} \\
-    \inference[ FN ]{}{} \\
-    \inference[ PROD ]{}{} \\
-    \inference[ SUM ]{}{} \\
+    \inference[ ATOMS ]{ }{ %
+      A \reltyof \tau_A } 
+    \inference[ FN ]{ 
+      % get relational types of parameter, result
+      \upd{ T }{ p }{ \sigma } \reltyof \tau & %
+      \upd{ T }{ p }{ \sigma' } \reltyof \tau' }{ %
+      % construct relational function type
+      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to_x^p \tau' } 
+    \inference[ PROD ]{
+      % get relational types of components,
+      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ %
+        \sigma_l, \sigma_r } \reltyof \tau }{
+      % construct relational product type
+      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \reltyof %
+      \times_{ \leftchild \cons p, \rightchild \cons p }^{p} \tau } \\
+    \inference[ SUM ]{
+      % get relational type of lhs,
+      \upd{ T }{ p }{ \sigma_l } \reltyof \tau_l &
+      % get relational type of rhs,
+      \upd{ T }{ p }{ \sigma_r } \reltyof \tau_r }{
+      % combine results using relational sum
+      \upd{ T }{ p }{ \sigma_l + \sigma_r } \reltyof \tau_l +^p \tau_r } 
     \inference[ LFP ]{}{}
   \end{gather*}
   \caption{Inductive inference rules that define the relational type
@@ -310,6 +326,44 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
     \BH{define metavariables used in rules} }
   \label{fig:structure-rel}
 \end{figure}
+
+% overview:
+Each structural type $\sigma$ corresponds to potentially-many
+relational refinement types.
+%
+For $\tau \in \reltypes{\sigma}$, we denote the fact that $\sigma$
+corresponds to $\tau$ as $\sigma \reltyof \tau$.
+
+% define judgment:
+\autoref{fig:structurel-rel} contains the finite set of inductive
+inference rules that define the correspondence from structural types
+to relational refinement types.
+%
+The inference rules define a correspondence relation over maps from
+type positions to structural types to relational refinement types.
+%
+For $\sigma \in T$ and $T: \typos \partto \types$ and
+$\tau \in \reltypes{ \sigma }$, the fact that $T$ corresponds to
+$\tau$ is denoted $T \reltyof \tau$.
+%
+The fact that $\sigma$ corresponds to $\tau$ is denoted
+$\sigma \reltyof \tau \equiv [ \epsilon \mapsto \sigma ] \reltyof
+\tau$.
+
+% walkthrough rules:
+The correspondence from type-position maps to relational refinement
+types is defined by the rules in \autoref{fig:structure-rel} as
+follows.
+%
+Rule~ATOMS establishes \BH{complete}
+
+% functions:
+Rule~FN establishes that if 
+
+\BH{walk through rules}
+
+% define refinement relation over types
+\paragraph{Refinements of relational refinement types}
 
 % inference rules that define join:
 \begin{figure}
@@ -360,7 +414,8 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
   \label{fig:join}
 \end{figure}
 
-\BH{rework this so that join is parameterized on indexed variance}
+\BH{rework this so that join is parameterized on indexed variance, to
+  support lfp}
 
 % define the relational refinement relation:
 A refinement of relational refinement type $\tau$ that binds index $i$
