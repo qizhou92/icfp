@@ -298,12 +298,14 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
   \begin{gather*}
     \inference[ ATOMS ]{ }{ %
       A \reltyof \tau_A } 
+    % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
-      \upd{ T }{ p }{ \sigma } \reltyof \tau & %
-      \upd{ T }{ p }{ \sigma' } \reltyof \tau' }{ %
+      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ \sigma, \sigma' } %
+      \reltyof \tau }{
       % construct relational function type
-      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to_x^p \tau' } 
+      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to^p \tau' } 
+    % structural products:
     \inference[ PROD ]{
       % get relational types of components,
       \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ %
@@ -311,6 +313,7 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
       % construct relational product type
       \upd{ T }{ p }{ \sigma_l \times \sigma_r } \reltyof %
       \times_{ \leftchild \cons p, \rightchild \cons p }^{p} \tau } \\
+    % structural sum:
     \inference[ SUM ]{
       % get relational type of lhs,
       \upd{ T }{ p }{ \sigma_l } \reltyof \tau_l &
@@ -318,7 +321,12 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
       \upd{ T }{ p }{ \sigma_r } \reltyof \tau_r }{
       % combine results using relational sum
       \upd{ T }{ p }{ \sigma_l + \sigma_r } \reltyof \tau_l +^p \tau_r } 
-    \inference[ LFP ]{}{}
+    % structural lfp:
+    \inference[ LFP ]{
+      % get relational type of nested type,
+      \sigma \reltyof \tau }{
+      % operate using the lfp operator
+      \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
   \end{gather*}
   \caption{Inductive inference rules that define the relational type
     of a structural type.
@@ -350,15 +358,56 @@ The fact that $\sigma$ corresponds to $\tau$ is denoted
 $\sigma \reltyof \tau \equiv [ \epsilon \mapsto \sigma ] \reltyof
 \tau$.
 
-% walkthrough rules:
+% walkthrough rules: atomic maps:
 The correspondence from type-position maps to relational refinement
 types is defined by the rules in \autoref{fig:structure-rel} as
 follows.
 %
-Rule~ATOMS establishes \BH{complete}
+Rule~ATOMS defines the correspondence for maps to atomic structural
+types.
+% define atomic maps:
+For $A : \typos \partto \types$, if each binding in $A$ is to an
+atomic structural type, then $A$ itself is \emph{atomic}.
+% define relational refinement type:
+Each atomic type $A$ corresponds to the relational refinement type
+$\tau_A = (\Phi, \mathcal{M})$, defined as follows.
+% define indexed refinement predicate:
+Let $P \in \typos$ be the maximal set of type positions such that for
+each $p \in P$, $A(p) = \basety$;
+%
+then $\Phi = P \mapsto \true$.
+%
+$\mathcal{M}$ is an arbitrary mutual-induction set.
+%
+\BH{bkg: require that refinement theory has true/top formula}
 
 % functions:
-Rule~FN establishes that if 
+Rule~FN establishes that for $T : \typos \partto \types$,
+$p \in \typos$, $\sigma, \sigma_{\alpha}, \sigma_{\nu} \in \types$,
+and $\tau_{\alpha}, \tau_{\nu} \in \reltypes{ \sigma }$, if %
+\textbf{(1)} $\tau_{\alpha}$ is a relational refinement type of $T$
+extended to bind $p$ to $\sigma_{\alpha}$ and %
+\textbf{(2)} $\tau_{\nu}$ is a relational refinement type of $T$
+extended to bind $p$ to $\sigma_{\nu}$, then
+$\tau_{\alpha} \to_{x}^p \tau_{\nu}$ is a relational refinement type
+of $T$ extended to bind $p$ to $\sigma \to \sigma$.
+% products: sums
+Rule~PROD establishes that if $T$ extended to bind
+$\leftchild \cons p$ and $\rightchild \cons p$ to structural types
+$\sigma_l$ and $\sigma_r$ respectively has relational refinement type
+$\tau$, then $T$ extended to bind $p$ to $\sigma_l \times \sigma_r$
+has relational refinement type
+$\times_{ \leftchild \cons p, \rightchild \cons p}^{p} \tau$.
+% sums:
+Rule~SUM establishes that if %
+\textbf{(1)} $T$ extended to bind $p$ to $\sigma_l$ has relational
+refinement type $\tau_l$ and $T$ extended to bind $p$ to $\sigma_r$
+has relational refinement type $\tau_r$, then $T$ extended to bind $p$
+to $\sigma_l + \sigma_r$ has relational refinement type
+$\tau_l +^{p} \tau_r$.
+%
+Rule~LFP establishes that if %
+\textbf{(1)}
 
 \BH{walk through rules}
 
