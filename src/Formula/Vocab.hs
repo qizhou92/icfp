@@ -3,6 +3,7 @@ module Formula.Vocab where
 
 import           Control.Lens
 import           Control.Monad.State
+import           Control.Monad.Reader
 
 import qualified Data.Map as M
 import           Data.Map (Map)
@@ -18,6 +19,11 @@ newtype VocabT m a = Vocab { getVocab :: StateT (Map String Int) m a }
 instance MonadState s m => MonadState s (VocabT m) where
   state = lift . state
 
+instance MonadReader s m => MonadReader s (VocabT m) where
+  ask = lift ask
+  local = mapVocabT . local
+    where mapVocabT f = Vocab . mapStateT f . getVocab
+
 instance Monad m => MonadVocab (VocabT m) where
   fresh n = do
     Vocab (M.lookup n <$> get >>= \case
@@ -30,6 +36,10 @@ instance Monad m => MonadVocab (VocabT m) where
     Just i -> pure (n ++ "#" ++ show i))
 
 instance MonadVocab m => MonadVocab (StateT s m) where
+  fresh = lift . fresh
+  fetch = lift . fetch
+
+instance MonadVocab m => MonadVocab (ReaderT s m) where
   fresh = lift . fresh
   fetch = lift . fetch
 

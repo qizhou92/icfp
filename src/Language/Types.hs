@@ -185,35 +185,6 @@ numberExpressions :: MonadState ExprID m
 numberExpressions = fmap (annZipWith (\a eid -> (eid, a)))
                   . synthetiseM (const $ do x <- get ; put (x+1) ; pure x)
 
--- | Use alpha renaming to ensure every binding binds a different variable.
-uniqueNames :: MonadVocab m => Attr CoreExpr' a -> m (Attr CoreExpr' a)
-uniqueNames ex = runReaderT (go ex) M.empty
-  where
-    go (Fix (Ann a e)) = Fix . Ann a <$> case e of
-      EFix x e'    -> newName EFix x e'
-      ELam x e'    -> newName ELam x e'
-      EVar (Var x) -> EVar . Var . M.findWithDefault x x <$> ask
-      _            -> traverse go e
-
-    newName f (Var x) e = do
-      x' <- lift (fresh x)
-      f (Var x') <$> local (M.insert x x') (go e)
-
-unwindFix :: Attr CoreExpr' a -> Attr CoreExpr' a
-unwindFix ex = runReader (unw ex) M.empty
-  where
-    unw (Fix node@(Ann _ e')) = case e' of
-      -- In the case of a fix expression, unwind with the fix expression in the
-      -- context, removing the Fix.
-      EFix x e -> local (M.insert x node) (unw e)
-      -- In the case of a lambda expression, remove the matched fix variable
-      -- from the context before recursing over the subexpressions.
-      ELam x _ -> T.descendM (local (M.delete x) . unw) (Fix node)
-      -- In the case of a variable try to replace it by value in the context.
-      EVar x -> Fix . M.findWithDefault node x <$> ask
-      -- In all other cases, recurse over the subexpressions.
-      _ -> T.descendM unw (Fix node)
-
 -- Which variables are bound as part of the expression?
 boundVars :: Attr CoreExpr' a -> Set Var
 boundVars = attribute . synthetise (\(Ann _ e) -> case e of
