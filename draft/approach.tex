@@ -292,57 +292,75 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
 
 % define refinement relation over types
 \paragraph{Refinements of relational refinement types}
+
+% inference rules that define relational type of a structural type:
 \begin{figure}
   \centering
   \begin{gather*}
-    % refine atomics:
-    \inference[ ATOMICS ]{ }{ } \\
-    % refine when relational type is function
-    \inference[ FNS-REL ]{
-      % get refinement for parameter,
-      \tau_0 \refines{ i }{ t }{ \tau } \tau_1 &
-      % get refinement for result,
-      \tau_0' \refines{ i }{ t }{ \tau } \tau_1' }{
-      \tau_0 \to_x^j \tau_0' \refines{ i }{ t }{ \tau }
-      \tau_1 \to_x^j \tau_1' }
-    % subtype atomic with sum
-    \inference[ SUM-REL ]{
-      % get refinement for lhs,
-      \tau_l \refines{i}{t}{\tau} \tau_l' &
-      % get refinement for rhs,
-      \tau_r \refines{i}{t}{\tau} \tau_r' }{
-      % complete type is sum
-      \tau_l +^j \tau_r \refines{i}{t}{\tau} \tau_l' +^j \tau_r' } \\
-    % subtype atomic with product
-    \inference[ PROD-REL ]{
-      % get refinement for nested type,
-      \tau' \refines{i}{t}{\tau} \tau'' }{
-      % complete type is product
-      \times_{j, k}^l \tau' \refines{i}{t}{\tau} %
-      \times_{j, k}^{l} \tau'' } 
-    % refine relational LFP
-    \inference[ LFP-REL ]{ }{ } \\
-    % refine individual function type:
-    \inference[ FNS-IND ]{ }{
-      % compose individual function type
-      A \refines{ i }{ t }{ \tau_i \to \tau_i' } A' }
-    % refine individual sum type:
-    \inference[ SUM-IND ]{ }{
-      % complete type is sum
-      A \refines{i}{t}{ \tau_i^l + \tau_i^r } A' } \\
-    % refine individual product type:
-    \inference[ PROD-IND ]{ }{
-      % complete type is product
-      A \refines{i}{t}{\tau_i^l \times \tau_i^r} %
-      A' } 
-    % refine individual lfp type:
-    \inference[ LFP-IND ]{ }{ } \\
+    \inference[ UNIT ]{}{} \\
+    \inference[ DATA ]{}{} \\
+    \inference[ FN ]{}{} \\
+    \inference[ PROD ]{}{} \\
+    \inference[ SUM ]{}{} \\
+    \inference[ LFP ]{}{}
   \end{gather*}
-  \caption{Inductive inference rules that define the refinement relation over relational refinement types.
+  \caption{Inductive inference rules that define the relational type
+    of a structural type.
     %
     \BH{define metavariables used in rules} }
-  \label{fig:refine}
+  \label{fig:structure-rel}
 \end{figure}
+
+% inference rules that define join:
+\begin{figure}
+  \centering
+  \begin{gather*}
+    % join atomics:
+    \inference[ ATOMICS ]{
+      % join the indexed refinement predicates,
+      \Phi \join{ \varphi } \Phi' \subtype_V \Phi'' &
+      % join the mutual induction sets,
+      \mathcal{M} \join{ \varphi } \mathcal{M}' \subtype_V \mathcal{M}'' }{
+      (\Phi, \mathcal{M}) \join{ \varphi } (\Phi', \mathcal{M}') \subtype_V %
+      (\Phi', \mathcal{M}'') } \\
+    % join function on lhs:
+    \inference[ FNS ]{
+      % get refinement for parameter,
+      \tau_{\alpha} \join{ \varphi } \tau \subtype_{ \invert{V}{i} } \tau' &
+      % get refinement for result,
+      \tau_{\nu} \join{ \varphi } \tau \subtype_{ V } %
+      \tau' }{
+      % combine results using relational function,
+      \tau_{\alpha} \to_x^i \tau_{\nu} \join{ \varphi } \tau \subtype_{V} %
+      \tau' }
+    % join sum on lhs:
+    \inference[ SUM ]{
+      % get refinement for lhs,
+      \tau_l \join{ \varphi } \tau \subtype_V \tau' &
+      % get refinement for rhs,
+      \tau_r \join{ \varphi } \tau \subtype_V \tau' }{
+      % complete type is sum
+      \tau_l +^i \tau_r \join{ \varphi } \tau \subtype_V \tau' } \\
+    % join product on lhs:
+    \inference[ PROD ]{
+      % get refinement for nested type,
+      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      % complete type is product
+      \times_{i, j}^k \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
+    % join is symmetric on first two components:
+    \inference[ SYM ]{ %
+      \tau' \join{ \varphi } \tau \subtype_V \tau'' }{ %
+      \tau \join{ \varphi } \tau' \subtype_V \tau'' } \\
+    % join fixpoints:
+    \inference[ LFP ]{ }{ } 
+  \end{gather*}
+  \caption{Inductive inference rules that define the join of two relational types.
+    %
+    \BH{define metavariables used in rules} }
+  \label{fig:join}
+\end{figure}
+
+\BH{rework this so that join is parameterized on indexed variance}
 
 % define the relational refinement relation:
 A refinement of relational refinement type $\tau$ that binds index $i$
@@ -368,25 +386,9 @@ given in \autoref{fig:refine}.
   \centering
   \begin{gather*}
     % subtype pair of atomic types:
-    \inference[ ATOMICS ]{ }{ \Phi \subtype \Phi' } \\
-    % subtype function with atomic
-    \inference[ FNS-L]{ \tau \subtype A & A \subtype \tau' }{
-      A \subtype \tau \rightarrow_x^i \tau'} 
-    % subtype atomic with sum
-    \inference[ SUM-L ]{ A \subtype \tau & A \subtype \tau' }{
-      A \subtype \tau +^i \tau' } 
-    % subtype atomic with product
-    \inference[ PROD-L ]{ A \subtype \tau }{
-      A \subtype \times^k_{i, j} \tau } \\
-    % subtype function with atomic
-    \inference[ FNS-R]{ A \subtype \tau & \tau' \subtype A }{
-      \tau \rightarrow_x^i \tau' \subtype A} 
-    % subtype sum with atomic
-    \inference[ SUM-R ]{ \tau \subtype A & \tau' \subtype A }{
-      \tau +^i \tau' \subtype A} 
-    % subtype product with atomic
-    \inference[ PROD-R ]{ \tau \subtype A }{
-      \times^k_{i, j} \tau \subtype A} \\
+    \inference[ ATOMICS ]{
+      \Phi \subtype \Phi' & \mathcal{M} \subtype \mathcal{M}' }{
+      (\Phi, \mathcal{M}) \subtype (\Phi', \mathcal{M}') } \\
     % rules that deconstruct both sides. Relational functions:
     \inference[ FNS ]{
       % if parameter 1 subtypes parameter 0,
@@ -395,15 +397,24 @@ given in \autoref{fig:refine}.
       \tau_0' \subtype \tau_1' }{
       % then function types are subtypes,
       \tau_0 \to_x^i \tau_0' \subtype \tau_1 \to_x^i \tau_1' } 
-    % sums:
+    % relational sums:
     \inference[ SUMS ]{
       % if component types subtype each other,
       \tau_l \subtype \tau_l' & \tau_r \subtype \tau_r' }{
       % then sums are subtypes
       \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } 
-    % products:
+    % relational products:
     \inference[ PRODS ]{ \tau \subtype \tau'}{
-      \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'} 
+      \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'} \\
+    % subtype function with atomic
+    \inference[ FNS-A]{ \tau \subtype A & A \subtype \tau' }{
+      A \subtype \tau \rightarrow_x^i \tau'} 
+    % subtype atomic with sum
+    \inference[ SUM-A ]{ A \subtype \tau & A \subtype \tau' }{
+      A \subtype \tau +^i \tau' } 
+    % subtype atomic with product
+    \inference[ PROD-A ]{ A \subtype \tau }{
+      A \subtype \times^k_{i, j} \tau } \\
     % lfps:
     \inference[ LFPS ]{}{} 
   \end{gather*}
