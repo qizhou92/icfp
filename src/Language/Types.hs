@@ -174,7 +174,6 @@ availableVars ex = runReader (go ex) S.empty
       vs <- ask
       (Fix . Ann (vs, a)) <$> case e of
         ELam x e' -> ELam x <$> local (S.insert x) (go e')
-        EFix x e' -> EFix x <$> local (S.insert x) (go e')
         e' -> traverse go e'
 
 type FixID = Int
