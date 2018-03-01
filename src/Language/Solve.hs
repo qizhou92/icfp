@@ -18,22 +18,20 @@ import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 
 import           Grammar
-import           Formula (runVocabT, MonadVocab, fresh)
+import           Formula (runVocabT, MonadVocab, fresh, fetch)
 import qualified Formula as F
 
 type Result = Either F.Model (Map Symbol F.Expr)
 
-solveCE :: F.Expr -> CoreExpr -> CoreExpr -> IO Result
-solveCE q ex1 ex2 =
+solveCE :: F.Expr -> Seq CoreExpr -> IO Result
+solveCE q exs =
   evalStateT (do
-    e1 <- prepare ex1
-    e2 <- prepare ex2
-    case (,) <$> TI.typeCheck e1 <*> TI.typeCheck e2 of
+    es <- traverse prepare exs
+    case traverse TI.typeCheck es of
       Left err -> error (show err)
-      Right (e1', e2') -> runVocabT (do
-        te1 <- uniqueNames $ applyTypes e1'
-        te2 <- uniqueNames $ applyTypes e2'
-        loop q te1 te2)) 0
+      Right es' -> runVocabT (do
+        tes <- traverse (uniqueNames . applyTypes) es'
+        loop q tes)) 0
   where
     prepare = fmap (availableVars . annMap fst) . numberExpressions . emptyAttr
     applyTypes = annMap (\(ctxt, t, (vs, fixed)) ->
@@ -42,18 +40,21 @@ solveCE q ex1 ex2 =
 
 loop :: ( MonadIO m
         , MonadState ExprID m
-        , MonadVocab m) => F.Expr -> IExpr -> IExpr -> m Result
-loop q e1 e2 = do
-  e1' <- unwindFix e1
-  e2' <- unwindFix e2
-  (cs, g) <- boundedInference (Seq.fromList [e1', e2'])
+        , MonadVocab m) => F.Expr -> Seq IExpr -> m Result
+loop q es = do
+  liftIO $ mapM_ (putStrLn . showTreeCtxt) es
+  liftIO $ putStrLn "\n\n"
+  es' <- traverse unwindFix es
+  liftIO $ mapM_ (putStrLn . showTreeCtxt) es'
+  (cs, g) <- boundedInference es'
+  plot "basic" g
   interpolate g q >>= \case
     Left e -> pure (Left e)
     Right m -> do
       ind <- inductive cs g m
       if M.findWithDefault False (g ^. grammarStart) ind
       then pure (Right m)
-      else loop q e1' e2'
+      else loop q es'
 
 boundedInference :: MonadIO m => Seq IExpr -> m (Clones, Grammar)
 boundedInference es =
@@ -75,7 +76,7 @@ uniqueNames ex = runReaderT (go ex) M.empty
         EVar (Var x) -> EVar . Var . M.findWithDefault x x <$> ask
         _            -> traverse go e
       tvs' <- S.fromList <$> mapM (\(Var x, vt) -> do
-        x' <- M.findWithDefault x x <$> ask
+        x' <- fetch x
         pure (Var x', vt)) (S.toList tvs)
 
       pure (Fix $ Ann (Annotation fid uid tvs' t) e')

@@ -10,6 +10,8 @@ import qualified Language.Solve as S
 import           Text.Parsec
 import           Data.Generics.Fixplate.Base
 import           Data.Text.Prettyprint.Doc
+import           Data.Sequence (Seq)
+import qualified Data.Sequence as Seq
 
 import           Grammar
 import           Formula (runVocab)
@@ -21,13 +23,8 @@ parseE s = case parse parseExpr "" s of
   Right ex -> ex
 
 basicPlotE :: CoreExpr -> IO ()
-basicPlotE ex = do
-  let ex' = runVocab $ uniqueNames $ unwindFix $ unwindFix (evalState (numberExpressions ex) 0)
-  print (pretty (forget ex'))
-  (_, g) <- S.exprGrammar ex'
-  let gs = simplify g
-  plot "basic" g
-  plot "simplified" gs
+basicPlotE ex =
+  void $ S.solveCE (F.LBool True) (Seq.singleton ex)
 
 testSum :: String
 testSum = "fix sum. \\n. if (n = 0)" ++
@@ -57,3 +54,12 @@ davidTest =
 davidTest2 :: String
 davidTest2 =
   "(\\a.((\\f.f 1 + f 2)((\\x.\\y.x + y)a)))"
+
+simpleFix :: String
+simpleFix =
+  "(\\x. fix f. \\y. f x y)3"
+
+simpleRename :: String
+simpleRename =
+  "(\\y.(\\x. x+1)y + (\\x. x+2)y)0"
+
