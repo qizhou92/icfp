@@ -176,7 +176,7 @@ types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
 I.e., for space of indices $I$,
 $\mathcal{X}, \mathcal{X}' \subseteq \lfpvars$, index $i \in I$,
-$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$,
+$\Phi, \Phi' \in \idxrefpreds{ \idxpos{I} }$,
 % lfp vars to indices,
 $N : \mathcal{X} \to I$, $N' : \mathcal{X}' \to I$,
 % lfp vars to positions,
@@ -227,91 +227,35 @@ $i_k \in \domain(\mathcal{Y})$.
 \paragraph{Substitution of relational refinement types}
 %
 The substitution of relational refinement type $\tau'$ in $\tau$ at
-indexed least-fixed-point type variables $\mathcal{X}$ expands $\tau$
-to replace occurrences of type variables indexed in $\mathcal{X}$ with
-$\tau'$.
-% define concatenation of mutual-induction map with refinement predicate
-For indices $I$, $M \in \mutinds{I}$, and
-$\varphi \in \refpreds{ \idxpos{ \domain(M) } }$, the prefixing of
-$\varphi$ with $M$ is
-$M \concat \varphi = \varphi[ \setformer{ (i, p \concat \justpos{M}(i)
-  / (i, p) }{ i \in I, p \in \typos } ]$.
-% define concatenation of mutual-induction maps 
-For $N \in \mutinds{I}$ such that $\domain(M) = \domain(N)$, the
-concatenation of $M$ with $N$ is
-$M \concat N = \setformer{ i \mapsto \justpos{M}(i) \concat
-  \justpos{N}(i) }{ i \in \domain(M) }$.
-
-% define closure of indexed lfp vars 
-For space of indices $I$, $\mathcal{X} : I \partto \lfpvars$, and
-$M \subseteq \idxpos{I}$, $M$ \emph{terminates} at $\mathcal{X}$,
-denoted $\terminates{ \mathcal{X} }{ M }$, if for each $i \in I$,
-$p \in \typos$, and $Y \in \lfpvars$ such that
-$(i, p \concat [ Y ]) \in M$, it holds that $\mathcal{X}(i) = Y$.
+$\mathcal{X} \subseteq \lfpvars$ expands $\tau$ to replace occurrences
+of $\mathcal{X}$ with $\tau'$.
 %
-$\mathcal{X}$ is \emph{closed} under $M$ if either $M$ terminates at
-$\mathcal{X}$ or
-$\domain(\mathcal{X}) \intersection \domain(M) = \emptyset$;
+For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, %
+$N : \mathcal{X} \to I$, %
+$P : \mathcal{X} \to \typos$, %
+$\mathcal{M} \in \equiv_{\mathcal{X}}$, and %
+$\mathcal{Y} \in \mathcal{C}_{\mathcal{M}}$, the
 %
-$\mathcal{X}$ is closed over $\mathcal{M} \subseteq \pset(\idxpos{I})$
-if $\mathcal{X}$ is closed for each $M \in \mathcal{M}$.
+the indexed type positions defined by $N$, $P$, and $\mathcal{Y}$, is
+$m_{\mathcal{Y}}^{N, P} = \inv{ \restrict{N}{ \mathcal{Y} } } \compose
+P$.
 
-% define renaming over sets of indexed positions,
-For $M \subseteq \idxpos{I}$, the naming of $M$ from $i$ to $j$ is
-\[ \rename{M}{i}{j} = %
-  \setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M }
-  \union %
-  \setformer{ (j, p) }{ p \in \typos, (i, p) \in M } \]
-% define renaming over sets of sets of indexed variables,
-For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
-$\mathcal{M}$ from $i$ to $j$ is
-$\rename{\mathcal{M}}{i}{j} = \setformer{ \rename{M}{i}{j} }{ M \in
-  \mathcal{M} }$.
-% define renaming over relational refinement types
-The naming of each relational refinement type is
-$\rename{(\Phi, \mathcal{M})}{i}{j} = (\rename{\Phi}{i}{j}, \rename{
-  \mathcal{M}}{i}{j})$.
+\BH{prefixing of indexed refinement predicate with map}
 
-% define type position field prepended to mutual induction sets,
-For $M \subseteq \idxpos{I}$, $f$ prepended to $M$ at $i$ is
-$f \prepend{i} M = \setformer{ (i, f \cons p) }{ p \in \typos,
-  (i, p) \in M}$.
-%
-For $\mathcal{M} \subseteq \pset(\idxpos{I})$, $f$ prepended to
-$\mathcal{M}$ at $i$ is
-$f \prepend{i} \mathcal{M} = \setformer{ f \prepend{i} M }{ M
-  \in \mathcal{M} }$.
+\BH{prefixing of var -> position map}
 
-% define replacement:
-For $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$ and %
-$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$ such that
-$\mathcal{X}$ is closed over $\mathcal{M}$, the replacement of
-$(\Phi', \mathcal{M}')$ in $(\Phi, \mathcal{M})$ at $\mathcal{X}$,
-denoted
-$\replace{(\Phi, \mathcal{M})}{ \mathcal{X} }{(\Phi', \mathcal{M}')}$,
-is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
-%
-\begin{align*}
-  % refinement predicates are base refinement predicates and
-  \Phi'' = & % concatenation of M and phi
-             \setformer{ M \concat \varphi' }{ 
-             % for each mutual induction set M in base type and
-             M \in \mathcal{M}, \terminates{ \mathcal{X} }{ M },
-             % each refinement predicate in substituted type,
-             \varphi' \in \Phi', %
-             \varphi' \in \refpreds{ \idxpos{ \domain(M) } } } \\
-  % mutual induction sets are base mutual induction sets and
-  \mathcal{M}'' = & % concatenation of M and M'
-                    \setformer{ M \concat M' }{
-                      % for each mutual induction set M in the base and
-                    M \in \mathcal{M},
-                    % such that M terminates at X,
-                    \terminates{ \mathcal{X} }{ M },
-                    % each mutual induction set M' in subst type
-                    M' \in \mathcal{M}',
-                    % with equal domains,
-                    \domain(M) = \domain(M') }
-\end{align*}
+% define the substitution of relational types:
+For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, %
+$\Phi, \Phi' \in \idxrefpreds{ \mathcal{X} }$, %
+$N : \mathcal{X} \to I$, %
+$P, P' : \mathcal{X} \to \typos$, %
+$\mathcal{M} \in \equiv_{\mathcal{X}}$, and %
+$\mathcal{Y} \in \mathcal{C}_{\mathcal{M}}$, the substitution of
+$(\Phi, N, P, \mathcal{M})$ in $(\Phi', N, P', \mathcal{M})$ is %
+$\replace{ (\Phi, N, P, \mathcal{M}) }{ \mathcal{Y} }{ (\Phi', N, P',
+  \mathcal{M}) } = (\Phi \union \Phi'', N, P \union P'',
+\mathcal{M})$, where for $m = m_{\mathcal{Y}}^{N, P}$,
+$\Phi'' = m \concat \Phi'$ and $P'' = m \concat P'$.
 
 
 % define refinement relation over types
