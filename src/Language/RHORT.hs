@@ -53,7 +53,7 @@ valueOf uniqueId index rhort =
   let t = safeGet "valueOf given the index over the basic length" index (getBasicTypes rhort)
   in case t of
     TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, lastIndex t)
-    TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TBool, lastIndex t)
+    TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, lastIndex t)
     _ -> error "this type is not supported (argumentOf in RHORT)"
   where
     lastIndex t =
@@ -309,14 +309,16 @@ buildConstrains :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rul
 buildConstrains constraint fixTerminals bodys headN = 
  let varsLists = map (\(Nonterminal _ vars)->vars) bodys
      Nonterminal _ headVars = headN
-     equalExprs = F.manyAnd (map (buildEqExpr (toListOf F.vars constraint) headVars) varsLists)
+     equalExprs =
+       traceShow (toListOf F.vars constraint) $
+       F.manyAnd (map (buildEqExpr (toListOf F.vars constraint) headVars) varsLists)
  in Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys)
 
 buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
 buildEqExpr fVars vars1 vars2 =
   let list1 = filter (`notElem` fVars) vars1
       list2 = filter (`notElem` fVars) vars2
-  in F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) list1 list2)
+  in F.manyAnd (zipWith (\x y -> F.mkEql (view F.varType x) (F.V x) (F.V y)) list1 list2)
 
 
 -- given the witnessNode position to build the corresponding constrains and return the visited Node

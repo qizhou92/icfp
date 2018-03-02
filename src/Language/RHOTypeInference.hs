@@ -105,7 +105,6 @@ infer' t esSeq idx =
   let (node@(Fix (Ann a e))) = Seq.index esSeq idx
       es = Seq.deleteAt idx esSeq
       arg = argumentOf (uniqueID a) idx
-      val = valueOf (uniqueID a)
   in do
   liftIO $ (print . pretty) (forget node)
   case e of
@@ -122,8 +121,8 @@ infer' t esSeq idx =
       s <- infer (Seq.insertAt idx argument es)
       if isPrim idx s
       then do
-        let sv = val idx s
-        let sta = arg st
+        let sv = valueOf (uniqueID $ attribute argument) idx s
+        let sta = argumentOf (uniqueID $ attribute applicand) idx st
         appJoin idx [F.expr|@sta = @sv|] st s t
       else do
         -- When the argument is not primitive, all we can do is indicate that
@@ -139,7 +138,7 @@ infer' t esSeq idx =
       if isPrim idx s
       then do
         let ta = arg t
-        let vx = F.Var (getVar x) (view F.varType ta)
+        let vx = F.Var (getVar x ++ "/1") (view F.varType ta)
         t' <- infer (Seq.insertAt idx e' es)
         constrain [F.expr|@ta = @vx|] [t'] t
       else do
@@ -154,7 +153,7 @@ infer' t esSeq idx =
 
     EIf cond consequent alternative -> do
       r <- infer (Seq.insertAt idx cond es)
-      let b  = val idx r
+      let b  = valueOf (uniqueID $ attribute cond) idx r
 
       ctx <- ask
       ctx'  <- mkCtxt (Seq.insertAt idx consequent es)
@@ -175,9 +174,9 @@ infer' t esSeq idx =
     -- variables in the two known types.
     EBin bin arg1 arg2 -> do
       s <- infer ((Seq.insertAt idx arg1 . Seq.insertAt idx arg2) es)
-      let rv = val idx s
-          sv = val (idx+1) s
-          tv = val idx t
+      let rv = valueOf (uniqueID $ attribute arg1) idx s
+          sv = valueOf (uniqueID $ attribute arg2) (idx+1) s
+          tv = valueOf (uniqueID a) idx t
           f = case bin of
             Plus  -> [F.expr|@tv = @rv + @sv|]
             Minus -> [F.expr|@tv = @rv - @sv|]
@@ -195,14 +194,14 @@ infer' t esSeq idx =
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
       t' <- infer es
-      let tv = val idx t
+      let tv = valueOf (uniqueID a) idx t
       let i' = F.LInt $ toInteger i
       constrain [F.expr|@tv = $i'|] [t'] t
 
     -- For boolean constants, we just bind the value to the constant.
     EBool b -> do
       t' <- infer es
-      let tv = val idx t
+      let tv = valueOf (uniqueID a) idx t
       let b' = F.LBool b
       constrain [F.expr|@tv = $b'|] [t'] t
 

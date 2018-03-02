@@ -48,9 +48,9 @@ loop :: ( MonadIO m
 loop q es = do
   es' <- traverse unwindFix es
   (cs, g) <- boundedInference es'
-  liftIO $ print (pretty g)
+  -- liftIO $ print (pretty g)
   plot "basic" g
-  liftIO $ print "here"
+  -- liftIO $ print "here"
   interpolate g q >>= \case
     Left e -> pure (Left e)
     Right m -> do
