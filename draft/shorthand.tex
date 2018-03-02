@@ -121,6 +121,8 @@
 
 \newcommand{\fresh}{\mathsf{Fresh}}
 
+\newcommand{\fullprepend}[2]{\concat_{#1}^{#2}}
+
 \newcommand{\head}[1]{\mathsf{hd}[ #1 ]}
 
 \newcommand{\headexps}{\mathsf{Hd}}
@@ -207,7 +209,13 @@
 
 \newcommand{\renameclauses}[3]{\mathsf{Rename}[ #1, #2, #3 ]}
 
-\newcommand{\renamefn}[2]{\mathsf{renm}_{#1 \mapsto #2}}
+\newcommand{\renamefn}[2]{\mathsf{renm}_{#1}^{#2}}
+
+\newcommand{\renameidxpos}[1]{\mathsf{renm}_{#1}^{P_I}}
+
+\newcommand{\renamepos}[1]{\mathsf{renm}_{#1}^P}
+
+\newcommand{\renamepred}[1]{\mathsf{renm}_{#1}^R}
 
 \newcommand{\renamesub}[4]{\mathsf{Rename}[ #1, #2, #3, #4 ]}
 
@@ -226,6 +234,8 @@
 \newcommand{\prepend}[1]{\cons_{#1}}
 
 \newcommand{\prependfn}[4]{\mathsf{pre}^{#1, #2}_{#3, #4}}
+
+\newcommand{\prependpos}[2]{\mathsf{pre}_{#1, #2}}
 
 \newcommand{\prevrule}[1]{\mathsf{Prev}[ #1 ]}
 
@@ -315,13 +325,13 @@
 
 \newcommand{\tydatafield}{D}
 
-\newcommand{\tyleftprod}{\cdot \times}
+\newcommand{\tyleftprod}{\times_l}
 
-\newcommand{\tyleftsum}{\cdot +}
+\newcommand{\tyleftsum}{+_l}
 
 \newcommand{\tylfp}{\mu}
 
-\newcommand{\typaramfield}{\cdot \to}
+\newcommand{\typaramfield}{\alpha}
 
 \newcommand{\typarampos}{\alpha}
 
@@ -339,11 +349,11 @@
 
 \newcommand{\types}{T}
 
-\newcommand{\tyresfield}{\to \cdot}
+\newcommand{\tyresfield}{\nu}
 
-\newcommand{\tyrightprod}{\times \cdot}
+\newcommand{\tyrightprod}{\times_r}
 
-\newcommand{\tyrightsum}{+ \cdot}
+\newcommand{\tyrightsum}{+_r}
 
 \newcommand{\tyvarfield}{X}
 

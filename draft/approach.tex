@@ -72,9 +72,9 @@ refinement predicates;
 %
 \textbf{(2)} $N : X \to I$;
 %
-\textbf{(2)} $P : X \to \typos$;
+\textbf{(3)} $P : X \to \typos$;
 %
-\textbf{(3)} $E \subseteq X \times X$ an equivalence relation over
+\textbf{(4)} $E \subseteq X \times X$ an equivalence relation over
 $X$.
 %
 The space of relational refinement types over $I$ and $X$ is denoted
@@ -129,39 +129,72 @@ with references to components of $\tau$.
 % define renaming over indices:
 For indices $I$ and $i, j \in I$, let
 $\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
+% lift index renaming to position renaming
+For $f : I \to I$, let $\renamepos{f} : \idxpos{I} \to \idxpos{I}$ be
+such that for each $i \in I$ and $p \in \typos$,
+$\renamepos{f}(i, p) = (f(i), p)$.
 % define index renaming over sets of indexed type positions,
-Let $\renamefn{i}{j}' : \pset(\idxpos{I}) \to \pset(\idxpos{I})$ be
-such that for all $J \subseteq \idxpos{I}$,
-$\renamefn{i}{j}'(J) = \setformer{(k, p)}{ k \not= j \in J, p \in
-  \typos, (k, p) \in J} \union \setformer{ (j, p) }{ p \in \typos, (i,
-  p) \in J}$.
+For $f : \idxpos{I} \to \idxpos{I}$, let
+$\renameidxpos{f} : \pset(\idxpos{I}) \to \pset(\idxpos{I})$ be such
+that for all $J \subseteq \idxpos{I}$, $\renameidxpos{f}(J) = %
+\setformer{ f(p) }{ p \in J }$.
 % define index renaming over relational refinement predicates,
-For indices $I$, let $\renamefn{i}{j}'' : \idxpos{I} \to \idxpos{I}$
+Let
+$\renamepred{f} : \refpreds{ \idxpos{I} } \to \refpreds{ \idxpos{I} }$
 be such that for each $\varphi \in \refpreds{ \idxpos{I} }$,
-$\renamefn{i}{j}'(\varphi) = \varphi[ \setformer{(j, p) / (i, p)}{ p
-  \in \typos} ]$.
+$\renamepred{f}(\varphi) = \varphi[ \setformer{ f(p) / p }{ p \in
+  \idxpos{I} } ]$.
 %
-\BH{define renaming over types}
-  
-% define prepending over type positions:
-For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
-$f$ prepended to $\varphi$ at $i$ is denoted
-$f \prepend{i} \varphi = \varphi[ \setformer{ (i, f \cons p) / (i,
-  f)}{ p \in \typos } ]$.
-% define prepending over sets of indexed positions:
-For $J \subseteq \idxpos{I}$, the prepending of $f$ to $J$ at $i$ is
-denoted $f \prepend{i} J = %
-\setformer{ (k, p) }{ k \not= j \in J, p \in \typos, (k, p) \in J} %
-\union \setformer{ (i, f \cons p) }{ p \in \typos, (i, p) \in J}$.
-%  
-For $\Phi : \idxrefpreds{ I}$, $f$ prepended to $\Phi$ at $i$ is
-$f \prepend{i} \Phi = %
-\setformer{ f \prepend{i} J }{ J \subseteq \idxpos{I}, J \in
-  \domain(\Phi)}$.
-%
-\BH{define prepending over types}
+For each $\Phi : \idxpos{I} \to \refpreds{ \idxpos{I} }$, the renaming
+of $\Phi$ from $i$ to $j$ is
+$\rename{ \Phi }{ i }{ j } = \renameidxpos{ \renamefn{j}{i} } \compose
+\Phi \compose \renamepred{ \renameidxpos{ \renamefn{j}{i} } }$.
 
-% define function relational type operator,
+% define renaming over mapped indices
+For all $i, j \in I$, the renaming of $N$ from $i$ to $j$ is
+$N \compose \renamefn{i}{j}$.
+%
+For each $\Phi : \idxrefpreds{ I }$, $N : \lfpvars \to I$,
+$P : \lfpvars \to \typos$, $E \in \equiv_{\mathcal{X}}$, and all
+$i, j \in I$, the renaming in $(\Phi, N, P, E)$ from $i$ to $j$ is
+$\rename{(\Phi, N, P, E) }{ i }{ j } = (\rename{ \Phi }{ i }{ j },
+\rename{ N }{ i }{ j }, P, E)$.
+
+% define prepending over indexed predicates:
+For $i \in I$, $p \in \typos$,
+$\prependpos{i}{p} : \idxpos{I} \to \idxpos{I}$ is such that for each
+$q \in \typos$, $\prependpos{i}{p}(i, q) = (i, p \concat q)$, and for
+each $j \not= i \in I$, $\prependpos{i}{p}(j, q) = q$.
+%
+For $\Phi : \idxrefpreds{ I }$, $i \in I$, and $p \in \typos$, $p$
+prepended to $\Phi$ at $i$ is $p \prepend{i} \Phi = %
+\renameidxpos{ \inv{ \prependpos{i}{p} } } \compose \Phi \compose
+\prependpos{i}{p}$.
+
+% define prepending over mapped type positions:
+Let $d_P : \mathcal{X} \to \mathcal{X} \times \typos$ be such that for
+each $X \in \mathcal{X}$, $d_P(X) = (X, P(X))$.
+%
+For each $P : \mathcal{X} \to \typos$, let
+$d_{P} : \mathcal{X} \to \mathcal{X} \times \typos$ be such that for
+each $X \in \mathcal{X}$, $d_{P}(X) = (X, P(X))$.
+% define selector:
+For $N : \mathcal{X} \to I$, $i \in I$, and $p \in \typos$, let
+$s_{i, p}^N : \mathcal{X} \times \typos \to \typos$ be such that for
+each $X \in \lfpvars$ and $q \in \typos$, if $N(X) \not= i$, then
+$s_{i, p}^N(X, q) = q$, and otherwise
+$s_{i, p}^N(X, q) = p \concat q$.
+%
+The \emph{prefix} of $P$ with $p$ at $i$ under $N$ is
+$p \fullprepend{i}{N} P = d_{P} \compose s_{i, p}^N$.
+%
+For $\Phi : \idxrefpreds{ I }$, $N : \lfpvars \to I$,
+$P : \lfpvars \to \typos$, and $E \subseteq \in \equiv_{\mathcal{X}}$
+the prepending of $(\Phi, N, P, E)$ with $p$ at $i$ is
+$p \prepend{i} (\Phi, N, P, E) = (p \fullprepend{i}{N} \Phi, N, p
+\fullprepend{i}{N} P, E)$.
+
+% define function relational type operator
 For index $i \in I$, $X \subseteq \lfpvars$,
 $\tau \in \reltypes{I, X}$, $i \in I$, and $x \in \absvars$, the
 abstraction of $\tau$ over $x$ at $i$ is
