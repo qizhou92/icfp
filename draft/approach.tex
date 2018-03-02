@@ -532,85 +532,84 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     % empty:
     \inference[ EMPTY ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma, \gamma \judges \cdot : \gamma } 
+      \Gamma \judges \cdot : \tau_{\emptyset} } 
     % unit:
     \inference[ UNIT ]{
       % get types for remainder,
-      \Gamma, \gamma \judges E : \tau }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ \unit } : \tau %
-    } 
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \upd{ E }{ p }{ \unit } : \tau } 
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
-      \Gamma, \gamma \judges E : \tau }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ c } : %
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \upd{ E }{ p }{ c } : %
       \tau \joinctr p \equiv c } \\
     % vars:
     \inference[ VAR ]{ %
-      \Gamma, \gamma \judges E : \tau }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ a } : %
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \upd{ E }{ p }{ a } : %
       \tau \joinctr p \equiv a } 
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
-      \Gamma, \gamma \judges %
+      \Gamma \judges %
       E[ \leftchild \cons p \mapsto e_0, %
         \rightchild \cons p \mapsto e_1 ] : \tau }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
+      \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
       \tau \joinctr %
       p \equiv \leftchild \cons p \oplus \rightchild \cons p } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
-      \Gamma, \gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
+      \Gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
-      \Gamma, \gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
+      \Gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
       \gamma \to_p \tau } 
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
-      \Gamma, \gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
+      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
       % get type of argument that is the parameter type,
-      \Gamma, \gamma \judges \upd{E}{p}{e_1} : \tau }{
+      \Gamma \judges \upd{E}{p}{e_1} : \tau }{
       % return the result type
-      \Gamma, \gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \\
+      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \\
     % pairing:
     \inference[ PAIR ]{
       % get type of both expressions,
-      \Gamma, \gamma \judges %
+      \Gamma \judges %
       E[ \leftchild \cons p \mapsto e_0, %
       \rightchild \cons p \mapsto e_1 ] : \tau }{
       % then type of pair is
-      \Gamma, \gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
+      \Gamma \judges \upd{E}{p}{ \pair{e_0}{e_1} } :
       \times_{\leftchild \cons p, \rightchild \cons p}^p \tau } 
     % let:
     \inference[ LET ]{
       % get type of bound expression,
-      \Gamma, \gamma \judges \epsilon \mapsto e_0 : %
+      \Gamma \judges \epsilon \mapsto e_0 : %
       \times_{x, y}^{\epsilon} \gamma' \\
       % get type of result under context that binds to x and y,
-      \Gamma, \gamma' \judges \upd{ E }{ p }{ e_1 } : \tau }{
+      \Gamma' \judges \upd{ E }{ p }{ e_1 } : \tau }{
       % then complete let expression has type
-      \Gamma, \gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
+      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
       \tau } \\
     % left injection:
     \inference[ LEFT ]{
       % get type of the nested exp,
-      \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
+      \Gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma, \gamma \judges \upd{E}{p}{ \injl\ e} : %
+      \Gamma \judges \upd{E}{p}{ \injl\ e} : %
       \tau +^p \tau' } 
     % right injection:
     \inference[ RIGHT ]{
       % get type of the nested exp,
-      \Gamma, \gamma \judges \upd{E}{p}{ e } : \tau }{
+      \Gamma \judges \upd{E}{p}{ e } : \tau }{
       % lift type at the left to sum,
-      \Gamma, \gamma \judges \upd{E}{p}{ \injr\ e} : %
+      \Gamma \judges \upd{E}{p}{ \injr\ e} : %
       \tau' +^p \tau } \\
     % match:
     \inference[ MATCH ]{
       % get type of matched exp,
-      \Gamma, \gamma \judges \epsilon \mapsto e_0 : %
+      \Gamma \judges \epsilon \mapsto e_0 : %
       \gamma' +^\epsilon \gamma'' \\
       % get type of left branch under context that binds x to left op,
       \Gamma, \rename{ \gamma' }{ \epsilon }{ x } \judges %
@@ -619,7 +618,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \Gamma, \rename{ \gamma'' }{ \epsilon }{ y } \judges %
       \upd{E}{p}{e_2} : \tau }{
       % then type of match exp is type of both branches,
-      \Gamma, \gamma \judges %
+      \Gamma \judges %
       \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } 
     % fixpoint:
     \inference[ FIX ]{
@@ -628,27 +627,27 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \upd{ E }{ p }{ e } : \tau \\
       % constrain that tau' with result renamed to f is subtype of tau,
       \replace{ \tau }{ p }{ f } \subtype \gamma' }{ %
-      \Gamma, \gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
+      \Gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
     % fixpoint variable:
     \inference[ FVAR ]{ }{
       % the empty map of expressions has relational type true
-      \Gamma, \gamma \judges p \mapsto f : %
+      \Gamma \judges p \mapsto f : %
       \Gamma(f) \joinctr p \equiv f} 
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
-      \Gamma, \gamma \judges E : %
+      \Gamma \judges E : %
       \replace{ \tau }{ \mathcal{X} }{ \tau }_p }{ 
       % then expressions have folded type
-      \Gamma, \gamma \judges E : \mu_{\mathcal{X}}. \tau } 
+      \Gamma \judges E : \mu_{\mathcal{X}}. \tau } 
     % subtype:
     \inference[ SUB ]{
       % if expressions have tau,
-      \Gamma, \gamma \judges E : \tau &
+      \Gamma \judges E : \tau &
       % and tau subtypes tau',
       \tau \subtype \tau' }{ %
       % then expressions have type tau'
-      \Gamma, \gamma \judges E : \tau' }
+      \Gamma \judges E : \tau' }
   \end{gather*}
   \caption{A typing system for relational types.
     %
