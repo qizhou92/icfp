@@ -172,25 +172,17 @@ prepended to $\Phi$ at $i$ is $p \prepend{i} \Phi = %
 \prependpos{i}{p}$.
 
 % define prepending over mapped type positions:
-Let $d_P : \mathcal{X} \to \mathcal{X} \times \typos$ be such that for
-each $X \in \mathcal{X}$, $d_P(X) = (X, P(X))$.
-%
-For each $P : \mathcal{X} \to \typos$, let
-$d_{P} : \mathcal{X} \to \mathcal{X} \times \typos$ be such that for
-each $X \in \mathcal{X}$, $d_{P}(X) = (X, P(X))$.
-% define selector:
 For $N : \mathcal{X} \to I$, $i \in I$, and $p \in \typos$, let
-$s_{i, p}^N : \mathcal{X} \times \typos \to \typos$ be such that for
-each $X \in \lfpvars$ and $q \in \typos$, if $N(X) \not= i$, then
-$s_{i, p}^N(X, q) = q$, and otherwise
-$s_{i, p}^N(X, q) = p \concat q$.
+$\mathsf{pair}_{P}^N : \mathcal{X} \to I \times \typos$ be such that
+for each $X \in \mathcal{X}$, $p_{P}^N(X) = (N(X), P(X))$.
 %
-The \emph{prefix} of $P$ with $p$ at $i$ under $N$ is
-$p \fullprepend{i}{N} P = d_{P} \compose s_{i, p}^N$.
+The \emph{prepending} of $P$ with $p$ at $i$ under $N$ is
+$p \fullprepend{i}{N} P = \mathsf{pair}_{P}^{N} \compose
+\prependpos{i}{p}$.
 %
 For $\Phi : \idxrefpreds{ I }$, $N : \lfpvars \to I$,
-$P : \lfpvars \to \typos$, and $E \subseteq \in \equiv_{\mathcal{X}}$
-the prepending of $(\Phi, N, P, E)$ with $p$ at $i$ is
+$P : \lfpvars \to \typos$, and $E \in \equiv_{\mathcal{X}}$ the
+prepending of $(\Phi, N, P, E)$ with $p$ at $i$ is
 $p \prepend{i} (\Phi, N, P, E) = (p \fullprepend{i}{N} \Phi, N, p
 \fullprepend{i}{N} P, E)$.
 
@@ -224,7 +216,8 @@ is $(\Phi, N, P, \mathcal{M}) +^i (\Phi', N', P', \mathcal{M}') = %
 % build disjoint union of variable map,
 N \union N',
 % build disjoint union of extended position maps,
-\tyleftsum \prepend{i} P \union \tyrightsum \prepend{i} P',
+\tyleftsum \fullprepend{i}{N} P \union \tyrightsum \fullprepend{i}{N}
+P',
 % equivalence classes: build union:
 \mathcal{M} \union \mathcal{M}')$.
 
@@ -264,14 +257,15 @@ $\mathcal{X} \subseteq \lfpvars$ expands $\tau$ to replace occurrences
 of $\mathcal{X}$ with $\tau'$.
 %
 For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, and %
-$m : I \partto \typos$, the \emph{prefixing} of
-$\Phi \in \idxrefpreds{ I }$ with $m$ is
-$m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0} \Phi$, where $i_k$
-range over $\domain(m)$.
+$m : I \partto \typos$, the prepending of $\Phi \in \idxrefpreds{ I }$
+with $m$ is
+$m \concat \Phi = m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0}
+\Phi$, where $i_k$ range over $\domain(m)$.
 %
-The prefixing of each $P : \mathcal{X} \to \typos$ with $m$ is
-$m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0} P$, where $i_k$
-range over the $\domain(m)$.
+For each $N : \mathcal{X} \to \typos$, the prepending of
+$P : \mathcal{X} \to \typos$ with $m$ under $N$ is
+$m \concat^N m(i_n) \fullprepend{i_n}{N} \ldots m(i_0)
+\fullprepend{i_0}{N} P$, where $i_k$ range over the $\domain(m)$.
 
 % define the substitution of relational types:
 For $\Phi' \in \idxrefpreds{ \mathcal{X} }$, %
@@ -280,9 +274,10 @@ $P, P' : \mathcal{X} \to \typos$, %
 $\mathcal{M} \in \equiv_{\mathcal{X}}$, and %
 $\mathcal{Y} \in \mathcal{C}_{\mathcal{M}}$, the substitution of
 $(\Phi', N, P', \mathcal{M})$ in $(\Phi, N, P, \mathcal{M})$ is %
-$\replace{ (\Phi, N, P, \mathcal{M}) }{ \mathcal{Y} }{ (\Phi', N, P',
-  \mathcal{M}) } = (\Phi \union m \concat \Phi', N, P \union m \concat
-P', \mathcal{M})$, where
+$\replace{ (\Phi, N, P, \mathcal{M}) }{ \mathcal{Y} }{ %
+  (\Phi', N, P', \mathcal{M}) } = %
+(\Phi \union m \concat \Phi', N, %
+P \union m \concat^N P', \mathcal{M})$, where
 $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
 
 
