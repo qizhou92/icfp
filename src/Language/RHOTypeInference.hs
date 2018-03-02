@@ -176,9 +176,10 @@ infer' t esSeq idx =
     -- order logical constraint that can be directly expressed by the
     -- variables in the two known types.
     EBin bin arg1 arg2 -> do
-      s <- infer ((Seq.insertAt idx arg1 . Seq.insertAt idx arg2) es)
+      r <- infer (Seq.insertAt idx arg1 es)
+      s <- infer (Seq.insertAt idx arg2 es)
       let rv = valueOf (uniqueID $ attribute arg1) idx s
-          sv = valueOf (uniqueID $ attribute arg2) (idx+1) s
+          sv = valueOf (uniqueID $ attribute arg2) idx s
           tv = valueOf (uniqueID a) idx t
           f = case bin of
             Plus  -> [F.expr|@tv = @rv + @sv|]
@@ -192,7 +193,7 @@ infer' t esSeq idx =
             And   -> [F.expr|@tv = (@rv && @sv)|]
             Or    -> [F.expr|@tv = (@rv || @sv)|]
             Cons  -> undefined
-      constrain f [s] t
+      constrain f [r, s] t
 
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
