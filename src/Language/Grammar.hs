@@ -49,7 +49,11 @@ qiTest2 =
 
 davidTest :: String
 davidTest =
-  "((\\f.f 1)((\\x.\\y.x + y)a))"
+  "(\\f.f 1)((\\x.\\y.x + y))"
+
+something :: String
+something =
+  "(\\f.f 123 + f 519)(\\x.x + 46)"
 
 davidTest2 :: String
 davidTest2 =
