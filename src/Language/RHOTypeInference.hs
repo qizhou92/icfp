@@ -110,7 +110,7 @@ infer' t esSeq idx =
 
       let vcs = fetchVarComponents x (expressionType a)
       let ecs = fetchExprComponents (uniqueID a) (expressionType a)
-      let f = F.manyAnd (zipWith F.mkEql vcs ecs)
+      let f = F.manyAnd (zipWith (\v1 v2 -> [F.expr|@v1 = @v2|]) vcs ecs)
       constrain f [t'] t
 
     EApp applicand argument -> do
