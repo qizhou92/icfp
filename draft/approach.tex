@@ -46,30 +46,37 @@ The space of positions is denoted $\typos = \typosfields^{*}$.
 For indices $I$, the space of type positions \emph{indexed} by $I$ is
 denoted $\idxpos{I} = I \times \typos$.
 
-% define relational types:
+% define refinement predicates, indexed predicates:
 A relational refinement type is represented as a set of refinement
 predicates that represent relations over data components of types and
-sets of type variables, which represent a definition of how
-least-fixed-point types should be mutually unfolded.
-%
-\BH{restate}
+an equivalence relation over type variables that define how
+least-fixed-point types are mutually unfolded.
 %
 For indices $I$, a \emph{relational refinement predicate} over $I$ is
 a refinement predicate whose vocabulary is the space of data type
 positions indexed by $I$ (i.e., the space
 $\refpreds{ \idxpos{I} }$).
 %
-The space of \emph{relational refinement type representations} over
-$I$ is %
-\textbf{(1)} a map
-$\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ such that
-for each $J \subseteq \idxpos{I}$ bound in $\Phi$,
-$\Phi(J) \in \refpreds{J}$;
+For $f : \pset(I) \to \refpreds{ I }$ are \emph{indexed} relational
+refinement predicates if for each $J \subseteq \idxpos{I}$ bound in
+$\Phi$, $\Phi(J) \in \refpreds{J}$.
+
+% define relational refinement types:
+For indices $I$ and $X \subseteq \lfpvars$, an \emph{relational
+  refinement type representation} over $I$ and $X$ is a triple
+$(\Phi, P, E)$, where
+% indexed refinement predicates
+\textbf{(1)}
+$\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
+refinement predicates;
 %
-\textbf{(2)} an equivalence relation over $\lfpvars$.
+\textbf{(2)} $P : X \to I \times \typos$;
 %
-The space of relational refinement types over $I$ is denoted
-$\reltypes{I}$.
+\textbf{(3)} $E \subseteq X \times X$ is an equivalence relation over
+$X$.
+%
+The space of relational refinement types over $I$ and $X$ is denoted
+$\reltypes{I, X}$.
 
 % declare typing relation:
 A key contribution of our work is the definition of a typing relation
@@ -96,23 +103,20 @@ over features unique to relational types.
 
 \paragraph{Atomic relational refinement types}
 %
-An atomic relational refinement type directly defines a set of
-relational refinement predicates and an equivalence relation over
-% 
-Let the space of singleton type positions over type-variables be
-denoted $[ \lfpvars ]$.
+% introduce map
+For indices $I$, $X \subseteq \lfpvars$ and %
+indexed refinement predicates $\Phi : I \to \refpreds{I}$, let
+$\Phi' : \idxpos{I} \partto \refpreds{I}$ be such that for each
+$i \in I$,
+$\Phi'(i, \epsilon) = \Phi(i)[ \setformer{ (i, \epsilon) / i }{ i \in
+  I } ]$.
 %
-For indices $I$, $T : I \to [ \lfpvars ]$ and $M \subseteq I$, let
-$T(M) = \setformer{ (i, T(i)) }{ i \in I }$, and for
-$\mathcal{M} \subseteq \pset(I)$ and let
-$T(\mathcal{M}) = \setformer{ T(M) }{ M \in \mathcal{M}}$.
+For $P : X \to I$, let $P' : X \to I \times \typos$ be such that for
+each $i \in I$, $P'(i) = P(i) \times \epsilon$.
 %
-Then for indices $I$, 
-% each set of refinement predicates over trivial type positions,
-each $\Phi \subseteq \refpreds{ I \times [ \lfpvars] }$,
-% each mutual induction set,
-$T : I \to [ \lfpvars ]$, and $\mathcal{M} \subseteq \pset(I)$, define
-the \emph{atomic} relational type $(\Phi, T(\mathcal{M}))$.
+Then for each $\mathcal{M} \subseteq X$, the \emph{atomic} relational
+type defined by $\Phi$, $P$, and $\mathcal{M}$ is
+$(\Phi', P', \mathcal{M})$.
 
 \paragraph{Relational refinement function types}
 %
@@ -125,56 +129,40 @@ with references to components of $\tau$.
 For $\varphi \in \refpreds{ \idxpos{I} }$, the \emph{renaming} of
 $\varphi$ from $i$ to $j$ is
 $\rename{\varphi}{i}{j} = \varphi[ \setformer{(j, p) / (i, p)}{ p \in
-  \typos} ]$;
+  \typos} ]$.
+% define index renaming over sets of indexed positions:
+For $J \subseteq \idxpos{I}$, the renaming of $J$ from $i$ to $j$ is
+$\rename{J}{i}{j} = \setformer{(k, p)}{ k \not= j \in J, p \in \typos,
+  (k, p) \in J} \union \setformer{ (j, p) }{ p \in \typos, (i, p) \in
+  J}$.
 % define renaming over sets of predicates,
-for $\Phi \subseteq \refpreds{\idxpos{I}}$, the renaming of $\Phi$
-from $i$ to $j$ is denoted
-$\rename{\Phi}{i}{j} = \setformer{ \rename{\varphi}{i}{j} }{ \varphi
-  \in \Phi }$.
-% define renaming over sets of indexed positions,
-For $M \subseteq \idxpos{I}$, the naming of $M$ from $i$ to $j$ is
-\[ \rename{M}{i}{j} = %
-  \setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M }
-  \union %
-  \setformer{ (j, p) }{ p \in \typos, (i, p) \in M } \]
-% define renaming over sets of sets of indexed variables,
-For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
-$\mathcal{M}$ from $i$ to $j$ is
-$\rename{\mathcal{M}}{i}{j} = \setformer{ \rename{M}{i}{j} }{ M \in
-  \mathcal{M} }$.
-% define renaming over relational refinement types
-The naming of each relational refinement type is
-$\rename{(\Phi, \mathcal{M})}{i}{j} = (\rename{\Phi}{i}{j}, \rename{
-  \mathcal{M}}{i}{j})$.
+For $\Phi : \idxrefpreds{I}$, the renaming of $\Phi$ from $i$ to $j$
+is denoted $\rename{\Phi}{i}{j} = %
+\setformer{ \rename{J} \mapsto \rename{\Phi(J)}{i}{j} }{ %
+  J \subseteq \idxpos{I}, J \in \domain(\Phi) }$.
   
-% update defn of prepending,
+% define prepending over type positions:
 For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
 $f$ prepended to $\varphi$ at $i$ is denoted
 $f \prepend{i} \varphi = \varphi[ \setformer{ (i, f \cons p) / (i,
   f)}{ p \in \typos } ]$.
+% define prepending over sets of indexed positions:
+For $J \subseteq \idxpos{I}$, the prepending of $f$ to $J$ at $i$ is
+denoted $f \prepend{i} J = %
+\setformer{ (k, p) }{ k \not= j \in J, p \in \typos, (k, p) \in J} %
+\union \setformer{ (i, f \cons p) }{ p \in \typos, (i, p) \in J}$.
 %  
-For $\Phi \subseteq \refpreds{ \idxpos{I} }$, $f$ prepended to $\Phi$
-at $i$ is
-$f \prepend{i} \Phi = \setformer{ f \prepend{i} \varphi }{ \varphi \in
-  \Phi }$.
-% define type position field prepended to mutual induction sets,
-For $M \subseteq \idxpos{I}$, $f$ prepended to $M$ at $i$ is
-$f \prepend{i} M = \setformer{ (i, f \cons p) }{ p \in \typos,
-  (i, p) \in M}$.
-%
-For $\mathcal{M} \subseteq \pset(\idxpos{I})$, $f$ prepended to
-$\mathcal{M}$ at $i$ is
-$f \prepend{i} \mathcal{M} = \setformer{ f \prepend{i} M }{ M
-  \in \mathcal{M} }$.
+For $\Phi : \idxrefpreds{ I}$, $f$ prepended to $\Phi$ at $i$ is
+$f \prepend{i} \Phi = %
+\setformer{ f \prepend{i} J }{ J \subseteq \idxpos{I}, J \in
+  \domain(\Phi)}$.
 
 % define function relational type operator,
 For index $i \in I$, $x \in \absvars$ %
-$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and %
-$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the function
-from $(\Phi, \mathcal{M})$ to $(\Phi', \mathcal{M}')$ over $x$ at $i$
-is
-$(\Phi, \mathcal{M}) \to_x^i (\Phi', \mathcal{M}') = (\Phi'',
-\mathcal{M}'')$, where
+$\Phi \subseteq \refpreds{ \idxpos{I} }$ and %
+$\mathcal{M} \in \equiv_{\lfpvars}$, the abstraction of
+$(\Phi, \mathcal{M})$ over $x$ at $i$ is
+$\to_x^i (\Phi, \mathcal{M}) = (\Phi', \mathcal{M})$, where
 % define refinement predicates,
 \begin{align*}
   \Phi'' = & \typaramfield \prepend{i} \rename{\Phi}{x}{i} \union %
@@ -265,6 +253,32 @@ $\domain(\mathcal{X}) \intersection \domain(M) = \emptyset$;
 %
 $\mathcal{X}$ is closed over $\mathcal{M} \subseteq \pset(\idxpos{I})$
 if $\mathcal{X}$ is closed for each $M \in \mathcal{M}$.
+
+% define renaming over sets of indexed positions,
+For $M \subseteq \idxpos{I}$, the naming of $M$ from $i$ to $j$ is
+\[ \rename{M}{i}{j} = %
+  \setformer{ (k, p) }{ k \not= i, p \in \typos, (k, p) \in M }
+  \union %
+  \setformer{ (j, p) }{ p \in \typos, (i, p) \in M } \]
+% define renaming over sets of sets of indexed variables,
+For $\mathcal{M} \subseteq \pset(\idxpos{I})$, the renaming of
+$\mathcal{M}$ from $i$ to $j$ is
+$\rename{\mathcal{M}}{i}{j} = \setformer{ \rename{M}{i}{j} }{ M \in
+  \mathcal{M} }$.
+% define renaming over relational refinement types
+The naming of each relational refinement type is
+$\rename{(\Phi, \mathcal{M})}{i}{j} = (\rename{\Phi}{i}{j}, \rename{
+  \mathcal{M}}{i}{j})$.
+
+% define type position field prepended to mutual induction sets,
+For $M \subseteq \idxpos{I}$, $f$ prepended to $M$ at $i$ is
+$f \prepend{i} M = \setformer{ (i, f \cons p) }{ p \in \typos,
+  (i, p) \in M}$.
+%
+For $\mathcal{M} \subseteq \pset(\idxpos{I})$, $f$ prepended to
+$\mathcal{M}$ at $i$ is
+$f \prepend{i} \mathcal{M} = \setformer{ f \prepend{i} M }{ M
+  \in \mathcal{M} }$.
 
 % define replacement:
 For $\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$ and %
