@@ -122,6 +122,12 @@ isPrim index rhort =
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
 freshType  = undefined
 
+fetchVarComponents :: Var -> Type -> [F.Var]
+fetchVarComponents = undefined
+
+fetchExprComponents :: ExprID -> Type -> [F.Var]
+fetchExprComponents = undefined
+
 getDAGNode :: MonadState Int m
            => [(Var, FlatType)] -> [Int] -> [FlatType]
            -> StateT (Map [Int] RHORTNode) m RHORTNode
@@ -234,52 +240,56 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
 
 
 -- given three rhrot, condition, oldContext, and newContext to build the subtype relations
-joinForContext :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> RHORT -> m ()
-joinForContext constraint condition oldContext newContext = do
+ctxtJoin :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> RHORT -> m ()
+ctxtJoin constraint condition oldContext newContext = do
   let leafNode = getAnLeafNode (getRHORT condition)
   let nonTerminal = safeGetNonterminal leafNode
-  constrain constraint [nonTerminal] [oldContext] newContext
+  constrain' constraint [nonTerminal] [oldContext] newContext
 
 getAnLeafNode :: RHORTNode -> RHORTNode
-getAnLeafNode node = 
+getAnLeafNode node =
   let edges = getEdges node
-    in if (null edges) then node
-         else getAnLeafNode (safeGet "there is no node in get an leftNode" 0 (getNodes (edges !! 0) )) 
+  in if null edges then node
+     else getAnLeafNode (safeGet "there is no node in get an leftNode" 0 (getNodes (head edges)))
+
 -- given three rhrot, abs,arg, and app to build the subtype relations
 -- when arg is prim
-join :: MonadWriter [Rule] m => Int -> F.Expr -> RHORT -> RHORT -> RHORT -> m ()
-join index constraint absRhort argRhort appRhort = do
+appJoin :: MonadWriter [Rule] m => Int -> F.Expr -> RHORT -> RHORT -> RHORT -> m ()
+appJoin index constraint absRhort argRhort appRhort = do
   let rightMostNode1 = getRightMostNode index (getRHORT absRhort)
   let rightMostNode2 = getRightMostNode index (getRHORT appRhort)
-  visitedSet <- witnessNode constraint [] [rightMostNode1,(getRHORT argRhort)] (getRHORT appRhort)
-  _ <- execStateT (witnessNode' constraint [] [(getRHORT absRhort),(getRHORT argRhort)] (getRHORT appRhort)) visitedSet
+  visitedSet <- witnessNode constraint [] [rightMostNode1, getRHORT argRhort] (getRHORT appRhort)
+  _ <- execStateT (witnessNode' constraint [] [getRHORT absRhort, getRHORT argRhort] (getRHORT appRhort)) visitedSet
   return ()
 
 --getRightMostNode respect the idnex
 getRightMostNode :: Int -> RHORTNode -> RHORTNode
-getRightMostNode index node = 
+getRightMostNode index node =
   let edges = getEdges node
       theEdge = safeFind [index] edges
       rightNode = safeGet "there is no right node" 1 (getNodes theEdge)
-    in (getRightMostNode index rightNode)
-  
+  in getRightMostNode index rightNode
+
+constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
+constrain e = constrain' e []
+
 -- given two HORT has same structure and the constraint, build the
 -- subtype relations between two HORT
-constrain :: MonadWriter [Rule] m => F.Expr -> [Nonterminal] -> [RHORT] -> RHORT -> m ()
-constrain constraint fixTerminals bodys headNode = do
+constrain' :: MonadWriter [Rule] m => F.Expr -> [Nonterminal] -> [RHORT] -> RHORT -> m ()
+constrain' constraint fixTerminals bodys headNode = do
   _ <- witnessNode constraint fixTerminals (map getRHORT bodys) (getRHORT headNode)
   return ()
 
 -- given two RHORT has same structure, build the subtype relations between two RHORT
 subtype :: MonadWriter [Rule] m => RHORT -> RHORT -> m ()
-subtype rhort1 rhort2 = constrain (F.LBool True) [] [rhort1] rhort2
+subtype rhort1 = constrain' (F.LBool True) [] [rhort1]
 
 -- given a set of HORTNode, get there predicates
 getPredicates :: [RHORTNode] -> [Nonterminal]
-getPredicates nodes = map safeGetNonterminal nodes
+getPredicates = map safeGetNonterminal
 
 safeGetNonterminal :: RHORTNode -> Nonterminal
-safeGetNonterminal node = case (getPredicate node) of
+safeGetNonterminal node = case getPredicate node of
   Just (_,nonterminal) -> nonterminal
   Nothing -> error "there is no nonterminal to get"
 
@@ -288,9 +298,9 @@ safeGetNonterminal node = case (getPredicate node) of
 buildConstrains :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rule
 buildConstrains constraint fixTerminals bodys headN = 
  let varsLists = map (\(Nonterminal _ vars)->vars) bodys
-     (Nonterminal _ headVars) = headN
-     equalExprs =F.manyAnd (map (buildEqExpr [] headVars) varsLists)
-   in (Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys))
+     Nonterminal _ headVars = headN
+     equalExprs = F.manyAnd (map (buildEqExpr [] headVars) varsLists)
+ in Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys)
 
 buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
 buildEqExpr fVars vars1 vars2 =
@@ -306,43 +316,43 @@ witnessNode constraint fixTerminals bodys node = execStateT (witnessNode' constr
 witnessNode' :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RHORTNode] -> RHORTNode -> StateT (Set RHORTNode) m ()
 witnessNode' constraint fixTerminals bodys node = do
   visitedNodes <- get
-  if (S.member node visitedNodes) then return ()
-    else do
-        put (S.insert node visitedNodes)
-        case getPredicate node of
-          Just (_, nonterminal) ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
-          Nothing -> do
-            let headEdges = getEdges node
-            let validEdgesList = map (\x -> sameEdges (map getEdges bodys) x) headEdges 
-            let leftNodesList = map getLeftNodes validEdgesList 
-            let rightNodesList = map getRightNodes validEdgesList
-            let leftNodes = getLeftNodes headEdges
-            let rightNodes = getRightNodes headEdges
-            _ <- zipWithM (witnessNode' constraint fixTerminals) leftNodesList leftNodes
-            _ <- zipWithM (witnessNode' constraint fixTerminals) rightNodesList rightNodes
-            return ()
+  if S.member node visitedNodes then return ()
+  else do
+    put (S.insert node visitedNodes)
+    case getPredicate node of
+      Just (_, nonterminal) ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
+      Nothing -> do
+        let headEdges = getEdges node
+        let validEdgesList = map (sameEdges (map getEdges bodys)) headEdges
+        let leftNodesList = map getLeftNodes validEdgesList 
+        let rightNodesList = map getRightNodes validEdgesList
+        let leftNodes = getLeftNodes headEdges
+        let rightNodes = getRightNodes headEdges
+        _ <- zipWithM (witnessNode' constraint fixTerminals) leftNodesList leftNodes
+        _ <- zipWithM (witnessNode' constraint fixTerminals) rightNodesList rightNodes
+        return ()
 
 -- get the left side nodes based on the pair of given edges
 getLeftNodes :: [RHORTEdge] -> [RHORTNode]
-getLeftNodes edges = map getLeftNode edges 
-    where getLeftNode edge = safeGet "there is no left node" 0 (getNodes edge)
+getLeftNodes = map getLeftNode
+  where getLeftNode edge = safeGet "there is no left node" 0 (getNodes edge)
 
 -- get the right side nodes based on the pair of given edges
 getRightNodes :: [RHORTEdge] -> [RHORTNode]
-getRightNodes edges = map getRightNode edges
-   where getRightNode edge = safeGet "there is no right node" 1 (getNodes edge)
+getRightNodes = map getRightNode
+  where getRightNode edge = safeGet "there is no right node" 1 (getNodes edge)
 
 -- given a list of lists of edges, and the same edges, choose the edges has the same indexs
 sameEdges :: [[RHORTEdge]] -> RHORTEdge -> [RHORTEdge]
-sameEdges listOfEdges headEdge = 
+sameEdges listOfEdges headEdge =
   let indexs = getIndexs headEdge
-    in (map (safeFind indexs) listOfEdges)
+  in map (safeFind indexs) listOfEdges
 
 safeFind :: [Int] -> [RHORTEdge] -> RHORTEdge
-safeFind indexs edges = 
-  let oneEdge = filter (\edge -> (getIndexs edge) == indexs) edges
-    in if (length oneEdge) == 0 then oneEdge !! 0
-      else error "there is not right number of edge match the index"
+safeFind indexs edges =
+  let oneEdge = filter (\edge -> getIndexs edge == indexs) edges
+  in if length oneEdge == 1 then head oneEdge
+  else error "there is not right number of edge match the index"
 
 
 -- | print an given the message is current list is less then the index

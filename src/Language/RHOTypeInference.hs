@@ -105,9 +105,13 @@ infer' t esSeq idx =
       arg = argumentOf (uniqueID a) idx
       val = valueOf (uniqueID a)
   in case e of
-    EVar _ -> do
+    EVar x -> do
       t' <- infer es
-      t' <: t
+
+      let vcs = fetchVarComponents x (expressionType a)
+      let ecs = fetchExprComponents (uniqueID a) (expressionType a)
+      let f = F.manyAnd (zipWith F.mkEql vcs ecs)
+      constrain f [t'] t
 
     EApp applicand argument -> do
       st <- infer (Seq.insertAt idx applicand es)
@@ -116,7 +120,7 @@ infer' t esSeq idx =
       then do
         let sv = val idx s
         let sta = arg st
-        subtype [F.expr|@sta = @sv|] [s] st t
+        appJoin idx [F.expr|@sta = @sv|] s st t
       else do
         -- When the argument is not primitive, all we can do is indicate that
         -- the output type of the applicand should be a subtype of the full
@@ -133,11 +137,11 @@ infer' t esSeq idx =
         let ta = arg t
         let vx = F.Var (getVar x) (view F.varType ta)
         t' <- infer (Seq.insertAt idx e' es)
-        subtype [F.expr|@ta = @vx|] [] t' t
+        constrain [F.expr|@ta = @vx|] [t'] t
       else do
         ctx <- ask
         ctx' <- mkCtxt (Seq.insertAt idx e' es)
-        subtype (F.LBool True) [s] ctx ctx'
+        ctxtJoin (F.LBool True) s ctx ctx'
         t' <- local (const ctx') (infer (Seq.insertAt idx e' es))
         t' <: t''
 
@@ -152,8 +156,8 @@ infer' t esSeq idx =
       ctx'  <- mkCtxt (Seq.insertAt idx consequent es)
       ctx'' <- mkCtxt (Seq.insertAt idx alternative es)
 
-      subtype [F.expr|@b|] [r] ctx ctx'
-      subtype [F.expr|not @b|] [r] ctx ctx''
+      ctxtJoin [F.expr|@b|] r ctx ctx'
+      ctxtJoin [F.expr|not @b|] r ctx ctx''
 
       t'  <- local (const ctx')  (infer (Seq.insertAt idx consequent es))
       t'' <- local (const ctx'') (infer (Seq.insertAt idx alternative es))
@@ -182,21 +186,21 @@ infer' t esSeq idx =
             And   -> [F.expr|@tv = (@rv && @sv)|]
             Or    -> [F.expr|@tv = (@rv || @sv)|]
             Cons  -> undefined
-      constrain f s t
+      constrain f [s] t
 
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
       t' <- infer es
       let tv = valueOf (uniqueID a) idx t
       let i' = F.LInt $ toInteger i
-      subtype [F.expr|@tv = $i'|] [] t' t
+      constrain [F.expr|@tv = $i'|] [t'] t
 
     -- For boolean constants, we just bind the value to the constant.
     EBool b -> do
       t' <- infer es
       let tv = valueOf (uniqueID a) idx t
       let b' = F.LBool b
-      subtype [F.expr|@tv = $b'|] [] t' t
+      constrain [F.expr|@tv = $b'|] [t'] t
 
     ENil -> undefined
     EMatch{} -> undefined
@@ -205,4 +209,4 @@ infer' t esSeq idx =
 
 -- | The first type is a subtype of the second with no additional constraints.
 (<:) :: MonadWriter [Rule] m => RHORT -> RHORT -> m ()
-(<:) = subtype (F.LBool True) []
+(<:) = subtype
