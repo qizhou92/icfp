@@ -22,9 +22,10 @@ import qualified Formula as F
 data RHORT = RHORT
   -- getRHORT returns the DAG the represent the relational high order refinement type
   {  getRHORT :: RHORTNode
+  -- getAvailable returns the all basic types for the vecotr of available
+   , getAvailable ::  [Type]
   -- getBasicTypes returns all basic types for the vector of expressions
-  , getBasicTypes :: [Type]
-  , getVarLength :: Int
+   , getBasicTypes :: [Type]
   } deriving (Show, Read, Eq, Ord, Data)
 
 -- RHORTNode is the node of the RHORT DAG, get predicate returns the nonterminal if it
@@ -115,6 +116,8 @@ isPrim :: Int -> RHORT -> Bool
 isPrim index rhort =
   let t = safeGet "is Prim get index over the length of list" index (getBasicTypes rhort)
   in isPrimitiveType t
+
+-- TODO
 
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
 freshType  = undefined
@@ -215,8 +218,8 @@ split :: Int -> RHORT -> (RHORT,RHORT)
 split index rhort = case safeGet "split is over index" index (getBasicTypes rhort) of
   TArr t1 t2 -> 
     let dagNode = getRHORT rhort
-        varLength = getVarLength rhort
-        validEdges = filter (\(RHORTEdge indexs _) -> indexs == [varLength + index]) (getEdges dagNode)
+        availableVar = getAvailable rhort
+        validEdges = filter (\(RHORTEdge indexs _) -> indexs == [index]) (getEdges dagNode)
         nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
         leftNode = safeGet "split should find left node" 0 nodes
         rightNode = safeGet "split should find right node" 1 nodes
@@ -224,49 +227,70 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
         (leftTypes,rightTypes) = L.splitAt (index+1) types
         newLeftTypes = L.init leftTypes ++ [t1] ++ rightTypes
         newRightTypes = L.init leftTypes ++ [t2] ++ rightTypes
-        leftRHORT = RHORT leftNode newLeftTypes varLength
-        rightRHORT = RHORT rightNode newRightTypes varLength
+        leftRHORT = RHORT leftNode availableVar newLeftTypes 
+        rightRHORT = RHORT rightNode availableVar newRightTypes
     in (leftRHORT, rightRHORT)
   _ ->  error "not a supported type (split in RHORT)"
 
 
-subtype :: MonadWriter [Rule] m
-        => F.Expr -> [RHORT] -> RHORT -> RHORT -> m ()
-subtype = undefined
+-- given three rhrot, condition, oldContext, and newContext to build the subtype relations
+joinForContext :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> RHORT -> m ()
+joinForContext constraint condition oldContext newContext = do
+  let leafNode = getAnLeafNode (getRHORT condition)
+  let nonTerminal = safeGetNonterminal leafNode
+  constrain constraint [nonTerminal] [oldContext] newContext
 
-constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
-constrain = undefined
+getAnLeafNode :: RHORTNode -> RHORTNode
+getAnLeafNode node = 
+  let edges = getEdges node
+    in if (null edges) then node
+         else getAnLeafNode (safeGet "there is no node in get an leftNode" 0 (getNodes (edges !! 0) )) 
+-- given three rhrot, abs,arg, and app to build the subtype relations
+-- when arg is prim
+join :: MonadWriter [Rule] m => Int -> F.Expr -> RHORT -> RHORT -> RHORT -> m ()
+join index constraint absRhort argRhort appRhort = do
+  let rightMostNode1 = getRightMostNode index (getRHORT absRhort)
+  let rightMostNode2 = getRightMostNode index (getRHORT appRhort)
+  visitedSet <- witnessNode constraint [] [rightMostNode1,(getRHORT argRhort)] (getRHORT appRhort)
+  _ <- execStateT (witnessNode' constraint [] [(getRHORT absRhort),(getRHORT argRhort)] (getRHORT appRhort)) visitedSet
+  return ()
 
-subtype' :: MonadWriter [Rule] m => [(Int,Int)] -> F.Expr -> [F.Var] -> RHORTNode -> RHORTNode -> m ()
-subtype' indexPairs constraint fVars node1 node2 = case getPredicate node1 of
-  Just (_, nonterminal) -> tell [buildConstrains constraint fVars nonterminal (getPredicate node2)]
-  Nothing -> do
-    let edges1 = getEdges node1
-    let edges2 = getEdges node2 
-    let allPossibleEdgePairs = concatMap (\x -> (map (\y -> (x,y)) edges1)) edges2
-    let sameEdgePairs = filter (\(edge1,edge2) -> sameIndex indexPairs (getIndexs edge1) (getIndexs edge2)) allPossibleEdgePairs
-    let (leftNodes1,leftNodes2) = getLeftNodes sameEdgePairs
-    let (rightNodes1,rightNodes2) = getRightNodes sameEdgePairs
-    _ <- zipWithM (subtype' indexPairs constraint fVars) leftNodes2 leftNodes1
-    _ <- zipWithM (subtype' indexPairs constraint fVars) rightNodes1 rightNodes2
-    return ()
+--getRightMostNode respect the idnex
+getRightMostNode :: Int -> RHORTNode -> RHORTNode
+getRightMostNode index node = 
+  let edges = getEdges node
+      theEdge = safeFind [index] edges
+      rightNode = safeGet "there is no right node" 1 (getNodes theEdge)
+    in (getRightMostNode index rightNode)
+  
+-- given two HORT has same structure and the constraint, build the
+-- subtype relations between two HORT
+constrain :: MonadWriter [Rule] m => F.Expr -> [Nonterminal] -> [RHORT] -> RHORT -> m ()
+constrain constraint fixTerminals bodys headNode = do
+  _ <- witnessNode constraint fixTerminals (map getRHORT bodys) (getRHORT headNode)
+  return ()
 
-getLeftNodes :: [(RHORTEdge,RHORTEdge)] -> ([RHORTNode],[RHORTNode])
-getLeftNodes = foldr (\(edge1,edge2) (list1,list2) -> (getLeftNode edge1:list1, getLeftNode edge2:list2)) ([],[])
-  where getLeftNode edge = safeGet "there is no right node in getLeftNodes" 0 (getNodes edge)
+-- given two RHORT has same structure, build the subtype relations between two RHORT
+subtype :: MonadWriter [Rule] m => RHORT -> RHORT -> m ()
+subtype rhort1 rhort2 = constrain (F.LBool True) [] [rhort1] rhort2
 
-getRightNodes :: [(RHORTEdge,RHORTEdge)] -> ([RHORTNode],[RHORTNode])
-getRightNodes = foldr (\(edge1,edge2) (list1,list2) ->(getRightNode edge1:list1, getRightNode edge2:list2)) ([],[])
-   where getRightNode edge = safeGet "there is no right node in getLeftNodes" 1 (getNodes edge)
+-- given a set of HORTNode, get there predicates
+getPredicates :: [RHORTNode] -> [Nonterminal]
+getPredicates nodes = map safeGetNonterminal nodes
 
-buildConstrains :: F.Expr -> [F.Var] -> Nonterminal -> Maybe ([Int],Nonterminal) -> Rule
-buildConstrains constraint fVars nonterminal1 predicate = case predicate of
-  Just (_,nonterminal2) -> do
-                             let (Nonterminal _ vars1) = nonterminal1
-                             let (Nonterminal _ vars2) = nonterminal2
-                             let equalExpr = buildEqExpr fVars vars1 vars2
-                             Rule L nonterminal1 (equalExpr `F.mkAnd` constraint) [nonterminal2]
-  Nothing -> error "the second hort does not match the first hort"
+safeGetNonterminal :: RHORTNode -> Nonterminal
+safeGetNonterminal node = case (getPredicate node) of
+  Just (_,nonterminal) -> nonterminal
+  Nothing -> error "there is no nonterminal to get"
+
+
+-- TODO:  needs to get varlist not set to equall
+buildConstrains :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rule
+buildConstrains constraint fixTerminals bodys headN = 
+ let varsLists = map (\(Nonterminal _ vars)->vars) bodys
+     (Nonterminal _ headVars) = headN
+     equalExprs =F.manyAnd (map (buildEqExpr [] headVars) varsLists)
+   in (Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys))
 
 buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
 buildEqExpr fVars vars1 vars2 =
@@ -274,38 +298,52 @@ buildEqExpr fVars vars1 vars2 =
       list2 = filter (`notElem` fVars) vars2
   in F.manyAnd (zipWith (\x y -> [F.expr|@x = @y|]) list1 list2)
 
--- given two same HORT, get the list of corresponding pairs of nonterminals
-samePositionPair :: [(Int,Int)] -> RHORT -> RHORT -> [(Nonterminal,Nonterminal)]
-samePositionPair indexPairs rhort1 rhort2 =
-  let allNonterminalsIn1 = getAllNonterminals rhort1
-      allNonterminalsIn2 = getAllNonterminals rhort2
-      allPossiblePairs = concatMap (\x -> (map (\y -> (x, y)) allNonterminalsIn2)) allNonterminalsIn1
-      samePairs = filter (\((index1, _), (index2, _)) -> sameIndex indexPairs index1 index2) allPossiblePairs
-  in map (\((_, n1), (_, n2)) -> (n1, n2)) samePairs
 
-sameIndex :: [(Int,Int)] -> [Int] -> [Int] -> Bool
-sameIndex pairsIndex index1 index2 =
-  let samePairs = takeWhile (\(t1, t2) -> safeGet "sameIndex is wrong" t1 index1 == safeGet "sameIndex is wrong" t2 index2) pairsIndex
-  in length samePairs == length pairsIndex
+-- given the witnessNode position to build the corresponding constrains and return the visited Node
+witnessNode :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RHORTNode] -> RHORTNode -> m (Set RHORTNode) 
+witnessNode constraint fixTerminals bodys node = execStateT (witnessNode' constraint fixTerminals bodys node) S.empty
 
-getAllNonterminals :: RHORT -> [([Int],Nonterminal)]
-getAllNonterminals rhort =
-  let allNodes = S.toList (execState (collectAllNodes (getRHORT rhort)) S.empty)
-  in concatMap getNonterminal allNodes
-  where
-    getNonterminal node = case getPredicate node of
-      Just a -> [a]
-      Nothing -> []
-
-collectAllNodes :: RHORTNode -> State (S.Set RHORTNode) ()
-collectAllNodes node = do
+witnessNode' :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RHORTNode] -> RHORTNode -> StateT (Set RHORTNode) m ()
+witnessNode' constraint fixTerminals bodys node = do
   visitedNodes <- get
-  if S.member node visitedNodes
-  then return ()
-  else do
-    put (S.insert node visitedNodes) 
-    _ <- mapM collectAllNodes (concatMap getNodes (getEdges node))
-    return ()
+  if (S.member node visitedNodes) then return ()
+    else do
+        put (S.insert node visitedNodes)
+        case getPredicate node of
+          Just (_, nonterminal) ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
+          Nothing -> do
+            let headEdges = getEdges node
+            let validEdgesList = map (\x -> sameEdges (map getEdges bodys) x) headEdges 
+            let leftNodesList = map getLeftNodes validEdgesList 
+            let rightNodesList = map getRightNodes validEdgesList
+            let leftNodes = getLeftNodes headEdges
+            let rightNodes = getRightNodes headEdges
+            _ <- zipWithM (witnessNode' constraint fixTerminals) leftNodesList leftNodes
+            _ <- zipWithM (witnessNode' constraint fixTerminals) rightNodesList rightNodes
+            return ()
+
+-- get the left side nodes based on the pair of given edges
+getLeftNodes :: [RHORTEdge] -> [RHORTNode]
+getLeftNodes edges = map getLeftNode edges 
+    where getLeftNode edge = safeGet "there is no left node" 0 (getNodes edge)
+
+-- get the right side nodes based on the pair of given edges
+getRightNodes :: [RHORTEdge] -> [RHORTNode]
+getRightNodes edges = map getRightNode edges
+   where getRightNode edge = safeGet "there is no right node" 1 (getNodes edge)
+
+-- given a list of lists of edges, and the same edges, choose the edges has the same indexs
+sameEdges :: [[RHORTEdge]] -> RHORTEdge -> [RHORTEdge]
+sameEdges listOfEdges headEdge = 
+  let indexs = getIndexs headEdge
+    in (map (safeFind indexs) listOfEdges)
+
+safeFind :: [Int] -> [RHORTEdge] -> RHORTEdge
+safeFind indexs edges = 
+  let oneEdge = filter (\edge -> (getIndexs edge) == indexs) edges
+    in if (length oneEdge) == 0 then oneEdge !! 0
+      else error "there is not right number of edge match the index"
+
 
 -- | print an given the message is current list is less then the index
 safeGet :: String -> Int -> [a] -> a

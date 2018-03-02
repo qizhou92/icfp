@@ -182,7 +182,7 @@ infer' t esSeq idx =
             And   -> [F.expr|@tv = (@rv && @sv)|]
             Or    -> [F.expr|@tv = (@rv || @sv)|]
             Cons  -> undefined
-      constrain f [s] t
+      constrain f s t
 
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
