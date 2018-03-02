@@ -275,9 +275,10 @@ appJoin index constraint absRhort argRhort appRhort = do
 getRightMostNode :: Int -> RHORTNode -> RHORTNode
 getRightMostNode index node =
   let edges = getEdges node
-      theEdge = safeFind [index] edges
-      rightNode = safeGet "there is no right node" 1 (getNodes theEdge)
-  in getRightMostNode index rightNode
+      oneEdge = filter (\edge -> getIndexs edge == [index]) edges
+  in if length oneEdge == 0 then node
+       else if length oneEdge == 1 then getRightMostNode index (safeGet "there is no right node" 1 (getNodes (oneEdge !! 0)))
+          else error "there is error in get rightMostNode"
 
 constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
 constrain e = constrain' e []
