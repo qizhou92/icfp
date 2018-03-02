@@ -60,9 +60,16 @@ positions indexed by $I$ (i.e., the space
 $\refpreds{ \idxpos{I} }$).
 %
 The space of \emph{relational refinement type representations} over
-$I$ is denoted
-$\reltypes{I} = \pset(\refpreds{ \idxpos{I} }) \times
-\pset(\idxpos{I})$.
+$I$ is %
+\textbf{(1)} a map
+$\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ such that
+for each $J \subseteq \idxpos{I}$ bound in $\Phi$,
+$\Phi(J) \in \refpreds{J}$;
+%
+\textbf{(2)} an equivalence relation over $\lfpvars$.
+%
+The space of relational refinement types over $I$ is denoted
+$\reltypes{I}$.
 
 % declare typing relation:
 A key contribution of our work is the definition of a typing relation
@@ -79,8 +86,8 @@ The typing relation is defined in \autoref{sec:rel-type-sys}.
 % walkthrough the operations over types:
 \subsubsection{Operations and relations over relational refinement types}
 \label{sec:rel-type-ops}
-The relational typing relation is defined using operators over
-relational types.
+Our relational type system is defined using operators over relational
+types.
 %
 The operators include generalizations of the type constructors and
 operators over structural types, generalizations of type operators
@@ -90,7 +97,7 @@ over features unique to relational types.
 \paragraph{Atomic relational refinement types}
 %
 An atomic relational refinement type directly defines a set of
-relational refinement predicates and a mutual induction set.
+relational refinement predicates and an equivalence relation over
 % 
 Let the space of singleton type positions over type-variables be
 denoted $[ \lfpvars ]$.
