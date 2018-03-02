@@ -63,16 +63,18 @@ $\Phi$, $\Phi(J) \in \refpreds{J}$.
 
 % define relational refinement types:
 For indices $I$ and $X \subseteq \lfpvars$, an \emph{relational
-  refinement type representation} over $I$ and $X$ is a triple
-$(\Phi, P, E)$, where
+  refinement type representation} over $I$ and $X$ is a tuple
+$(\Phi, N, P, E)$, where
 % indexed refinement predicates
 \textbf{(1)}
 $\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
 refinement predicates;
 %
-\textbf{(2)} $P : X \to I \times \typos$;
+\textbf{(2)} $N : X \to I$;
 %
-\textbf{(3)} $E \subseteq X \times X$ is an equivalence relation over
+\textbf{(2)} $P : X \to \typos$;
+%
+\textbf{(3)} $E \subseteq X \times X$ an equivalence relation over
 $X$.
 %
 The space of relational refinement types over $I$ and $X$ is denoted
@@ -104,19 +106,18 @@ over features unique to relational types.
 \paragraph{Atomic relational refinement types}
 %
 % introduce map
-For indices $I$, $X \subseteq \lfpvars$ and %
-indexed refinement predicates $\Phi : I \to \refpreds{I}$, let
-$\Phi' : \idxpos{I} \partto \refpreds{I}$ be such that for each
-$i \in I$,
-$\Phi'(i, \epsilon) = \Phi(i)[ \setformer{ (i, \epsilon) / i }{ i \in
-  I } ]$.
+For indices $I$ and $X \subseteq \lfpvars$, let
+$f : \refpreds{I} \to \refpreds{\idxpos{I} }$ be such that for each
+$\varphi \in \refpreds{I}$,
+$f(I) = \setformer{ (i, \epsilon) / i }{ i \in I }$.
 %
-For $P : X \to I$, let $P' : X \to I \times \typos$ be such that for
-each $i \in I$, $P'(i) = P(i) \times \epsilon$.
+Let $g : I \to I \times \typos$ be the one-to-one function such that
+for each $i \in I$, $g(i) = (i, \epsilon)$.
 %
-Then for each $\mathcal{M} \subseteq X$, the \emph{atomic} relational
-type defined by $\Phi$, $P$, and $\mathcal{M}$ is
-$(\Phi', P', \mathcal{M})$.
+Then for each $N : X \to I$ and $\mathcal{M} \in \equiv_X$, the
+\emph{atomic} relational type defined by $\Phi$, $P$, and
+$\mathcal{M}$ is
+$(\inv{g} \compose \Phi \compose f, N, P \compose g, \mathcal{M})$.
 
 \paragraph{Relational refinement function types}
 %
@@ -125,21 +126,20 @@ abstraction variable $x$ is a relational refinement type in which the
 type at $i$ is a function from the type at $i$ in $\tau$ to the type
 at $i$ in $\tau'$, and all references to $x$ in $\tau'$ are replaced
 with references to components of $\tau$.
-% define index renaming over formulas,
-For $\varphi \in \refpreds{ \idxpos{I} }$, the \emph{renaming} of
-$\varphi$ from $i$ to $j$ is
-$\rename{\varphi}{i}{j} = \varphi[ \setformer{(j, p) / (i, p)}{ p \in
-  \typos} ]$.
-% define index renaming over sets of indexed positions:
-For $J \subseteq \idxpos{I}$, the renaming of $J$ from $i$ to $j$ is
-$\rename{J}{i}{j} = \setformer{(k, p)}{ k \not= j \in J, p \in \typos,
-  (k, p) \in J} \union \setformer{ (j, p) }{ p \in \typos, (i, p) \in
-  J}$.
-% define renaming over sets of predicates,
-For $\Phi : \idxrefpreds{I}$, the renaming of $\Phi$ from $i$ to $j$
-is denoted $\rename{\Phi}{i}{j} = %
-\setformer{ \rename{J} \mapsto \rename{\Phi(J)}{i}{j} }{ %
-  J \subseteq \idxpos{I}, J \in \domain(\Phi) }$.
+% define renaming over indices:
+For indices $I$ and $i, j \in I$, let
+$\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
+% define index renaming over sets of indexed type positions,
+Let $\renamefn{i}{j}' : \pset(\idxpos{I}) \to \pset(\idxpos{I})$ be
+such that for all $J \subseteq \idxpos{I}$,
+$\renamefn{i}{j}'(J) = \setformer{(k, p)}{ k \not= j \in J, p \in
+  \typos, (k, p) \in J} \union \setformer{ (j, p) }{ p \in \typos, (i,
+  p) \in J}$.
+% define index renaming over relational refinement predicates,
+For indices $I$, let $\renamefn{i}{j}'' : \idxpos{I} \to \idxpos{I}$
+be such that for each $\varphi \in \refpreds{ \idxpos{I} }$,
+$\renamefn{i}{j}'(\varphi) = \varphi[ \setformer{(j, p) / (i, p)}{ p
+  \in \typos} ]$.
   
 % define prepending over type positions:
 For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
@@ -159,20 +159,14 @@ $f \prepend{i} \Phi = %
 
 % define function relational type operator,
 For index $i \in I$, $x \in \absvars$ %
-$\Phi \subseteq \refpreds{ \idxpos{I} }$ and %
-$\mathcal{M} \in \equiv_{\lfpvars}$, the abstraction of
-$(\Phi, \mathcal{M})$ over $x$ at $i$ is
-$\to_x^i (\Phi, \mathcal{M}) = (\Phi', \mathcal{M})$, where
-% define refinement predicates,
-\begin{align*}
-  \Phi'' = & \typaramfield \prepend{i} \rename{\Phi}{x}{i} \union %
-  \rename{ \typaramfield \prepend{x} \tyresfield \prepend{i} \Phi' }{ x }{ i
-  } \\
-  % define mutual induction sets,
-  \mathcal{M}'' = & \typaramfield \prepend{i} \rename{ \mathcal{M} }{ x }{ i } \union %
-                    \rename{ \typaramfield \prepend{x} \tyresfield \prepend{i}
-                    \mathcal{M}' }{ x }{ i }
-\end{align*}
+$\Phi : \idxrefpreds{I}$, $N : X \to I$, $P : X \to \idxpos{I}$, and
+$E \subseteq X \times X$, the abstraction of $(\Phi, N, P, E)$ over
+$x$ at $i$ is
+$\to_x^i (\Phi, N, P, E) = (\renamefn{j}{i} \compose \Phi'
+\compose..., %
+N \compose \renamefn{x}{i}, %
+P \compose \prependfn{N}{P}{x}{\typaramfield} \compose
+\prependfn{N}{P}{i}{\tyresfield}, E)$.
 
 % define relational sum:
 \paragraph{Relational refinement sum types} The relational sum of
