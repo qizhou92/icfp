@@ -10,9 +10,11 @@ import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Set (Set)
 import qualified Data.Set as S
+import Data.Foldable (toList)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import qualified Data.List as L
+import Control.Lens
 
 import           Language.Types
 import           Grammar
@@ -117,16 +119,20 @@ isPrim index rhort =
   let t = safeGet "is Prim get index over the length of list" index (getBasicTypes rhort)
   in isPrimitiveType t
 
--- TODO
-
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
-freshType  = undefined
+freshType  varTypesSet types uniqueIds = do
+  let flattenTypeList = map (\(v,t)->(v,(getFlatType t))) (S.toList varTypesSet)
+  let exprTypeList = map getFlatType (toList types)
+  rhortNode <- evalStateT (getDAGNode flattenTypeList (toList uniqueIds) exprTypeList) M.empty
+  let basicTypes = toList types
+  let varTypes = map (\(_,t) -> t) (S.toList varTypesSet)
+  return (RHORT rhortNode varTypes basicTypes)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
-fetchVarComponents = undefined
+fetchVarComponents v t = mkVarArgs v (getFlatType t)
 
 fetchExprComponents :: ExprID -> Type -> [F.Var]
-fetchExprComponents = undefined
+fetchExprComponents i t= mkExprArgs i (getFlatType t)
 
 getDAGNode :: MonadState Int m
            => [(Var, FlatType)] -> [Int] -> [FlatType]
@@ -299,7 +305,7 @@ buildConstrains :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rul
 buildConstrains constraint fixTerminals bodys headN = 
  let varsLists = map (\(Nonterminal _ vars)->vars) bodys
      Nonterminal _ headVars = headN
-     equalExprs = F.manyAnd (map (buildEqExpr [] headVars) varsLists)
+     equalExprs = F.manyAnd (map (buildEqExpr (toListOf F.vars constraint) headVars) varsLists)
  in Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys)
 
 buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
