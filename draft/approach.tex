@@ -230,32 +230,27 @@ The substitution of relational refinement type $\tau'$ in $\tau$ at
 $\mathcal{X} \subseteq \lfpvars$ expands $\tau$ to replace occurrences
 of $\mathcal{X}$ with $\tau'$.
 %
-For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, %
-$N : \mathcal{X} \to I$, %
-$P : \mathcal{X} \to \typos$, %
-$\mathcal{M} \in \equiv_{\mathcal{X}}$, and %
-$\mathcal{Y} \in \mathcal{C}_{\mathcal{M}}$, the
+For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, and %
+$m : I \partto \typos$, the \emph{prefixing} of
+$\Phi \in \idxrefpreds{ I }$ with $m$ is
+$m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0} \Phi$, where $i_k$
+range over $\domain(m)$.
 %
-the indexed type positions defined by $N$, $P$, and $\mathcal{Y}$, is
-$m_{\mathcal{Y}}^{N, P} = \inv{ \restrict{N}{ \mathcal{Y} } } \compose
-P$.
-
-\BH{prefixing of indexed refinement predicate with map}
-
-\BH{prefixing of var -> position map}
+The prefixing of each $P : \mathcal{X} \to \typos$ with $m$ is
+$m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0} P$, where $i_k$
+range over the $\domain(m)$.
 
 % define the substitution of relational types:
-For indicies $I$, $\mathcal{X} \subseteq \lfpvars$, %
-$\Phi, \Phi' \in \idxrefpreds{ \mathcal{X} }$, %
+For $\Phi' \in \idxrefpreds{ \mathcal{X} }$, %
 $N : \mathcal{X} \to I$, %
 $P, P' : \mathcal{X} \to \typos$, %
 $\mathcal{M} \in \equiv_{\mathcal{X}}$, and %
 $\mathcal{Y} \in \mathcal{C}_{\mathcal{M}}$, the substitution of
-$(\Phi, N, P, \mathcal{M})$ in $(\Phi', N, P', \mathcal{M})$ is %
+$(\Phi', N, P', \mathcal{M})$ in $(\Phi, N, P, \mathcal{M})$ is %
 $\replace{ (\Phi, N, P, \mathcal{M}) }{ \mathcal{Y} }{ (\Phi', N, P',
-  \mathcal{M}) } = (\Phi \union \Phi'', N, P \union P'',
-\mathcal{M})$, where for $m = m_{\mathcal{Y}}^{N, P}$,
-$\Phi'' = m \concat \Phi'$ and $P'' = m \concat P'$.
+  \mathcal{M}) } = (\Phi \union m \concat \Phi', N, P \union m \concat
+P', \mathcal{M})$, where
+$m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
 
 
 % define refinement relation over types
