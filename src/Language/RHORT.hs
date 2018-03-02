@@ -51,15 +51,12 @@ data RHORTEdge = RHORTEdge
 valueOf :: Int -> Int -> RHORT -> F.Var
 valueOf uniqueId index rhort = 
   let t = safeGet "valueOf given the index over the basic length" index (getBasicTypes rhort)
-  in case t of
-    TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, lastIndex t)
-    TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, lastIndex t)
-    _ -> error "this type is not supported (argumentOf in RHORT)"
-  where
-    lastIndex t =
-      let flattedTypes = flattenType t
-          prims = filter isPrimitiveType flattedTypes
-      in length prims
+      prims = filter isPrimitiveType (flattenType t)
+      lastT = L.last prims
+    in case lastT of
+          TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, (length prims))
+          TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, (length prims))
+          _ -> error "this type is not supported (argumentOf in RHORT)"
 
 -- | Given a relational higher order refinement type, the unique id of the expression and the corresponding index, 
 -- fetch the formula (variable) which represents the first argument of the expression and its type is primitive type.
