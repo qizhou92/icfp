@@ -246,6 +246,40 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
   _ ->  error "not a supported type (split in RHORT)"
 
 
+-- given three rhrot, newVars, oldContext, and newContext to build the subtype relations
+addNewVarIntoContext :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORT -> RHORT -> RHORT -> m ()
+addNewVarIntoContext newVar uniqueId index varHort oldContext newContext = do
+  let samePairNodes = getAllSamePairNodes index (getRHORT varHort) (getRHORT newContext)
+  let rightPairs =map (\(varHort,newContext)-> (getAnLeafNode varHort,newContext) ) samePairNodes
+  let types = getOrderOfFlattenType (getFlatType ((getBasicTypes varHort) !! index) )
+  _ <- zipWithM (buildConstrainForAddNewVar newVar uniqueId index (getRHORT oldContext)) types rightPairs
+  return () 
+
+buildConstrainForAddNewVar :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORTNode -> FlatType  -> (RHORTNode,RHORTNode)  -> m ()
+buildConstrainForAddNewVar var uniqueId index oldContext t (newVar,newContext) = do
+  let vcs = mkVarArgs var t
+  let ecs = mkExprArgs uniqueId t
+  let f = F.manyAnd (zipWith (\v1 v2 -> [F.expr|@v1 = @v2|]) vcs ecs)
+  _ <- witnessNode f [(safeGetNonterminal newVar)] [oldContext] newContext
+  return ()
+
+getAllSamePairNodes :: Int -> RHORTNode -> RHORTNode -> [(RHORTNode,RHORTNode)]
+getAllSamePairNodes index varNode newContextNode = 
+  let validEdges = findEdges [index] (getEdges varNode)
+    in if (null validEdges) then [(varNode,newContextNode)]
+      else 
+        let correspondingEdge = safeFind [0] (getEdges newContextNode)
+            theEdge = validEdges !! 0
+            leftNode1 = safeGet "there is no left node" 0 (getNodes theEdge)
+            leftNode2 = safeGet "there is no left node" 0 (getNodes correspondingEdge)
+            rightNode1 = safeGet "there is no right node" 1 (getNodes theEdge)
+            rightNode2 = safeGet "there is no right node" 1 (getNodes correspondingEdge)
+          in (getAllSamePairNodes index leftNode1 leftNode2) ++ (getAllSamePairNodes index rightNode1 rightNode2)
+
+getOrderOfFlattenType :: FlatType -> [FlatType]
+getOrderOfFlattenType t@(FlatType _ _) = [t]
+getOrderOfFlattenType (FlatTypeArr _ t1 t2) = (getOrderOfFlattenType t1) ++ (getOrderOfFlattenType t2)
+
 -- given three rhrot, condition, oldContext, and newContext to build the subtype relations
 ctxtJoin :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> RHORT -> m ()
 ctxtJoin constraint condition oldContext newContext = do
@@ -266,7 +300,7 @@ appJoin index constraint absRhort argRhort appRhort = do
   let rightMostNode1 = getRightMostNode index (getRHORT absRhort)
   let rightMostNode2 = getRightMostNode index (getRHORT appRhort)
   visitedSet <- witnessNode constraint [] [rightMostNode1, getRHORT argRhort] rightMostNode2
-  -- _ <- execStateT (witnessNode' constraint [] [getRHORT absRhort, getRHORT argRhort] (getRHORT appRhort)) visitedSet
+  _ <- execStateT (witnessNode' constraint [] [getRHORT absRhort, getRHORT argRhort] (getRHORT appRhort)) visitedSet
   return ()
 
 --getRightMostNode respect the idnex
@@ -365,6 +399,8 @@ safeFind indexs edges =
   else error "there is not right number of edge match the index"
 
 
+findEdges :: [Int] -> [RHORTEdge] -> [RHORTEdge]
+findEdges indexs edges = filter (\edge -> getIndexs edge == indexs) edges
 -- | print an given the message is current list is less then the index
 safeGet :: String -> Int -> [a] -> a
 safeGet message index list =
