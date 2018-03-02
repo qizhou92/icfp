@@ -74,6 +74,7 @@ infer es = do
     Nothing -> do
       -- Construct a fresh type.
       t <- mkRHORT es
+      typeMap %= M.insert idxs t
 
       -- Now perform inference on every index in the expression sequence.
       mapM_ (infer' t es) [0..Seq.length es-1]
@@ -123,7 +124,9 @@ infer' t esSeq idx =
       then do
         let sv = valueOf (uniqueID $ attribute argument) idx s
         let sta = argumentOf (uniqueID $ attribute applicand) idx st
-        appJoin idx [F.expr|@sta = @sv|] st s t
+        let stv = valueOf (uniqueID $ attribute applicand) idx st
+        let tv = valueOf (uniqueID a) idx t
+        appJoin idx [F.expr|@sta = @sv && @stv = @tv|] st s t
       else do
         -- When the argument is not primitive, all we can do is indicate that
         -- the output type of the applicand should be a subtype of the full

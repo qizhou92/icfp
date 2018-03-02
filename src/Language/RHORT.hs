@@ -235,7 +235,7 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
     let dagNode = getRHORT rhort
         availableVar = getAvailable rhort
         varLength = length (availableVar)
-        validEdges = filter (\(RHORTEdge indexs _) -> indexs == [index++varLength]) (getEdges dagNode)
+        validEdges = filter (\(RHORTEdge indexs _) -> indexs == [index+varLength]) (getEdges dagNode)
         nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
         leftNode = safeGet "split should find left node" 0 nodes
         rightNode = safeGet "split should find right node" 1 nodes
