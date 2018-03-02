@@ -22,6 +22,8 @@ import           Grammar
 import           Formula (runVocabT, MonadVocab, fresh, fetch)
 import qualified Formula as F
 
+import Data.Text.Prettyprint.Doc
+
 type Result = Either F.Model (Map Symbol F.Expr)
 
 solveCE :: F.Expr -> Seq CoreExpr -> IO Result
@@ -44,12 +46,11 @@ loop :: ( MonadIO m
         , MonadState ExprID m
         , MonadVocab m) => F.Expr -> Seq IExpr -> m Result
 loop q es = do
-  liftIO $ mapM_ (putStrLn . showTreeCtxt) es
-  liftIO $ putStrLn "\n\n"
   es' <- traverse unwindFix es
-  liftIO $ mapM_ (putStrLn . showTreeCtxt) es'
   (cs, g) <- boundedInference es'
+  liftIO $ print (pretty g)
   plot "basic" g
+  liftIO $ print "here"
   interpolate g q >>= \case
     Left e -> pure (Left e)
     Right m -> do
@@ -60,7 +61,7 @@ loop q es = do
 
 boundedInference :: MonadIO m => Seq IExpr -> m (Clones, Grammar)
 boundedInference es =
-  case runInfer (infer es) of
+  liftIO (runInfer (infer es)) >>= \case
     Left err -> error (show err)
     Right (_, st, rs) ->
       -- TODO the state has enough information to build the clones set, it

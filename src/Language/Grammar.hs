@@ -63,3 +63,5 @@ simpleRename :: String
 simpleRename =
   "(\\y.(\\x. x+1)y + (\\x. x+2)y)0"
 
+simple :: String
+simple = "(\\x. x + 3)5"

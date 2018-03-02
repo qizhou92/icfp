@@ -20,6 +20,8 @@ import           Language.Types
 import           Grammar
 import qualified Formula as F
 
+import Debug.Trace
+
 -- RHORT is relatioanl high order refinement type
 data RHORT = RHORT
   -- getRHORT returns the DAG the represent the relational high order refinement type
@@ -203,6 +205,7 @@ constructEdge varPairs exprIds exprTypes edgeIndexs= do
 mkPredicate :: MonadState Int m => [FlatType] -> [Var] -> [Int] -> m Nonterminal
 mkPredicate flatTypes varName uniqueIds = do
   idNumber <- get
+  traceM (show idNumber ++ " " ++ show varName)
   let (aVarTypes,exprTypes) = L.splitAt (length varName) flatTypes
   let varListArg = concat (zipWith mkVarArgs varName aVarTypes)
   let exprListArg = concat (zipWith mkExprArgs uniqueIds exprTypes)
@@ -264,8 +267,8 @@ appJoin :: MonadWriter [Rule] m => Int -> F.Expr -> RHORT -> RHORT -> RHORT -> m
 appJoin index constraint absRhort argRhort appRhort = do
   let rightMostNode1 = getRightMostNode index (getRHORT absRhort)
   let rightMostNode2 = getRightMostNode index (getRHORT appRhort)
-  visitedSet <- witnessNode constraint [] [rightMostNode1, getRHORT argRhort] (getRHORT appRhort)
-  _ <- execStateT (witnessNode' constraint [] [getRHORT absRhort, getRHORT argRhort] (getRHORT appRhort)) visitedSet
+  visitedSet <- witnessNode constraint [] [rightMostNode1, getRHORT argRhort] rightMostNode2
+  -- _ <- execStateT (witnessNode' constraint [] [getRHORT absRhort, getRHORT argRhort] (getRHORT appRhort)) visitedSet
   return ()
 
 --getRightMostNode respect the idnex

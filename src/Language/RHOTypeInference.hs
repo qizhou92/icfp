@@ -22,6 +22,8 @@ import           Language.RHORT
 import           Grammar
 import qualified Formula as F
 
+import Data.Text.Prettyprint.Doc
+
 data Annotation = Annotation
   { fixID :: FixID
   , uniqueID :: ExprID
@@ -49,21 +51,21 @@ type Infer a =
   ReaderT Ctxt
     (StateT InferenceState
     (ExceptT InferenceError
-    (Writer [Rule]))) a
+    (WriterT [Rule] IO))) a
 
-runInfer :: Infer a -> Either InferenceError (a, InferenceState, [Rule])
-runInfer ac =
-  let (res, rs) =
-        runWriter (runExceptT (runStateT (do
+runInfer :: Infer a -> IO (Either InferenceError (a, InferenceState, [Rule]))
+runInfer ac = do
+  (res, rs) <-
+        runWriterT (runExceptT (runStateT (do
           ctx0 <- zoom typeCounter (freshType mempty mempty mempty)
           runReaderT ac ctx0)
           (InferenceState 0 M.empty M.empty)))
-  in fmap (\(a, st) -> (a, st, rs)) res
+  pure (fmap (\(a, st) -> (a, st, rs)) res)
 
 infer :: Seq IExpr -> Infer RHORT
 infer Empty = ask
-infer es =
-  let idxs = fmap (uniqueID . attribute) es in
+infer es = do
+  let idxs = fmap (uniqueID . attribute) es
   M.lookup idxs <$> use typeMap >>= \case
     -- We've already performed type judgements on this expression index,
     -- so just propogate the type rather than doing it again.
@@ -100,11 +102,13 @@ infer' :: RHORT -> Seq IExpr -> Int -> Infer ()
 infer' t esSeq idx =
   -- Indexed type judgements are a dispatch over the form of the expression
   -- at the index.
-  let (Fix (Ann a e)) = Seq.index esSeq idx
+  let (node@(Fix (Ann a e))) = Seq.index esSeq idx
       es = Seq.deleteAt idx esSeq
       arg = argumentOf (uniqueID a) idx
       val = valueOf (uniqueID a)
-  in case e of
+  in do
+  liftIO $ (print . pretty) (forget node)
+  case e of
     EVar x -> do
       t' <- infer es
 
@@ -120,7 +124,7 @@ infer' t esSeq idx =
       then do
         let sv = val idx s
         let sta = arg st
-        appJoin idx [F.expr|@sta = @sv|] s st t
+        appJoin idx [F.expr|@sta = @sv|] st s t
       else do
         -- When the argument is not primitive, all we can do is indicate that
         -- the output type of the applicand should be a subtype of the full
@@ -191,14 +195,14 @@ infer' t esSeq idx =
     -- For integer constants, we just bind the value to the constant.
     EInt i -> do
       t' <- infer es
-      let tv = valueOf (uniqueID a) idx t
+      let tv = val idx t
       let i' = F.LInt $ toInteger i
       constrain [F.expr|@tv = $i'|] [t'] t
 
     -- For boolean constants, we just bind the value to the constant.
     EBool b -> do
       t' <- infer es
-      let tv = valueOf (uniqueID a) idx t
+      let tv = val idx t
       let b' = F.LBool b
       constrain [F.expr|@tv = $b'|] [t'] t
 
