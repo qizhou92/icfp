@@ -140,6 +140,8 @@ For indices $I$, let $\renamefn{i}{j}'' : \idxpos{I} \to \idxpos{I}$
 be such that for each $\varphi \in \refpreds{ \idxpos{I} }$,
 $\renamefn{i}{j}'(\varphi) = \varphi[ \setformer{(j, p) / (i, p)}{ p
   \in \typos} ]$.
+%
+\BH{define renaming over types}
   
 % define prepending over type positions:
 For $\varphi \in \refpreds{ \idxpos{I} }$, and $f \in \typosfields$,
@@ -156,17 +158,15 @@ For $\Phi : \idxrefpreds{ I}$, $f$ prepended to $\Phi$ at $i$ is
 $f \prepend{i} \Phi = %
 \setformer{ f \prepend{i} J }{ J \subseteq \idxpos{I}, J \in
   \domain(\Phi)}$.
+%
+\BH{define prepending over types}
 
 % define function relational type operator,
-For index $i \in I$, $x \in \absvars$ %
-$\Phi : \idxrefpreds{I}$, $N : X \to I$, $P : X \to \idxpos{I}$, and
-$E \subseteq X \times X$, the abstraction of $(\Phi, N, P, E)$ over
-$x$ at $i$ is
-$\to_x^i (\Phi, N, P, E) = (\renamefn{j}{i} \compose \Phi'
-\compose..., %
-N \compose \renamefn{x}{i}, %
-P \compose \prependfn{N}{P}{x}{\typaramfield} \compose
-\prependfn{N}{P}{i}{\tyresfield}, E)$.
+For index $i \in I$, $X \subseteq \lfpvars$,
+$\tau \in \reltypes{I, X}$, $i \in I$, and $x \in \absvars$, the
+abstraction of $\tau$ over $x$ at $i$ is
+$\to_x^i \tau = \rename{ (\typaramfield \prepend{x} \tyresfield
+  \prepend{i} \tau)}{x}{i}$.
 
 % define relational sum:
 \paragraph{Relational refinement sum types} The relational sum of
@@ -174,13 +174,26 @@ types $\tau$ and $\tau'$ from indices $i$ and $j$ to index $k$ is a
 relational refinement type in which the type at $k$ is the sum of
 types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
-I.e., for space of indices $I$, index $i \in I$,
-$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$, and
-$\mathcal{M}, \mathcal{M}' \subseteq \pset(\idxpos{I})$, the sum of
-$(\Phi, \mathcal{M})$ and $(\Phi', \mathcal{M}')$ at $i$ is
-$(\Phi, \mathcal{M}) +^i (\Phi', \mathcal{M}') = (\tyleftsum
-\prepend{i} \Phi \union \tyrightsum \prepend{i} \Phi, \tyleftsum
-\prepend{i} \mathcal{M} \union \tyrightsum \prepend{i} \mathcal{M}')$.
+I.e., for space of indices $I$,
+$\mathcal{X}, \mathcal{X}' \subseteq \lfpvars$, index $i \in I$,
+$\Phi, \Phi' \subseteq \refpreds{ \idxpos{I} }$,
+% lfp vars to indices,
+$N : \mathcal{X} \to I$, $N' : \mathcal{X}' \to I$,
+% lfp vars to positions,
+$P : \mathcal{X} \to \typos$, $P' : \mathcal{X}' \to \typos$, 
+% equivalence classes:
+$\mathcal{M} \in \equiv_{\mathcal{X}}$, and
+$\mathcal{M}' \in \equiv_{\mathcal{X}'}$, the sum of
+$(\Phi, N, P, \mathcal{M})$ and $(\Phi', N', P', \mathcal{M}')$ at $i$
+is $(\Phi, N, P, \mathcal{M}) +^i (\Phi', N', P', \mathcal{M}') = %
+% build disjoint union of extended indexed relational preds,
+(\tyleftsum \prepend{i} \Phi \union \tyrightsum \prepend{i} \Phi',
+% build disjoint union of variable map,
+N \union N',
+% build disjoint union of extended position maps,
+\tyleftsum \prepend{i} P \union \tyrightsum \prepend{i} P',
+% equivalence classes: build union:
+\mathcal{M} \union \mathcal{M}')$.
 
 % define relational product:
 \paragraph{Relational refinement product types}
@@ -188,15 +201,11 @@ The indexed product of relational type $\tau$ from indices $i$ and $j$
 to index $k$ is a relational type in which the type at $k$ is the
 product of types at $i$ and $j$.
 %
-I.e., for space of indices $I$, indices $i, j, k \in I$,
-$\Phi \subseteq \refpreds{ \idxpos{I} }$, and
-$\mathcal{M} \subseteq \pset(\idxpos{I})$, the relational product of
-$(\Phi, \mathcal{M})$ from $i$ and $j$ to $k$, is
-$\times_{i, j}^k (\Phi, \mathcal{M}) = %
-(\rename{ (\tyleftprod \prepend{i} \tyrightprod \prepend{j} \Phi) }{i,
-  j}{ k }, %
-\rename{ (\tyleftprod \prepend{i} \tyrightprod \prepend{j}
-  \mathcal{M}) }{i, j}{ k })$.
+I.e., for indices $I$, $X \subseteq \lfpvars$,
+$\tau \in \reltypes{I, X}$, and indices $i, j, k \in I$, the
+relational product of $\tau$ from $i$ and $j$ to $k$ is
+$\times_{i, j}^k \tau = \rename{ (\tyleftprod \prepend{i} \tyrightprod
+  \prepend{j} \tau)}{ i, j }{k}$.
 
 % define lfp:
 \paragraph{Relational refinement least-fixed points}
@@ -204,17 +213,16 @@ The indexed least-fixed point of relational type $\tau$ at index $i$
 defines a relational type over unbounded unfoldings of the relational
 type at $i$.
 %
-I.e., for space of indices $I$ and index $i \in I$, $X \in \lfpvars$,
-$\Phi \subseteq \refpreds{ \idxpos{I} }$, and
-$\mathcal{M} \subseteq \pset(\idxpos{I})$, the least-fixed point of
-$(\Phi, \mathcal{M})$ at $i$ is $\mu_i X. (\Phi, \mathcal{M}) = %
-(\mu_X \prepend{i} \Phi, \mu_X \prepend{i} \mathcal{M})$.
+I.e., for space of indices $I$, $\mathcal{X} \subseteq \lfpvars$,
+$\tau \in \reltypes{I, \mathcal{X}}$ and $X \in \mathcal{X}$, the
+least-fixed point of $\tau$ over $X$ at $i$ is $\mu_i X. \tau = %
+\mu_X \prepend{i} \tau$.
 %
-For $\mathcal{X} : I \partto \lfpvars$, the \emph{mutual} least fixed
-point of $\tau$ over $\mathcal{X}$ is
-$\mu_\mathcal{X} \tau = \mu_{i_0} \mathcal{X}(i_0). \mu_{i_1}
-\mathcal{X}(i_1) \ldots \tau$ for all indices
-$i_k \in \domain(\mathcal{X})$.
+For $\mathcal{Y} : I \partto \mathcal{X}$, the \emph{mutual} least
+fixed point of $\tau$ over $\mathcal{Y}$ is
+$\mu_\mathcal{Y} \tau = \mu_{i_0} \mathcal{Y}(i_0). \mu_{i_1}
+\mathcal{Y}(i_1) \ldots \tau$ for all indices
+$i_k \in \domain(\mathcal{Y})$.
 
 \paragraph{Substitution of relational refinement types}
 %
@@ -305,126 +313,6 @@ is $(\Phi \union \Phi'', \mathcal{M} \union \mathcal{M}'')$, where
                     \domain(M) = \domain(M') }
 \end{align*}
 
-\paragraph{Structual types lifted to relational refinement types}
-
-% inference rules that define relational type of a structural type:
-\begin{figure}
-  \centering
-  \begin{gather*}
-    \inference[ ATOMS ]{ }{ %
-      A \reltyof \tau_A } 
-    % structural functions:
-    \inference[ FN ]{ 
-      % get relational types of parameter, result
-      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ \sigma, \sigma' } %
-      \reltyof \tau }{
-      % construct relational function type
-      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to^p \tau' } 
-    % structural products:
-    \inference[ PROD ]{
-      % get relational types of components,
-      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ %
-        \sigma_l, \sigma_r } \reltyof \tau }{
-      % construct relational product type
-      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \reltyof %
-      \times_{ \leftchild \cons p, \rightchild \cons p }^{p} \tau } \\
-    % structural sum:
-    \inference[ SUM ]{
-      % get relational type of lhs,
-      \upd{ T }{ p }{ \sigma_l } \reltyof \tau_l &
-      % get relational type of rhs,
-      \upd{ T }{ p }{ \sigma_r } \reltyof \tau_r }{
-      % combine results using relational sum
-      \upd{ T }{ p }{ \sigma_l + \sigma_r } \reltyof \tau_l +^p \tau_r } 
-    % structural lfp:
-    \inference[ LFP ]{
-      % get relational type of nested type,
-      \upd{ T }{ p }{ \sigma } \reltyof \tau }{
-      % operate using the lfp operator
-      \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
-  \end{gather*}
-  \caption{Inductive inference rules that define the relational type
-    of a structural type.
-    %
-    \BH{define metavariables used in rules} }
-  \label{fig:structure-rel}
-\end{figure}
-
-% overview:
-Each structural type $\sigma$ corresponds to potentially-many
-relational refinement types.
-%
-For $\tau \in \reltypes{\sigma}$, we denote the fact that $\sigma$
-corresponds to $\tau$ as $\sigma \reltyof \tau$.
-
-% define judgment:
-\autoref{fig:structurel-rel} contains the finite set of inductive
-inference rules that define the correspondence from structural types
-to relational refinement types.
-%
-The inference rules define a correspondence relation over maps from
-type positions to structural types to relational refinement types.
-%
-For $\sigma \in T$ and $T: \typos \partto \types$ and
-$\tau \in \reltypes{ \sigma }$, the fact that $T$ corresponds to
-$\tau$ is denoted $T \reltyof \tau$.
-%
-The fact that $\sigma$ corresponds to $\tau$ is denoted
-$\sigma \reltyof \tau \equiv [ \epsilon \mapsto \sigma ] \reltyof
-\tau$.
-
-% walkthrough rules: atomic maps:
-The correspondence from type-position maps to relational refinement
-types is defined by the rules in \autoref{fig:structure-rel} as
-follows.
-%
-Rule~ATOMS defines the correspondence for maps to atomic structural
-types.
-% define atomic maps:
-For $A : \typos \partto \types$, if each binding in $A$ is to an
-atomic structural type, then $A$ itself is \emph{atomic}.
-% define relational refinement type:
-Each atomic type $A$ corresponds to the relational refinement type
-$\tau_A = (\Phi, \mathcal{M})$, defined as follows.
-% define indexed refinement predicate:
-Let $P \in \typos$ be the maximal set of type positions such that for
-each $p \in P$, $A(p) = \basety$;
-%
-then $\Phi = P \mapsto \true$.
-%
-$\mathcal{M}$ is an arbitrary mutual-induction set.
-%
-\BH{bkg: require that refinement theory has true/top formula}
-
-% functions:
-Rule~FN establishes that for $T : \typos \partto \types$,
-$p \in \typos$, $\sigma, \sigma_{\alpha}, \sigma_{\nu} \in \types$,
-and $\tau_{\alpha}, \tau_{\nu} \in \reltypes{ \sigma }$, if %
-\textbf{(1)} $\tau_{\alpha}$ is a relational refinement type of $T$
-extended to bind $p$ to $\sigma_{\alpha}$ and %
-\textbf{(2)} $\tau_{\nu}$ is a relational refinement type of $T$
-extended to bind $p$ to $\sigma_{\nu}$, then
-$\tau_{\alpha} \to_{x}^p \tau_{\nu}$ is a relational refinement type
-of $T$ extended to bind $p$ to $\sigma \to \sigma$.
-% products: sums
-Rule~PROD establishes that if $T$ extended to bind
-$\leftchild \cons p$ and $\rightchild \cons p$ to structural types
-$\sigma_l$ and $\sigma_r$ respectively has relational refinement type
-$\tau$, then $T$ extended to bind $p$ to $\sigma_l \times \sigma_r$
-has relational refinement type
-$\times_{ \leftchild \cons p, \rightchild \cons p}^{p} \tau$.
-% sums:
-Rule~SUM establishes that if %
-\textbf{(1)} $T$ extended to bind $p$ to $\sigma_l$ has relational
-refinement type $\tau_l$ and $T$ extended to bind $p$ to $\sigma_r$
-has relational refinement type $\tau_r$, then $T$ extended to bind $p$
-to $\sigma_l + \sigma_r$ has relational refinement type
-$\tau_l +^{p} \tau_r$.
-%
-Rule~LFP establishes that if %
-$T$ extended to bind $p$ to $\sigma$ has relational type $\tau$, then
-$T$ extended to bind $p$ to $\tylfp_p X. \tau$ has relational type
-$\mu_p X. \tau$.
 
 % define refinement relation over types
 \paragraph{Joining relational refinement types}
@@ -832,16 +720,135 @@ $\tau$.
 Rule~CONST establishes that if $E$ have type $\tau$, then $E$ extended
 to bind $p$ to constant $c$ have type $\tau$ refined to equate $p$
 with $c$.
-% variables:
-Rule~VAR establishes that if $E$ have type $\tau$, then $E$ extended
-to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
-with $a$.
 % op:
 Rule~OP establishes that if $E$ extended to bind positions
 $\leftchild \cons p$ and $\rightchild \cons p$ to expressions $e_0$
 and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
 $e_0 \oplus e_1$ have type $\tau$ refined to set $p$ to
 $\leftchild \cons p \oplus \rightchild \cons p$.
+
+% inference rules that define relational type of a structural type:
+\begin{figure}
+  \centering
+  \begin{gather*}
+    \inference[ ATOMS ]{ }{ %
+      A \reltyof \tau_A } 
+    % structural functions:
+    \inference[ FN ]{ 
+      % get relational types of parameter, result
+      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ \sigma, \sigma' } %
+      \reltyof \tau }{
+      % construct relational function type
+      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to^p \tau' } 
+    % structural products:
+    \inference[ PROD ]{
+      % get relational types of components,
+      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ %
+        \sigma_l, \sigma_r } \reltyof \tau }{
+      % construct relational product type
+      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \reltyof %
+      \times_{ \leftchild \cons p, \rightchild \cons p }^{p} \tau } \\
+    % structural sum:
+    \inference[ SUM ]{
+      % get relational type of lhs,
+      \upd{ T }{ p }{ \sigma_l } \reltyof \tau_l &
+      % get relational type of rhs,
+      \upd{ T }{ p }{ \sigma_r } \reltyof \tau_r }{
+      % combine results using relational sum
+      \upd{ T }{ p }{ \sigma_l + \sigma_r } \reltyof \tau_l +^p \tau_r } 
+    % structural lfp:
+    \inference[ LFP ]{
+      % get relational type of nested type,
+      \upd{ T }{ p }{ \sigma } \reltyof \tau }{
+      % operate using the lfp operator
+      \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
+  \end{gather*}
+  \caption{Inductive inference rules that define the relational type
+    of a structural type.
+    %
+    \BH{define metavariables used in rules} }
+  \label{fig:structure-rel}
+\end{figure}
+
+% variables:
+Rule~VAR establishes that if $E$ have type $\tau$, then $E$ extended
+to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
+with $a$.
+% overview:
+Each structural type $\sigma$ corresponds to potentially-many
+relational refinement types.
+%
+For $\tau \in \reltypes{\sigma}$, we denote the fact that $\sigma$
+corresponds to $\tau$ as $\sigma \reltyof \tau$.
+
+% define judgment:
+\autoref{fig:structurel-rel} contains the finite set of inductive
+inference rules that define the correspondence from structural types
+to relational refinement types.
+%
+The inference rules define a correspondence relation over maps from
+type positions to structural types to relational refinement types.
+%
+For $\sigma \in T$ and $T: \typos \partto \types$ and
+$\tau \in \reltypes{ \sigma }$, the fact that $T$ corresponds to
+$\tau$ is denoted $T \reltyof \tau$.
+%
+The fact that $\sigma$ corresponds to $\tau$ is denoted
+$\sigma \reltyof \tau \equiv [ \epsilon \mapsto \sigma ] \reltyof
+\tau$.
+
+% walkthrough rules: atomic maps:
+The correspondence from type-position maps to relational refinement
+types is defined by the rules in \autoref{fig:structure-rel} as
+follows.
+%
+Rule~ATOMS defines the correspondence for maps to atomic structural
+types.
+% define atomic maps:
+For $A : \typos \partto \types$, if each binding in $A$ is to an
+atomic structural type, then $A$ itself is \emph{atomic}.
+% define relational refinement type:
+Each atomic type $A$ corresponds to the relational refinement type
+$\tau_A = (\Phi, \mathcal{M})$, defined as follows.
+% define indexed refinement predicate:
+Let $P \in \typos$ be the maximal set of type positions such that for
+each $p \in P$, $A(p) = \basety$;
+%
+then $\Phi = P \mapsto \true$.
+%
+$\mathcal{M}$ is an arbitrary mutual-induction set.
+%
+\BH{bkg: require that refinement theory has true/top formula}
+
+% functions:
+Rule~FN establishes that for $T : \typos \partto \types$,
+$p \in \typos$, $\sigma, \sigma_{\alpha}, \sigma_{\nu} \in \types$,
+and $\tau_{\alpha}, \tau_{\nu} \in \reltypes{ \sigma }$, if %
+\textbf{(1)} $\tau_{\alpha}$ is a relational refinement type of $T$
+extended to bind $p$ to $\sigma_{\alpha}$ and %
+\textbf{(2)} $\tau_{\nu}$ is a relational refinement type of $T$
+extended to bind $p$ to $\sigma_{\nu}$, then
+$\tau_{\alpha} \to_{x}^p \tau_{\nu}$ is a relational refinement type
+of $T$ extended to bind $p$ to $\sigma \to \sigma$.
+% products: sums
+Rule~PROD establishes that if $T$ extended to bind
+$\leftchild \cons p$ and $\rightchild \cons p$ to structural types
+$\sigma_l$ and $\sigma_r$ respectively has relational refinement type
+$\tau$, then $T$ extended to bind $p$ to $\sigma_l \times \sigma_r$
+has relational refinement type
+$\times_{ \leftchild \cons p, \rightchild \cons p}^{p} \tau$.
+% sums:
+Rule~SUM establishes that if %
+\textbf{(1)} $T$ extended to bind $p$ to $\sigma_l$ has relational
+refinement type $\tau_l$ and $T$ extended to bind $p$ to $\sigma_r$
+has relational refinement type $\tau_r$, then $T$ extended to bind $p$
+to $\sigma_l + \sigma_r$ has relational refinement type
+$\tau_l +^{p} \tau_r$.
+%
+Rule~LFP establishes that if %
+$T$ extended to bind $p$ to $\sigma$ has relational type $\tau$, then
+$T$ extended to bind $p$ to $\tylfp_p X. \tau$ has relational type
+$\mu_p X. \tau$.
 
 % abs:
 Rules~ABS and APP are defined using the relational function type
