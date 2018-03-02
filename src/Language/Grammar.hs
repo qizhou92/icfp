@@ -69,3 +69,6 @@ simpleRename =
 
 simple :: String
 simple = "(\\x. x + 3)5"
+
+simpleIf :: String
+simpleIf = "(\\x. if (x < 5) 0 x)"

@@ -147,7 +147,7 @@ infer' t esSeq idx =
       else do
         ctx <- ask
         ctx' <- mkCtxt (Seq.insertAt idx e' es)
-        ctxtJoin (F.LBool True) s ctx ctx'
+        addNewVarIntoContext x (uniqueID a) idx s ctx ctx'
         t' <- local (const ctx') (infer (Seq.insertAt idx e' es))
         t' <: t''
 
