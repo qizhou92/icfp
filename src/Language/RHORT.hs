@@ -246,7 +246,8 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
   _ ->  error "not a supported type (split in RHORT)"
 
 
--- given three rhrot, newVars, oldContext, and newContext to build the subtype relations
+-- given the new var, the id of this lambada expression, the index of this expression
+-- the varHort, oldContext Hort, and newContext Hort to build the subtype relations
 addNewVarIntoContext :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORT -> RHORT -> RHORT -> m ()
 addNewVarIntoContext newVar uniqueId index varHort oldContext newContext = do
   let samePairNodes = getAllSamePairNodes index (getRHORT varHort) (getRHORT newContext)
