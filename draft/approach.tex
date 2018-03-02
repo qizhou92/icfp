@@ -537,42 +537,43 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     \inference[ UNIT ]{
       % get types for remainder,
       \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ \unit } : \tau } 
+      \Gamma \judges \upd{ E }{ p }{ \unit } : \tau \Join \tau_1^p } 
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
       \Gamma \judges E : \tau }{ %
       \Gamma \judges \upd{ E }{ p }{ c } : %
-      \tau \joinctr p \equiv c } \\
-    % vars:
-    \inference[ VAR ]{ %
-      \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ a } : %
-      \tau \joinctr p \equiv a } 
+      \tau \Join \tau^p_c } \\
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
       \Gamma \judges %
-      E[ \leftchild \cons p \mapsto e_0, %
-        \rightchild \cons p \mapsto e_1 ] : \tau }{ %
+      \upd{ E }{ \leftchild \cons p, \rightchild \cons p }{ %
+        e_0, e_1 } : \tau }{ %
       \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
-      \tau \joinctr %
-      p \equiv \leftchild \cons p \oplus \rightchild \cons p } \\
+      \tau \Join \tau_{\leftchild \cons p \oplus \rightchild \cons
+        p}^p }
+    % vars:
+    \inference[ VAR ]{ %
+      \Gamma \judges E : \tau }{ %
+      \Gamma \judges \upd{ E }{ p }{ a } : %
+      \tau \Join \tau^p_{a : \tau} } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
       \Gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
       \Gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
-      \gamma \to_p \tau } 
+      \gamma \to^p_x \tau } 
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
-      \Gamma \judges \upd{E}{p}{e_0} : \tau \to_p \tau' \\
+      \Gamma \judges \upd{E}{p}{e_0} : \to^p_x \tau \\
       % get type of argument that is the parameter type,
-      \Gamma \judges \upd{E}{p}{e_1} : \tau }{
+      \Gamma \judges \upd{E}{p}{e_1} : \tau' }{
       % return the result type
-      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau' } \\
+      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : %
+      \tau \Join \rename{ \tau' }{ p }{ x } } \\
     % pairing:
     \inference[ PAIR ]{
       % get type of both expressions,
@@ -586,12 +587,12 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     \inference[ LET ]{
       % get type of bound expression,
       \Gamma \judges \epsilon \mapsto e_0 : %
-      \times_{x, y}^{\epsilon} \gamma' \\
+      \times_{x, y}^{\epsilon} \tau \\
       % get type of result under context that binds to x and y,
-      \Gamma' \judges \upd{ E }{ p }{ e_1 } : \tau }{
+      \Gamma' \judges \upd{ E }{ p }{ e_1 } : \tau' }{
       % then complete let expression has type
       \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
-      \tau } \\
+      \tau \Join \tau' } \\
     % left injection:
     \inference[ LEFT ]{
       % get type of the nested exp,
@@ -610,34 +611,29 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     \inference[ MATCH ]{
       % get type of matched exp,
       \Gamma \judges \epsilon \mapsto e_0 : %
-      \gamma' +^\epsilon \gamma'' \\
+      \tau_0^l +^\epsilon \tau_0^r \\
       % get type of left branch under context that binds x to left op,
-      \Gamma, \rename{ \gamma' }{ \epsilon }{ x } \judges %
-      \upd{E}{p}{e_1} : \tau \\
+      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau_1 & %
+      \rename{ \tau_0^l }{ \epsilon }{ x } \Join \tau_1 \subtype \tau' \\
       % get type of right branch under context that binds y to right op,
-      \Gamma, \rename{ \gamma'' }{ \epsilon }{ y } \judges %
-      \upd{E}{p}{e_2} : \tau }{
+      \Gamma \judges \upd{ E }{ p }{ e_2 } : \tau_2 & %
+      \rename{ \tau_0^r }{ \epsilon }{ y } \Join \tau_2 \subtype \tau' }{
       % then type of match exp is type of both branches,
       \Gamma \judges %
-      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau } 
+      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau' }
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
-      \upd{ \Gamma }{ f }{ \gamma' }, \gamma \judges %
+      \upd{ \Gamma }{ f }{ \sigma } \judges %
       \upd{ E }{ p }{ e } : \tau \\
-      % constrain that tau' with result renamed to f is subtype of tau,
-      \replace{ \tau }{ p }{ f } \subtype \gamma' }{ %
+      % constrain that tau implies the result is fixpoint variable,
+      \iseq{p}{f}{\sigma}(\tau') & \tau \subtype \tau' }{ %
       \Gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
-    % fixpoint variable:
-    \inference[ FVAR ]{ }{
-      % the empty map of expressions has relational type true
-      \Gamma \judges p \mapsto f : %
-      \Gamma(f) \joinctr p \equiv f} 
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
       \Gamma \judges E : %
-      \replace{ \tau }{ \mathcal{X} }{ \tau }_p }{ 
+      \replace{ \tau }{ \mathcal{X} }{ \tau } }{ 
       % then expressions have folded type
       \Gamma \judges E : \mu_{\mathcal{X}}. \tau } 
     % subtype:
