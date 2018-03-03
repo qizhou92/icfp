@@ -743,7 +743,6 @@ $\lnot (\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
 \epsilon)$.
 
 % abs:
-\BH{update from here}
 Rules~ABS and APP are defined using the relational function type
 operator.
 %
@@ -833,81 +832,81 @@ then $E$ has type $\tau'$.
 \begin{figure}
   \centering
   \begin{gather*}
-    \inference[ ATOMS ]{ }{ A \reltyof \tau_A } 
+    \inference[ ATOMS ]{ }{ \iseq{i}{j}(A, ...) } 
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
-      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ \sigma, \sigma' } %
-      \reltyof \tau }{
+      \iseq{i}{j}(\upd{ T }{ %
+        \leftchild \cons p, \rightchild \cons p }{ %
+        \sigma_{\alpha}, \sigma_{\nu} }, %
+      \tau) }{
       % construct relational function type
-      \upd{ T }{ p }{ \sigma \to \sigma' } \reltyof \tau \to^p \tau' } 
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_{\alpha} \to \sigma_{\nu} }, %
+      \to^i_x \to^j_x \tau) } 
     % structural products:
     \inference[ PROD ]{
       % get relational types of components,
-      \upd{ T }{ \leftchild \cons p, \rightchild \cons p }{ %
-        \sigma_l, \sigma_r } \reltyof \tau }{
+      \iseq{i}{j}(\upd{ T }{ %
+        \leftchild \cons p, \rightchild \cons p }{ %
+        \sigma_l, \sigma_r }, %
+      \tau) }{
       % construct relational product type
-      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \reltyof %
-      \times_{ \leftchild \cons p, \rightchild \cons p }^{p} \tau } \\
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l \times \sigma_r }, %
+      \times_{ \leftchild \cons i, \rightchild \cons i }^{i} %
+      \times_{ \leftchild \cons j, \rightchild \cons j }^{j} \tau) } \\
     % structural sum:
     \inference[ SUM ]{
       % get relational type of lhs,
-      \upd{ T }{ p }{ \sigma_l } \reltyof \tau_l &
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l }, \tau_l) &
       % get relational type of rhs,
-      \upd{ T }{ p }{ \sigma_r } \reltyof \tau_r }{
-      % combine results using relational sum
-      \upd{ T }{ p }{ \sigma_l + \sigma_r } \reltyof \tau_l +^p \tau_r } 
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_r }, \tau_r) }{
+      % combine results mutual sum:
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l + \sigma_r }, %
+      \tau_l +^{i, j} \tau_r) } 
     % structural lfp:
     \inference[ LFP ]{
       % get relational type of nested type,
-      \upd{ T }{ p }{ \sigma } \reltyof \tau }{
+      \iseq{i}{j}(\upd{ T }{ p }{ \sigma },  \tau) }{
       % operate using the lfp operator
-      \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
+      \iseq{i}{j}(\upd{ T }{ p }{ \mu X. \sigma }, %
+      \mu_j X. \mu_i X. \tau) }
   \end{gather*}
-  \caption{Inductive inference rules that define the property of a relational refinement type that it constrains equivalence over indicies $i$ and $j$.
+  \caption{Inductive inference rules that define relational refinement type that it constrain equivalence over types of structure $\sigma$ at indicies $i$ and $j$.
     %
     \BH{define metavariables used in rules} }
   \label{fig:eq-test}
 \end{figure}
 
-% variables:
-Rule~VAR establishes that if $E$ have type $\tau$, then $E$ extended
-to bind $p$ to variable $a$ have type $\tau$ refined to equate $p$
-with $a$.
-% overview:
-Each structural type $\sigma$ corresponds to potentially-many
-relational refinement types.
-%
-For $\tau \in \reltypes{\sigma}$, we denote the fact that $\sigma$
-corresponds to $\tau$ as $\sigma \reltyof \tau$.
-
 % define judgment:
-\autoref{fig:structure-rel} contains a set of inductive inference
-rules that define the correspondence from structural types to
-relational refinement types.
+\autoref{fig:eq-test} contains a set of inductive inference rules that
+define the fact that relational type
+$\tau \in \reltypes{ \elts{i, j} }{ \lfpvars }$ asserts equality of
+indices $i$ and $j$ over structual type $\sigma \in \types$, denoted
+$\iseq{i}{j}(\sigma, \tau)$.
 %
-The inference rules define a correspondence relation over maps from
-type positions to structural types to relational refinement types.
+$\iseq{i}{j}$ is defined in terms of a relation $\iseq{i}{j}$ that
+relates structual types in an alternative represnetation as maps from
+type positions to structual types.
 %
-For $\sigma \in T$ and $T: \typos \partto \types$ and
-$\tau \in \reltypes{ \sigma }$, the fact that $T$ corresponds to
-$\tau$ is denoted $T \reltyof \tau$.
+For $\Sigma: \typos \partto \types$, the fact that $\Sigma$ is related
+to relational refinement type $\tau$ is denoted
+$\iseq{i}{j}(\Sigma, \tau)$.
 %
-The fact that $\sigma$ corresponds to $\tau$ is denoted
-$\sigma \reltyof \tau \equiv [ \epsilon \mapsto \sigma ] \reltyof
-\tau$.
+The equality-assertion property over structual types is defined to be
+$\iseq{i}{j}(\sigma, \tau) \equiv \iseq{i}{j}(\epsilon \mapsto \sigma,
+\tau)$.
 
-% walkthrough rules: atomic maps:
-The correspondence from type-position maps to relational refinement
-types is defined by the rules in \autoref{fig:structure-rel} as
-follows.
+% walk through the rules
+The equality-assertion property $\iseq{i}{j}(\sigma, \tau)$ is defined
+by the inductive inference rules given in \autoref{fig:eq-test}.
 %
 Rule~ATOMS defines the correspondence for maps to atomic structural
 types.
 % define atomic maps:
-For $A : \typos \partto \types$, if each binding in $A$ is to an
-atomic structural type, then $A$ itself is \emph{atomic}.
+For $A : \typos \partto \types$ if the range of $A$ consists of only
+atomic structual types, then $A$ itself is \emph{atomic}.
 % define relational refinement type:
+\BH{update}
 Each atomic type $A$ corresponds to the relational refinement type
 $\tau_A = (\Phi, \mathcal{M})$, defined as follows.
 % define indexed refinement predicate:
@@ -920,36 +919,39 @@ $\mathcal{M}$ is an arbitrary mutual-induction set.
 
 % functions:
 Rule~FN establishes that for $T : \typos \partto \types$,
-$p \in \typos$, $\sigma, \sigma_{\alpha}, \sigma_{\nu} \in \types$,
-and $\tau_{\alpha}, \tau_{\nu} \in \reltypes{ \sigma }$, if %
-\textbf{(1)} $\tau_{\alpha}$ is a relational refinement type of $T$
-extended to bind $p$ to $\sigma_{\alpha}$ and %
-\textbf{(2)} $\tau_{\nu}$ is a relational refinement type of $T$
-extended to bind $p$ to $\sigma_{\nu}$, then
-$\tau_{\alpha} \to_{x}^p \tau_{\nu}$ is a relational refinement type
-of $T$ extended to bind $p$ to $\sigma \to \sigma$.
+$p \in \typos$, $\sigma_{\alpha}, \sigma_{\nu} \in \types$, and
+$\tau$, if $\tau$ tests equality over of $T$ extended to map type
+positions $\leftchild \cons p$ and $\rightchild \cons p$ to
+$\sigma_{\alpha}$ and $\sigma_{\nu}$ respectively, then $\tau$
+abstracted over $x$ at $i$ and $j$ tests equality over $T$ extended to
+bind $p$ to $\sigma_{\alpha} \to \sigma_{\nu}$.
 % products: sums
-Rule~PROD establishes that if $T$ extended to bind
-$\leftchild \cons p$ and $\rightchild \cons p$ to structural types
-$\sigma_l$ and $\sigma_r$ respectively has relational refinement type
-$\tau$, then $T$ extended to bind $p$ to $\sigma_l \times \sigma_r$
-has relational refinement type
-$\times_{ \leftchild \cons p, \rightchild \cons p}^{p} \tau$.
+Rule~PROD establishes that if $\tau$ constrains equality of $T$
+extended to bind $\leftchild \cons p$ and $\rightchild \cons p$ to
+structural types $\sigma_l$ and $\sigma_r$ respectively, then the
+relational product of $\tau$ from $\leftchild \cons j$ and
+$\rightchild \cons j$ to $j$, then from $\leftchild \cons i$ and
+$\rightchild \cons i$ to $i$ constrains equality over $T$ extended to
+map $p$ to $\sigma_l \times \sigma_r$.
+
 % sums:
 Rule~SUM establishes that if %
-\textbf{(1)} $T$ extended to bind $p$ to $\sigma_l$ has relational
-refinement type $\tau_l$ and $T$ extended to bind $p$ to $\sigma_r$
-has relational refinement type $\tau_r$, then $T$ extended to bind $p$
-to $\sigma_l + \sigma_r$ has relational refinement type
-$\tau_l +^{p} \tau_r$.
+\textbf{(1)} $\tau_l$ constrains equality of $T$ extended to map $p$
+to $\sigma_l$ and %
+\textbf{(2)} $\tau_r$ constrains equality of $T$ extended to map $p$
+to $\sigma_r$, then %
+the mutual sum of $\tau_l$ and $\tau_r$ and $i$ and $j$ constrains
+equality of $T$ extended to bind $p$ to $\sigma_l +^{i, j} \sigma_r$.
 %
 Rule~LFP establishes that if %
-$T$ extended to bind $p$ to $\sigma$ has relational type $\tau$, then
-$T$ extended to bind $p$ to $\tylfp_p X. \tau$ has relational type
-$\mu_p X. \tau$.
-
+$\tau$ constrains equality of $T$ extended to map $p$ to $\sigma$,
+then $\mu_i X. \mu_j X. \tau$ constrains equality of $T$ extended to
+bind $p$ to $\mu X. \sigma$.
 
 % main lemma of the typing system:
+\subsubsection{Correctness}
+\label{sec:corr}
+
 The typing relation is preserved by the evaluation relation.
 %
 \begin{lemma}
