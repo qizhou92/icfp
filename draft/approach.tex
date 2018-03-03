@@ -309,7 +309,7 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
       \tau \Join \tau' \subtype \tau'' }{
       % complete type is product
       \times_{i, j}^k \tau \Join %
-      \times_{i, j}^k \tau' \subtype \times_{i, j}^k \tau'' }
+      \times_{i, j}^k \tau' \subtype \times_{i, j}^k \tau'' } \\
     % join shared sum:
     \inference[ SUM ]{
       % join the lhs's
@@ -332,6 +332,13 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
       \tau \Join \tau' \subtype \tau'' }{
       % combine results using relational function,
       \to_x^i \tau \Join \tau' \subtype \to_x^i \tau'' }
+    % join unshared product:
+    \inference[ PROD-A ]{
+      % get refinement for nested type,
+      \tau \Join \tau' \subtype \tau'' }{
+      % complete type is product
+      \times_{i, j}^k \tau \Join \tau' \subtype %
+      \times_{i, j}^k \tau'' } \\
     % join unshared sum:
     \inference[ SUM-A ]{
       % join the lhs's
@@ -340,14 +347,7 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
       \tau_r \Join \tau' \subtype \tau_r'' }{
       % complete type is sum
       \tau_l +^i \tau_r \Join \tau' %
-      \subtype \tau_l'' +^i \tau_r'' } \\
-    % join unshared product:
-    \inference[ PROD-A ]{
-      % get refinement for nested type,
-      \tau \Join \tau' \subtype \tau'' }{
-      % complete type is product
-      \times_{i, j}^k \tau \Join \tau' \subtype %
-      \times_{i, j}^k \tau'' } 
+      \subtype \tau_l'' +^i \tau_r'' } 
     % join unshared lfp:
     \inference[ LFP-A ]{
       % get refinement for nested type,
@@ -554,8 +554,8 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       % extend the context and typecheck the body,
       \Gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
-      \Gamma' \judges \upd{ E }{ p }{ \lambda x. e } : %
-      \gamma \to^p_x \tau } 
+      \Gamma' \judges \upd{ E }{ p }{ \abs{ x }{ \sigma }{ e } } : %
+      \to^p_x \tau } 
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
@@ -582,7 +582,8 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       % get type of result under context that binds to x and y,
       \Gamma' \judges \upd{ E }{ p }{ e_1 } : \tau' }{
       % then complete let expression has type
-      \Gamma \judges \upd{E}{p}{ \letexp{x}{y}{e_0}{e_1} } : %
+      \Gamma \judges \upd{E}{p}{ %
+        \letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1} } : %
       \tau \Join \tau' } \\
     % left injection:
     \inference[ LEFT ]{
@@ -611,7 +612,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \rename{ \tau_0^r }{ \epsilon }{ y } \Join \tau_2 \subtype \tau' }{
       % then type of match exp is type of both branches,
       \Gamma \judges %
-      \upd{E}{p}{ \matchexp{e_0}{ x }{e_1}{ y }{e_2} } : \tau' }
+      \upd{E}{p}{ \matchexp{e_0}{ x }{\sigma_x}{e_1}{ y }{\sigma_y}{e_2} } : \tau' }
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
@@ -619,7 +620,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \upd{ E }{ p }{ e } : \tau \\
       % constrain that tau implies the result is fixpoint variable,
       \iseq{p}{f}{\sigma}(\tau') & \tau \subtype \tau' }{ %
-      \Gamma \judges \upd{ E }{ p }{ \fix{f}{e} }: \tau } \\
+      \Gamma \judges \upd{ E }{ p }{ \fix{f}{\sigma}{e} }: \tau } \\
     % unfold:
     \inference[ UNFOLD ]{
       % if expressions have tau unfolded at p,
@@ -833,8 +834,8 @@ Rule~LET establishes that if %
 $\gamma'$ from variables $x$ and $y$;
 %
 \textbf{(2)} under $\gamma'$, $e_1$ has type $\tau$, then under
-$\gamma$, $E$ extended to bind $p$ to $\letexp{x}{y}{e_0}{e_1}$ has
-type $\tau$.
+$\gamma$, $E$ extended to bind $p$ to
+$\letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1}$ has type $\tau$.
 
 % relational sum:
 Rules~LEFT, RIGHT, and MATCH are defined using the relational sum type
@@ -856,7 +857,8 @@ type $\tau''$; and
 %
 \textbf{(3)} under $\gamma''$, $E$ extended to bind $p$ to $e_2$ also
 has type $\tau''$, then under $\gamma$, $E$ extended to bind $p$ to
-$\matchexp{e_0}{x}{e_1}{y}{e_2}$ has type $\tau''$.
+$\matchexp{e_0}{x}{\sigma_x}{e_1}{y}{\sigma_y}{e_2}$ has type
+$\tau''$.
 
 % fix:
 Rule~FIX establishes that if %
@@ -864,7 +866,7 @@ Rule~FIX establishes that if %
 $\gamma$, $E$ extended to bind $p$ to $e$ has type $\tau$; and %
 \textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of
 $\gamma'$, then under $\Gamma$ and $\gamma$, $E$ extended to bind $p$
-to $\fix{f}{e}$ has type $\tau$.
+to $\fix{f}{\sigma}{e}$ has type $\tau$.
 % fixpoint var:
 Rule~FVAR establishes that under context $\Gamma$, the positioned
 expression that maps only position $p$ to fixpoint variable $f$ has
@@ -919,16 +921,17 @@ $e_0, \ldots, e_n$.
 \begin{defn}
   \label{defn:unfoldings}
   For each $e \in \expr$, the \emph{unfoldings} of $e$, denoted
-  $\unfoldings{ \fix{f}{e} }$ are defined inductively as follows:
+  $\unfoldings{ \fix{f}{\sigma}{e} }$ are defined inductively as follows:
   %
   \begin{enumerate}
   \item % expression is unfolding
     $e \in \unfoldings{ e }$;
   \item % replacement:
     For $e \in \expr$ and $e' \in \unfoldings{e}$ that contains
-    subexpressions $\fix{f_0}{e_0}, \ldots, \fix{f_n}{e_n}$
-    $\replace{e'}{f_0, \ldots, f_n}{ \fix{f_0}{e_0}, \ldots,
-      \fix{f_n}{e_n} }$.
+    subexpressions
+    $\fix{f_0}{\sigma}{e_0}, \ldots, \fix{f_n}{\sigma}{e_n}$
+    $\replace{e'}{f_0, \ldots, f_n}{ \fix{f_0}{\sigma}{e_0}, \ldots,
+      \fix{f_n}{\sigma}{e_n} }$.
   \end{enumerate}
 \end{defn}
 %
@@ -1031,7 +1034,8 @@ The procedure \unfoldexp is straightforward to implement.
 %
 One implementation of \unfoldexp, given $e \in \expr$, iteratively
 replaces each occurrence of fixpoint variable $f$ in $e$ with
-$\fix{f}{e'}$, where $\fix{f}{e'}$ is a sub-expression of $e$.
+$\fix{f}{\sigma}{e'}$, where $\fix{f}{\sigma}{e'}$ is a sub-expression
+of $e$.
 %
 The procedures \inferbnd and \chkinductive are defined below.
 
@@ -1288,10 +1292,9 @@ interpreted as $\false$.
       % if E contains a fixpoint symbol, 
       \lIf{$f \in \fixvars, E$}{ %
         % then return E grouped with the unfolding of f
-        \Return{ $\replace{ E }{ f }{ \fix{ f }{ \fixexpr{ f } } }$ 
-        } }  %
+        \Return{ $...$ } }  %
       % for each expression that is a fixpoint, 
-      \ForEach{$\fix{ f }{ e } \in E$}{ 
+      \ForEach{$...$}{ 
         % if the maintained type for the core expressions is stronger,
         \lIf{$T'(\orgexprs(E)) \entails T(E)$}{
           % then return that this part is inductive

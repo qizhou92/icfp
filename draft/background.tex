@@ -38,18 +38,18 @@ We then define partial equivalence of STLC programs
                       % or a base operation,
                       |\ e_0 \oplus e_1 \\
       % or an abstraction,
-      | &\ \lambda x : \sigma.\ e \
+      | &\ \abs{ x }{ \sigma }{ e } \
       % or an application,
           | \ e_0\ e_1 \\
       % or a pairing,
       | &\ \pair{e_0}{e_1} \
       % or a let-expression,
-          |\ \letexp{x : \sigma_x }{y : \sigma_y }{e_0}{e_1} \\
+          |\ \letexp{x}{\sigma_x }{y}{\sigma_y }{e_0}{e_1} \\
       % or an injection or a match,
       | &\ \injl\ e\ |\ \injr\ e\ \\
-      | &\ \matchexp{e_0}{x : \sigma_x}{e_1}{y : \sigma_y}{e_2} \\
+      | &\ \matchexp{e_0}{x}{\sigma_x}{e_1}{y}{\sigma_y}{e_2} \\
       % or a fix
-      | &\ \fix{f : \sigma}{e}
+      | &\ \fix{f}{\sigma}{e}
     \end{align*}
     \caption{The space of program expressions, $\expr$.
       %
@@ -120,10 +120,11 @@ $\interp{\oplus} : \basevals \times \basevals \to \basevals$.
     e_1 \evalsto c_1 }{ %
     e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } \\
   % abstraction, 
-  \inference[ ABS ]{ }{ \lambda x.\ e \evalsto \lambda x.\ e } 
+  \inference[ ABS ]{ }{ \abs{ x }{ \sigma }{ e } \evalsto %
+    \abs{ x }{ \sigma }{ e } \abs{x}{\sigma}{e} } 
   % application,
   \inference[ APP ]{ %
-    e_0 \evalsto \lambda x.\ e_0' & %
+    e_0 \evalsto \abs{x}{\sigma}{e_0'} & %
     e_1 \evalsto v_1 &
     \replace{ e_0' }{ x }{ v_1 } \evalsto v }{ %
     e_0\ e_1 \evalsto v } \\
@@ -139,16 +140,16 @@ $\interp{\oplus} : \basevals \times \basevals \to \basevals$.
     e_0 \evalsto (v_0^l, v_0^r) &
     % evaluate result with values replaced
     \replace{ e_1 }{ x, y }{ v_0^l, v_1^r } \evalsto v_1 }{ %
-    \letexp{x}{y}{e_0}{e_1} \evalsto v_1 } \\
+    \letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1} \evalsto v_1 } \\
   % inject left,
   \inference[ INJL ]{ e \evalsto v }{ %
     \injl\ e \evalsto \injl\ v } 
   % match left injection,
   \inference[ MATCHL ]{
     % evaluate target exp to a left injection,
-    e_0 \evalsto \injl\ v_0 &
+    e_0 \evalsto \injl\ v_0 & %
     \replace{ e_1 }{ x }{ v_0 } \evalsto v_1 }{ %
-    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_1 } \\
+    \matchexp{ e_0 }{ x }{\sigma_x}{ e_1 }{ y }{\sigma_y}{ e_2 } \evalsto v_1 } \\
   % inject right,
   \inference[ INJR ]{ e \evalsto v }{ \injr\ e \evalsto \injr\ v }
   % match right injection,
@@ -158,15 +159,16 @@ $\interp{\oplus} : \basevals \times \basevals \to \basevals$.
     \replace{ e_2 }{ y }{ v_0 } \evalsto v_2 }{ %
     \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } 
   % fix:
-  \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{ e } } \evalsto v } %
-  { \fix{ f }{ e } \evalsto v }
+  \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{\sigma}{ e } } \evalsto v } %
+  { \fix{ f }{\sigma}{ e } \evalsto v }
   \end{gather*}
   \caption{The natural semantics of expressions.
     %
     Metavariable $e$ ranges over $\expr$, %
     $c$ ranges over $\consts$, %
     $\oplus$ ranges over base operations, %
-    $x$, $y$, and $f$ range over $\vars$.}
+    $x$, $y$, and $f$ range over $\vars$, and
+    $\sigma$ ranges over structual types.}
   \label{fig:nat-sem}
 \end{figure}
 %

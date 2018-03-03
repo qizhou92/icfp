@@ -1,4 +1,6 @@
 % shorthand: paper-specific shorthand
+\newcommand{\abs}[3]{\lambda #1 : #2. #3}
+
 \newcommand{\alltrue}{\mathsf{AllTrue}}
 
 \newcommand{\andsub}{\mathsf{AndSub}}
@@ -99,7 +101,7 @@
 
 \newcommand{\firstarg}[1]{\mathsf{First}}
 
-\newcommand{\fix}[2]{\cc{fix}\ #1\ #2}
+\newcommand{\fix}[3]{\cc{fix}\ #1 : #2\ #3}
 
 \newcommand{\fixexpr}[1]{ \mathsf{FixExpr}[ #1 ] }
 
@@ -181,11 +183,11 @@
 
 \newcommand{\leftchild}{\mathsf{l}}
 
-\newcommand{\letexp}[4]{\cc{let(} #1 \cc{,} #2 \cc{)=} #3 \cc{ in } #4}
+\newcommand{\letexp}[6]{\cc{let(} #1 : #2 \cc{,} #3 : #4 \cc{)=} #5 \cc{ in } #6}
 
 \newcommand{\lfpvars}{X_L}
 
-\newcommand{\matchexp}[5]{\cc{match } #1 \cc{ with } #2 \cc{->} #3 \cc{|} #4 \cc{->} #5}
+\newcommand{\matchexp}[7]{\cc{match } #1 \cc{ with } #2 : #3 \cc{->} #4 \cc{|} #5 : #6 \cc{->} #7}
 
 \newcommand{\mutclosure}[2]{\mathcal{C}_{#1}^{#2}}
 
