@@ -614,7 +614,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     % vars:
     \inference[ VAR ]{ %
       \Gamma \judges E : \tau & %
-      \iseq{p}{f}(\Gamma(x), \tau') \\
+      \iseq{p}{x}(\Gamma(x), \tau') \\
       \tau \Join \tau' \subtype \tau'' }{ %
       \Gamma \judges \upd{ E }{ p }{ x } : \tau'' } \\
     % fixpoint:
