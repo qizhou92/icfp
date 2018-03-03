@@ -123,10 +123,10 @@ $(\inv{g} \compose \Phi \compose f, N, P \compose g, \mathcal{M})$.
 \paragraph{Relational refinement function types}
 %
 The relational function from type $\tau$ to $\tau'$ at index $i$ over
-abstraction variable $x$ is a relational refinement type in which the
-type at $i$ is a function from the type at $i$ in $\tau$ to the type
-at $i$ in $\tau'$, and all references to $x$ in $\tau'$ are replaced
-with references to components of $\tau$.
+variable $x$ is a relational refinement type in which the type at $i$
+is a function from the type at $i$ in $\tau$ to the type at $i$ in
+$\tau'$, and all references to $x$ in $\tau'$ are replaced with
+references to components of $\tau$.
 % define renaming over indices:
 For indices $I$ and $i, j \in I$, let
 $\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
@@ -584,7 +584,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \Gamma \judges \epsilon \mapsto e_0 : %
       \times_{x, y}^{\epsilon} \tau \\
       % get type of result under context that binds to x and y,
-      \Gamma' \judges \upd{ E }{ p }{ e_1 } : \tau' }{
+      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau' }{
       % then complete let expression has type
       \Gamma \judges \upd{E}{p}{ %
         \letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1} } : %
@@ -619,16 +619,17 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \upd{E}{p}{ \matchexp{e_0}{ x }{\sigma_x}{e_1}{ y }{\sigma_y}{e_2} } : \tau' }
     % vars:
     \inference[ VAR ]{ %
-      \Gamma \judges E : \tau }{ %
+      \Gamma \judges E : \tau & %
+      \iseq{p}{f}(\Gamma(x), \tau') }{ %
       \Gamma \judges \upd{ E }{ p }{ x } : %
-      \tau \Join \tau^p_{x : \Gamma(x)} } \\
+      \tau \Join \tau' } \\
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
       \upd{ \Gamma }{ f }{ \sigma } \judges %
       \upd{ E }{ p }{ e } : \tau \\
       % constrain that tau implies the result is fixpoint variable,
-      \iseq{p}{f}{\sigma}(\tau') & \tau \subtype \tau' }{ %
+      \iseq{p}{f}(\sigma, \tau') & \tau \subtype \tau' }{ %
       \Gamma \judges \upd{ E }{ p }{ \fix{f}{\sigma}{e} }: \tau }
     % unfold:
     \inference[ UNFOLD ]{
@@ -658,7 +659,7 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     $\sigma$ ranges over structural types, %
     $\tau$ ranges over relational refinement types, %
     $c$ ranges over constants, %
-    $x$, $y$, and $f$ range over abstraction variables, and %
+    $x$, $y$, and $f$ range over variables, and %
     $\mathcal{X}$ ranges over sets of least-fixed-point variables. }
   \label{fig:reltypes-rules}
 \end{figure}
@@ -737,92 +738,102 @@ $\elts{ (p, [ \tyleftsum ]), (\leftchild \cons p, \rightchild \cons p)
 $(\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
 \epsilon)$ and bind \textbf{(2)}
 $\elts{ (p, [ \tyrightsum ]), (\leftchild \cons p, \rightchild \cons
-  p) }$ to
+  p) }$ to the refinement predicate
 $\lnot (\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
 \epsilon)$.
 
 % abs:
+\BH{update from here}
 Rules~ABS and APP are defined using the relational function type
 operator.
 %
-Rule~ABS establishes that if, under contextual relational type
-$\gamma$, $E$ extended to bind $p$ to expression $e$ have type $\tau$,
-then under contextual relational type $\gamma'$, $E$ extended to bind
-$p$ to $\lambda x. e$ is a relational function from $\gamma$ to
-$\tau'$ at $p$.
+Rule~ABS establishes that if $E$ extended to bind $p$ to expression
+$e$ have type $\tau$, then $E$ extended to bind $p$ to $\lambda x. e$
+is a relational abstraction of $\tau$ at $p$ over $x$.
 % app:
 Rule~APP establishes that if %
 \textbf{(1)} $E$ extended to bind $p$ to $e_0$ is a relational
-function from $\tau$ to $\tau'$ at $p$ and %
-\textbf{(2)} $E$ extended to bind $p$ to $e_1$ has type $\tau$, then
-$E$ extended to bind $p$ to $e_0$ applied to $e_1$ has type $\tau'$.
+abstraction of $\tau$ at $p$ over $x$ and %
+\textbf{(2)} $E$ extended to bind $p$ to $e_1$ have type $\tau'$, then
+$E$ extended to bind $p$ to $e_0$ applied to $e_1$ have $\tau$ joined
+with $\tau'$ renamed from $p$ to $x$.
 
 % relational prod:
 Rules~PAIR and LET are defined using the relational product type
 operator.
 % pair:
 Rule~PAIR establishes that if $E$ extended to bind
-$\leftchild \cons p$ and $\rightchild \cons p$ to $e_0$ and $e_1$ has
-type $\tau$, then $E$ extended to bind $p$ to $\pair{ e_0 }{ e_1 }$ is
-the relational product of $\tau$ from $\leftchild \cons p$ and
-$\rightchild \cons p$ to $p$.
+$\leftchild \cons p$ and $\rightchild \cons p$ to $e_0$ and $e_1$ have
+type $\tau$, then $E$ extended to bind $p$ to $\pair{ e_0 }{ e_1 }$
+has as a type the relational product of $\tau$ from
+$\leftchild \cons p$ and $\rightchild \cons p$ to $p$.
 % let:
 Rule~LET establishes that if %
-\textbf{(1)} under $\gamma$, the $e_0$ is the relational product of
-$\gamma'$ from variables $x$ and $y$;
+\textbf{(1)} $e_0$ has as a relational type the relational product of
+$\tau$ from variables $x$ and $y$ to the empty position;
 %
-\textbf{(2)} under $\gamma'$, $e_1$ has type $\tau$, then under
-$\gamma$, $E$ extended to bind $p$ to
-$\letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1}$ has type $\tau$.
+\textbf{(2)} $E$ extended to bind $p$ to $e_1$ have type $\tau'$, then
+$E$ extended to bind $p$ to
+$\letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1}$ has type $\tau$ joined
+with $\tau'$.
 
 % relational sum:
 Rules~LEFT, RIGHT, and MATCH are defined using the relational sum type
 operator.
 % left:
-Rule~LEFT establishes that if $E$ extended to bind $p$ to $e$ has type
-$\tau$, then $E$ extended to bind $p$ to the left injection of $e$ is
-a relational sum of from $p$ and $p$ to $p$ of $\tau$ and any
-relational type $\tau'$.
+Rule~LEFT establishes that if $E$ extended to bind $p$ to $e$ have
+type $\tau$, then $E$ extended to bind $p$ to the left injection of
+$e$ is a relational sum at $p$ of $\tau$ and arbitrary relational type
+$\tau'$.
 %
 Rule~RIGHT is defined symmetrically to Rule~LEFT.
 % match:
 Rule~MATCH establishes that if %
-\textbf{(1)} under $\gamma$, $e_0$ is the relational sum of $\gamma'$
-and $\gamma''$ from variables $x$ and $y$;
+\textbf{(1)} $e_0$ is the relational sum at $\epsilon$ of $\tau_0^l$
+and $\tau_0^r$;
 % 
-\textbf{(2)} under $\gamma'$, $E$ extended to bind $p$ to $e_1$ has
-type $\tau''$; and
+\textbf{(2)} $E$ extended to bind $p$ to $e_1$ has type $\tau_1$ that
+joins with $\tau_0^l$ with $\epsilon$ renamed to $x$ to form $\tau'$;
 %
-\textbf{(3)} under $\gamma''$, $E$ extended to bind $p$ to $e_2$ also
-has type $\tau''$, then under $\gamma$, $E$ extended to bind $p$ to
+\textbf{(3)} $E$ extended to bind $p$ to $e_2$ has type $\tau_2$ that
+joins with $\tau_0^r$ with $\epsilon$ renamed to $y$ to form $\tau'$,
+then $E$ extended to bind $p$ to
 $\matchexp{e_0}{x}{\sigma_x}{e_1}{y}{\sigma_y}{e_2}$ has type
-$\tau''$.
+$\tau'$.
 
+% var:
+Rule~VAR establishes that if %
+\textbf{(1)} $E$ have type $\tau$ and %
+\textbf{(2)} $\tau'$ is a relational type in which $p$ has structure
+$\Gamma(x)$ (denoted as stating that $\Gamma(x)$ and $\tau'$ hold the
+property the relation $\iseq{p}{f}$), then %
+$E$ extended to bind $p$ to
+$x$ have type $\tau$ joined with the type $\tau_{x : \Gamma(x)}^p$,
+which binds $p$ to variable $x$ of type $\Gamma(x)$.
+%
+The type property $\iseq{p}{f}$ is defined below.
 % fix:
 Rule~FIX establishes that if %
-\textbf{(1)} under $\Gamma$ extended to bind $f$ to $\gamma'$ and
-$\gamma$, $E$ extended to bind $p$ to $e$ has type $\tau$; and %
-\textbf{(2)} $\tau'$ with $p$ renamed to $f$ is a subtype of
-$\gamma'$, then under $\Gamma$ and $\gamma$, $E$ extended to bind $p$
-to $\fix{f}{\sigma}{e}$ has type $\tau$.
-% fixpoint var:
-Rule~FVAR establishes that under context $\Gamma$, the positioned
-expression that maps only position $p$ to fixpoint variable $f$ has
-type $\Gamma(f)$ refined to equate $p$ with $f$.
-
+\textbf{(1)} $E$ extended to bind $p$ to $e$ has type $\tau$; %
+\textbf{(2)} $\tau'$ asserts that $p$ and $f$ are equivalent with
+structural type $\sigma$ (i.e., $\sigma$ and $\tau'$ hold the property
+$\iseq{p}{f}$); %
+\textbf{(3)} $\tau$ is a subtype of $\tau'$, then %
+$E$ extended to bind $p$ to $\fix{f}{p}{e}$ have type $\tau$.
 % unfold:
-Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded,
-then $E$ has type $\tau$.
+Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded on
+least-fixed-point variables $\mathcal{X}$, then $E$ have type $\tau$.
 % sub:
-Rule~SUB establishes that if $E$ has type $\tau$ a subtype of $\tau'$,
+Rule~SUB establishes that if $E$ have type $\tau$ a subtype of $\tau'$,
 then $E$ has type $\tau'$.
+
+\paragraph{Constraining equivalence over indices}
 
 % inference rules that define relational type of a structural type:
 \begin{figure}
   \centering
   \begin{gather*}
-    \inference[ ATOMS ]{ }{ %
-      A \reltyof \tau_A } 
+    \inference[ ATOMS ]{ }{ A \reltyof \tau_A } 
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
@@ -853,11 +864,10 @@ then $E$ has type $\tau'$.
       % operate using the lfp operator
       \upd{ T }{ p }{ \mu X. \sigma } \reltyof \mu_p X. \tau }
   \end{gather*}
-  \caption{Inductive inference rules that define the relational type
-    of a structural type.
+  \caption{Inductive inference rules that define the property of a relational refinement type that it constrains equivalence over indicies $i$ and $j$.
     %
     \BH{define metavariables used in rules} }
-  \label{fig:structure-rel}
+  \label{fig:eq-test}
 \end{figure}
 
 % variables:
@@ -907,8 +917,6 @@ each $p \in P$, $A(p) = \basety$;
 then $\Phi = P \mapsto \true$.
 %
 $\mathcal{M}$ is an arbitrary mutual-induction set.
-%
-\BH{bkg: require that refinement theory has true/top formula}
 
 % functions:
 Rule~FN establishes that for $T : \typos \partto \types$,
