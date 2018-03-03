@@ -859,7 +859,11 @@ $\tau$ at given indices are equivalent.
 \begin{figure}
   \centering
   \begin{gather*}
-    \inference[ ATOMS ]{ }{ \iseq{i}{j}(A, ...) } 
+    \inference[ ATOMS ]{
+      % for each subset of sets of positions,
+      \mathcal{ Q } \subseteq \pset(\domain(A)) }{
+      % 
+      A \hasreltype{i} \tau^A_{ \Phi_Q^{\true}, N_A, E } } 
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
@@ -897,19 +901,22 @@ $\tau$ at given indices are equivalent.
   \end{gather*}
   \caption{Inductive inference rules that define conditions under which a relational type is a relational type of a structural type.
     %
-    Metavariable $T$ ranges over maps from type positions to structural types, %
+    Metavariable %
+    $A$ ranges over atomic structual types, %
+    $E$ ranges over equivalence relations over $\lfpvars$, %
+    $T$ ranges over maps from type positions to structural types, %
     $p$ ranges over type positions, %
     $\tau$ ranges over relational types, %
     $\sigma$ ranges over structural types, %
     $i$ ranges over indicies $I$, %
     $x$ ranges over $\vars$, and %
     $X$ ranges over $\lfpvars$. }
-  \label{fig:eq-test}
+  \label{fig:struct-rel}
 \end{figure}
 
 % define judgment:
-\autoref{fig:eq-test} contains a set of inductive inference rules that
-define the fact that relational type
+\autoref{fig:struct-rel} contains a set of inductive inference rules
+that define the fact that relational type
 $\tau \in \reltypes{ \add{i}{ \vars } }$ is a relational type of
 structural type $\sigma$ at index $i$, denoted
 $\sigma \hasreltype{i} \tau$.
@@ -928,7 +935,7 @@ $\sigma \hasreltype{i} \tau \equiv \iseq{i}{j}(\epsilon \mapsto \sigma,
 
 % walk through the rules
 The has-relational-type relation is defined by the inductive inference
-rules given in \autoref{fig:eq-test}.
+rules given in \autoref{fig:struct-rel}.
 %
 Rule~ATOMS defines the correspondence for maps to atomic structural
 types.
@@ -936,16 +943,15 @@ types.
 For $A : \typos \partto \types$ if the range of $A$ consists of only
 atomic structual types, then $A$ itself is \emph{atomic}.
 % define relational refinement type:
-\BH{update}
-Each atomic type $A$ corresponds to the relational refinement type
-$\tau_A = (\Phi, \mathcal{M})$, defined as follows.
-% define indexed refinement predicate:
-Let $P \in \typos$ be the maximal set of type positions such that for
-each $p \in P$, $A(p) = \basety$;
-%
-then $\Phi = P \mapsto \true$.
-%
-$\mathcal{M}$ is an arbitrary mutual-induction set.
+For each $\mathcal{Q} \subseteq \pset(\domain(A))$, let
+$\Phi_Q^{\true} = \mathcal{Q} \to \true$.
+% var indexing,
+$N_A : \lfpvars \partto \typos$ such that for each $p \in \domain(A)$,
+it holds that $N_A(A(p)) = p$; %
+% 
+and each equivalence class $E \in \equiv_{\lfpvars}$, $A$ has as a
+relational type the atomic type defined by $\Phi_Q^{\true}$, $N_A$,
+and $E$.
 
 % functions:
 Rule~FN establishes that for $T : \typos \partto \types$,
