@@ -189,7 +189,7 @@ $p \prepend{i} (\Phi, N, P, E) = (p \fullprepend{i}{N} \Phi, N, p
 
 % define function relational type operator
 For index $i \in I$, $X \subseteq \lfpvars$,
-$\tau \in \reltypes{I, X}$, $i \in I$, and $x \in \absvars$, the
+$\tau \in \reltypes{I, X}$, $i \in I$, and $x \in \vars$, the
 abstraction of $\tau$ over $x$ at $i$ is
 $\to_x^i \tau = \rename{ (\typaramfield \prepend{x} \tyresfield
   \prepend{i} \tau)}{x}{i}$.
@@ -292,76 +292,80 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
     % join atomics:
     \inference[ ATOMICS ]{
       % join the indexed refinement predicates,
-      \Phi \join{ \varphi } \Phi' \subtype_V \Phi'' &
+      \Phi \Join \Phi' \subtype \Phi'' &
       % join the mutual induction sets,
-      \mathcal{M} \join{ \varphi } \mathcal{M}' \subtype_V \mathcal{M}'' }{
-      (\Phi, \mathcal{M}) \join{ \varphi } (\Phi', \mathcal{M}') \subtype_V %
+      \mathcal{M} \Join \mathcal{M}' \subtype \mathcal{M}'' }{
+      (\Phi, \mathcal{M}) \Join (\Phi', \mathcal{M}') \subtype %
       (\Phi', \mathcal{M}'') } \\
     % join shared function:
     \inference[ FNS ]{
       % join the nested relational types:
-      \tau \join{ \varphi } \tau' \subtype \tau'' }{
+      \tau \Join \tau' \subtype \tau'' }{
       % combine results using relational function,
-      \to^i \tau \join{ \varphi } \to^i \tau' \subtype \to^i \tau'' }
-    % join shared sum:
-    \inference[ SUM ]{
-      % join the lhs's
-      \tau_l \join{ \varphi } \tau_l' \subtype_V \tau_l'' &
-      % join the rhs's
-      \tau_r \join{ \varphi } \tau_r' \subtype_V \tau_r'' }{
-      % complete type is sum
-      \tau_l +^i \tau_r \join{ \varphi } \tau_l' +^i \tau_r' %
-      \subtype_V \tau_l'' +^i \tau_r'' } \\
+      \to_x^i \tau \Join \to_x^i \tau' \subtype \to_x^i \tau'' }
     % join shared product:
     \inference[ PROD ]{
       % get refinement for nested type,
-      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      \tau \Join \tau' \subtype \tau'' }{
       % complete type is product
-      \times_{i, j}^k \tau \join{ \varphi } %
-      \times_{i, j}^k \tau' \subtype_V \times_{i, j}^k \tau'' }
+      \times_{i, j}^k \tau \Join %
+      \times_{i, j}^k \tau' \subtype \times_{i, j}^k \tau'' }
+    % join shared sum:
+    \inference[ SUM ]{
+      % join the lhs's
+      \tau_l \Join \tau_l' \subtype \tau_l'' &
+      % join the rhs's
+      \tau_r \Join \tau_r' \subtype \tau_r'' }{
+      % complete type is sum
+      \tau_l +^i \tau_r \Join \tau_l' +^i \tau_r' %
+      \subtype \tau_l'' +^i \tau_r'' } 
     % join shared lfps:
     \inference[ LFP ]{
       % join types of bodies of lfp's,
-      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      \tau \Join \tau' \subtype \tau'' }{
       % wrap up the result,
-      \mu_i X. \tau \join{ \varphi } \mu_i X. \tau' \subtype %
+      \mu_i X. \tau \Join \mu_i X. \tau' \subtype %
       \mu_i X. \tau'' } \\
     % join unshared function:
     \inference[ FNS-A ]{
       % join the nested relational types:
-      \tau \join{ \varphi } \tau' \subtype \tau'' }{
+      \tau \Join \tau' \subtype \tau'' }{
       % combine results using relational function,
-      \to^i \tau \join{ \varphi } \tau' \subtype \to^i \tau'' }
+      \to_x^i \tau \Join \tau' \subtype \to_x^i \tau'' }
     % join unshared sum:
     \inference[ SUM-A ]{
       % join the lhs's
-      \tau_l \join{ \varphi } \tau' \subtype_V \tau_l'' &
+      \tau_l \Join \tau' \subtype \tau_l'' &
       % join the rhs's
-      \tau_r \join{ \varphi } \tau' \subtype_V \tau_r'' }{
+      \tau_r \Join \tau' \subtype \tau_r'' }{
       % complete type is sum
-      \tau_l +^i \tau_r \join{ \varphi } \tau' %
-      \subtype_V \tau_l'' +^i \tau_r'' } \\
+      \tau_l +^i \tau_r \Join \tau' %
+      \subtype \tau_l'' +^i \tau_r'' } \\
     % join unshared product:
     \inference[ PROD-A ]{
       % get refinement for nested type,
-      \tau \join{ \varphi } \tau' \subtype_V \tau'' }{
+      \tau \Join \tau' \subtype \tau'' }{
       % complete type is product
-      \times_{i, j}^k \tau \join{ \varphi } \tau' \subtype_V %
+      \times_{i, j}^k \tau \Join \tau' \subtype %
       \times_{i, j}^k \tau'' } 
     % join unshared lfp:
     \inference[ LFP-A ]{
       % get refinement for nested type,
-      \tau \join \tau' \subtype_V \tau'' }{
+      \tau \join \tau' \subtype \tau'' }{
       % wrap lhs type in lfp constructor,
-      \mu_i X. \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
+      \mu_i X. \tau \Join \tau' \subtype \tau'' } 
     % join is symmetric on first two component relational types:
     \inference[ SYM ]{ %
-      \tau' \join{ \varphi } \tau \subtype_V \tau'' }{ %
-      \tau \join{ \varphi } \tau' \subtype_V \tau'' } 
+      \tau' \Join \tau \subtype \tau'' }{ %
+      \tau \Join \tau' \subtype \tau'' } 
   \end{gather*}
   \caption{Inductive inference rules that define the join of two relational types.
     %
-    \BH{define metavariables used in rules} }
+    Metavariable $\Phi$ ranges over indexed refinement predicates, %
+    $\tau$ ranges over relational refinement types, %
+    $i$ ranges over indices, %
+    $X$ ranges over least-fixed point variables, and %
+    $x$ ranges over program variables. }
   \label{fig:join}
 \end{figure}
 % give overview:
@@ -371,7 +375,7 @@ their relationships over common indices.
 For indices $I$, refinement predicate $\varphi \in \refpreds{I}$, and
 all $\tau, \tau', \tau'' \in \reltypes{I}$, the fact that $\tau$ and
 $\tau'$ \emph{join to form} $\tau''$ is denoted
-$\tau \join{ \varphi } \tau' = \tau''$.
+$\tau \join{ \varphi } \tau' \subtype \tau''$.
 
 % walk through the rules:
 The join operation is defined by the inductive inference rules given
@@ -436,36 +440,32 @@ refinement type in the (ternary) join relation are symmetric.
       \tau_0' \subtype \tau_1' }{
       % then function types are subtypes,
       \tau_0 \to_x^i \tau_0' \subtype \tau_1 \to_x^i \tau_1' } 
+    % relational products:
+    \inference[ PRODS ]{ \tau \subtype \tau'}{
+      \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'}
     % relational sums:
     \inference[ SUMS ]{
       % if component types subtype each other,
       \tau_l \subtype \tau_l' & \tau_r \subtype \tau_r' }{
       % then sums are subtypes
-      \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } 
-    % relational products:
-    \inference[ PRODS ]{ \tau \subtype \tau'}{
-      \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'} \\
+      \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } \\
     % subtype function with atomic
     \inference[ FNS-A]{ \tau \subtype A & A \subtype \tau' }{
       A \subtype \tau \rightarrow_x^i \tau'} 
-    % subtype atomic with sum
-    \inference[ SUM-A ]{ A \subtype \tau & A \subtype \tau' }{
-      A \subtype \tau +^i \tau' } 
     % subtype atomic with product
     \inference[ PROD-A ]{ A \subtype \tau }{
-      A \subtype \times^k_{i, j} \tau } \\
+      A \subtype \times^k_{i, j} \tau }
+    % subtype atomic with sum
+    \inference[ SUM-A ]{ A \subtype \tau & A \subtype \tau' }{
+      A \subtype \tau +^i \tau' } \\
     % lfps:
     \inference[ LFPS ]{}{} 
   \end{gather*}
-  \caption{Inductive inference rules that define relational refinement
-    subtypes.
+  \caption{Inductive inference rules that define the subtyping relation over relational refinement types.
     %
-    \BH{define metavariables}
-  }
+    \BH{define metavariables} }
   \label{fig:subtypes}
 \end{figure}
-
-\BH{define subtyping relation over indexed relational predicates}
 
 \BH{walk through subtyping rules}
 
@@ -476,16 +476,7 @@ The typing relation from tuples of expressions to relational types is
 defined as an instance of a typing relation from sub-expressions to
 relational types.
 % define context:
-A \emph{contextual relational type} is a relational type with program
-variables as indices.
-%
-I.e., the space of contextual relational types is $\reltypes{\vars}$.
-%
-A \emph{fixpoint relational context} is a map from fixpoint variables
-to contextual relational types.
-%
-I.e., the space of contexts is
-$\ctxs = \fixvars \partto \ctxreltypes$.
+\BH{define context}
 
 % define expression positions:
 An \emph{expression position} partially identifies the position of an
@@ -556,8 +547,8 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     % vars:
     \inference[ VAR ]{ %
       \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ a } : %
-      \tau \Join \tau^p_{a : \tau} } \\
+      \Gamma \judges \upd{ E }{ p }{ x } : %
+      \tau \Join \tau^p_{x : \Gamma(x)} } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
@@ -648,17 +639,15 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
   \caption{A typing system for relational types.
     %
     Metavariable %
-    $\gamma$ ranges over contexual relational types, %
     $\Gamma$ ranges over contexts, %
     $E$ ranges over positioned expressions, %
     $p$ ranges over expression positions, %
     $e$ ranges over expressions, %
-    $\tau$ ranges over relational types, %
+    $\sigma$ ranges over structural types, %
+    $\tau$ ranges over relational refinement types, %
     $c$ ranges over constants, %
-    $x$ and $y$ range over abstraction variables, %
-    $f$ ranges over fixpoint variables, %
-    $a$ ranges over variables, and
-    $\mathcal{X}$ ranges over indexed least-fixed-point variables. }
+    $x$, $y$, and $f$ range over abstraction variables, and %
+    $\mathcal{X}$ ranges over sets of least-fixed-point variables. }
   \label{fig:reltypes-rules}
 \end{figure}
 

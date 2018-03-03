@@ -10,6 +10,23 @@ We then define partial equivalence of STLC programs
 \subsection{A subject functional language}
 \label{sec:stlc}
 \begin{figure}[t]
+  % structural types,
+  \begin{minipage}{0.36\linewidth}
+    \begin{align*} %
+      \sigma \rightarrow &\ \unitty\ |\ \basety\ |\ X \\
+      | &\ \sigma \rightarrow \sigma \\
+      | &\ \sigma \times \sigma \\
+      | &\ \sigma + \sigma \\
+      | &\ \mu X. \sigma
+    \end{align*}
+    \caption{The space of structural types, $\types$.
+      % 
+      Metavariable $\sigma$ ranges over $\types$ and $X$ ranges over
+      least-fixed point variables.} %
+    \label{fig:types}
+  \end{minipage}
+  \qquad
+  % expressions,
   \begin{minipage}{0.55\linewidth}
     \begin{align*}
       % expression is the unit,
@@ -21,59 +38,50 @@ We then define partial equivalence of STLC programs
                       % or a base operation,
                       |\ e_0 \oplus e_1 \\
       % or an abstraction,
-      | &\ \lambda x.\ e \
+      | &\ \lambda x : \sigma.\ e \
       % or an application,
           | \ e_0\ e_1 \\
       % or a pairing,
       | &\ \pair{e_0}{e_1} \
       % or a let-expression,
-          |\ \letexp{x}{y}{e_0}{e_1} \\
+          |\ \letexp{x : \sigma_x }{y : \sigma_y }{e_0}{e_1} \\
       % or an injection or a match,
-      | &\ \injl\ e\ |\ \injr\ e\ |\ \matchexp{e_0}{x}{e_1}{y}{e_2} \\
+      | &\ \injl\ e\ |\ \injr\ e\ \\
+      | &\ \matchexp{e_0}{x : \sigma_x}{e_1}{y : \sigma_y}{e_2} \\
       % or a fix
-      | &\ \fix{f}{e}
+      | &\ \fix{f : \sigma}{e}
     \end{align*}
     \caption{The space of program expressions, $\expr$.
       %
       Metavariable $e$ ranges over $\expr$, %
       $c$ ranges over $\consts$, %
-      $a$ ranges over $\vars$, %
       $\oplus$ ranges over base operations, %
-      $x$ and $y$ range over $\absvars$, and %
-      $f$ ranges over $\fixvars$. } %
+      $x$, $y$ and $f$, range over $\vars$, and %
+      $\sigma$ ranges over structural types. } %
     \label{fig:exprs}
   \end{minipage}
   \qquad
-  % types,
-  \begin{minipage}{0.36\linewidth}
-    \begin{align*} %
-      \tau \rightarrow &\ \unitty\ |\ \basety\ |\ X \\
-      | &\ \tau \rightarrow \tau \\
-      | &\ \tau + \tau \\
-      | &\ \tau \times \tau \\
-      | &\ \mu X. \tau
-    \end{align*}
-    \caption{The space of types, $\types$.
-      % 
-      Metavariable $\tau$ ranges over $\types$ and $X$ ranges over
-      least-fixed point variables.} %
-    \label{fig:types}
-  \end{minipage}
 \end{figure}
 
-% define STLC syntax:
-\paragraph{Syntax}
-% define spaces,
-\autoref{fig:exprs} defines a space of expressions.
+% define base types:
+\paragraph{Structural types}
 %
-Expressions are defined over disjoint spaces of abstraction variables
-$\absvars$, fixpoint variables $\fixvars$;
+A structural type defines the structure of values.
 %
-the disjoint union of abstraction variables and fixpoint variables is
-denoted $\vars$.
+The space of types is defined in \autoref{fig:types}.
 %
-The space of constants is denoted $\consts$.
+A type is the unit, the base type, a type variable, a function type, a
+sum of types, a product of types, or a least-fixed point of a type.
+%
+A type $\sigma$ is well-formed if each type variable $X$ occurs only
+as a component of a type of the form $\mu X. \sigma'$ that itself is a
+component of $\sigma$.
 
+% define expression syntax:
+\paragraph{Expressions}
+% define spaces,
+\autoref{fig:exprs} defines a space of expressions over spaces of
+constants $\consts$ and variables $\vars$.
 % define construction of expressions,
 An expression is the unit, a constant, a variable, a base operation
 over expressions, an abstraction, an application, a pair, a
@@ -82,14 +90,6 @@ fixpoint.
 %
 For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
 $\freevars(e)$.
-%
-A \emph{program} is a closed expression---i.e., an expression $e$
-such that $\freevars(e) = \emptyset$.
-%
-For $P \in \stlc$, the subexpressions of $P$ are denoted
-$\subexps{ P }$.
-%
-Let $P$ be fixed for the rest of this section.
 
 % define semantics:
 \paragraph{Semantics}
@@ -99,8 +99,13 @@ left-injection of a value, or a right-injection of a value;
 %
 the space of values is denoted $\values$.
 %
+The space of base values
+$\basevals = \consts \union \elts{ \injl\ \cc{()}, \injr\ \cc{()}}$
+contains the space of constants and the left injections of the unit,
+which will be used to model Boolean values.
+%
 For each base operation $\oplus$, there is a semantic function
-$\interp{\oplus} : \consts \times \consts \to \consts$.
+$\interp{\oplus} : \basevals \times \basevals \to \basevals$.
 
 \begin{figure}
   \centering
@@ -161,8 +166,7 @@ $\interp{\oplus} : \consts \times \consts \to \consts$.
     Metavariable $e$ ranges over $\expr$, %
     $c$ ranges over $\consts$, %
     $\oplus$ ranges over base operations, %
-    $x$ and $y$ range over $\absvars$, and %
-    $f$ ranges over $\fixvars$.}
+    $x$, $y$, and $f$ range over $\vars$.}
   \label{fig:nat-sem}
 \end{figure}
 %
@@ -173,19 +177,6 @@ The evaluation relation is a natural (i.e., \emph{big-step})
 semantics, defined inductively by inference rules given in
 \autoref{fig:nat-sem}.
 
-% define base types:
-\paragraph{Structural types}
-%
-A structural type defines the structure of a value.
-%
-The space of types is defined in \autoref{fig:types}.
-%
-A type is the unit, the base type, a type variable, a function type, a
-sum of types, a product of types, or a least-fixed point of a type.
-%
-A type $\tau$ is well-formed if each type variable $X$ occurs only as
-a component of a type of the form $\mu X. \tau'$ that itself is a
-component of $\tau$.
 
 % standard defns for logic:
 \paragraph{Logic}
