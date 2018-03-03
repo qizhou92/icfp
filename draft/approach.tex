@@ -311,7 +311,10 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
   \centering
   \begin{gather*}
     % join atomics:
-    \inference[ ATOMICS ]{ }{ } \\
+    \inference[ ATOMICS ]{ }{
+      %
+      \tau^A_{\Phi, N, E} \Join \tau^A_{\Phi', N', E'} \subtype %
+      \tau^A_{\Phi'', N'', E''} } \\
     % join shared function:
     \inference[ FNS ]{
       % join the nested relational types:
@@ -396,7 +399,7 @@ $\tau \join{ \varphi } \tau' \subtype \tau''$.
 The join operation is defined by the inductive inference rules given
 in \autoref{fig:join}.
 % atomic relational types:
-Rule~ATOMICS
+Rule~ATOMICS establishes that the atomic types defined by 
 %
 \BH{complete}
 
@@ -1030,17 +1033,21 @@ and $j$ are equivalent.
 Rules~FN, SUM, PROD, and LFP establish that the relation is preserved
 over relational type operations.
 %
-Rule~ATOMIC relates the atomic relational type defined by, for
-$I = \add{i}{\vars}$, indexed refinement predicates
+Rule~ATOMIC relates the atomic relational type defined by, for some
+$X \subseteq \vars$ $I = \add{i}{X}$, indexed refinement predicates
 $\Phi : \idxrefpreds{ I }$, %
-$N : \lfpvars \partto I$, and %
-$E \subseteq \lfpvars \times \lfpvars$ to the atomic relational
+$N : \lfpvars \partto I$, and for $\mathcal{X} = \domain(N)$,
+$E \subseteq \mathcal{X} \times \mathcal{X}$, to the atomic relational
 predicate over indices $I' = I \union \add{ j }{ \vars_j }$ defined by
 the following indexed refinement predicates $\Phi'$, least-fixed-point
 mapping $N'$, and equivalence relation $E'$ over least-fixed point
 variables.
 %
-\BH{define copies of abstraction variables}
+$X_j \subseteq \vars$ denotes a disjoint copy of $X$ such that for
+each $x \in X$, there is a corresponding $x_j \in X_j$, and
+$\mathcal{X} \subseteq \lfpvars$ denotes a disjoint copy of
+$\mathcal{X}$ such that for each $X \in \mathcal{X}$ there is a
+corresponding $X_j \in \mathcal{X}$.
 % define indexed refinement predicates:
 $\Phi' : I' \partto \idxrefpreds{ I' }$ is such that for each
 $Q \subseteq \idxpos{ I }$ in the domain of $\Phi$, $\Phi'$ binds the
