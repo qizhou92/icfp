@@ -987,7 +987,9 @@ $\mu_i X. \mu_j X. \tau$.
 \begin{figure}
   \centering
   \begin{gather*}
-    \inference[ ATOMS ]{ }{ A \copyrel{i}{j} A' } 
+    \inference[ ATOMS ]{ }{ %
+      \tau^A_{\Phi, N, E} \copyrel{i}{j} %
+      \tau^A_{\Phi'_{i, j}, N_{i, j}, E_{i, j}} } 
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
@@ -1025,10 +1027,37 @@ $\mu_i X. \mu_j X. \tau$.
 $\tau'$ contains that copies of relational type $\tau$ at indices $i$
 and $j$ are equivalent.
 %
-Rule~ATOMC \BH{complete}
-%
 Rules~FN, SUM, PROD, and LFP establish that the relation is preserved
 over relational type operations.
+%
+Rule~ATOMIC relates the atomic relational type defined by, for
+$I = \add{i}{\vars}$, indexed refinement predicates
+$\Phi : \idxrefpreds{ I }$, %
+$N : \lfpvars \partto I$, and %
+$E \subseteq \lfpvars \times \lfpvars$ to the atomic relational
+predicate over indices $I' = I \union \add{ j }{ \vars_j }$ defined by
+the following indexed refinement predicates $\Phi'$, least-fixed-point
+mapping $N'$, and equivalence relation $E'$ over least-fixed point
+variables.
+%
+\BH{define copies of abstraction variables}
+% define indexed refinement predicates:
+$\Phi' : I' \partto \idxrefpreds{ I' }$ is such that for each
+$Q \subseteq \idxpos{ I }$ in the domain of $\Phi$, $\Phi'$ binds the
+indexed type positions
+$\setformer{ (i, p), (j, p) }{ p \in \typos, (i, p) \in Q } \union
+\setformer{ (x_j, p) }{ x \in \vars, p \in \typos }$ to refinement predicate
+\[ \Phi(Q) \bigland_{p \in \typos} (i, p) = (j, p) \land %
+  \bigland_{ x \in \vars } (x, p) = (x_j, p) \]
+% define variable indexing:
+$N' : \lfpvars \partto I'$ is such that %
+for each $i \in I$, $N'(i) = N(i)$; %
+if $i \in \domain(N)$, then $N'(j) = N(i)_j$;
+for each $x \in \vars$, $N'(x_j) = N'(x)_j$.
+% define equivalence class
+$E' \subseteq \lfpvars \times \lfpvars$ is the reflexive, symmetric,
+transitive closure of
+$E \union \setformer{ (X, X_j) }{ X \in \mathcal{ X } }$.
 
 % connect it back to typing rules:
 For indices $i$ and $j$, structural type $\sigma$, and relational type
