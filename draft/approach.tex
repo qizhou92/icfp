@@ -290,13 +290,7 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
   \centering
   \begin{gather*}
     % join atomics:
-    \inference[ ATOMICS ]{
-      % join the indexed refinement predicates,
-      \Phi \Join \Phi' \subtype \Phi'' &
-      % join the mutual induction sets,
-      \mathcal{M} \Join \mathcal{M}' \subtype \mathcal{M}'' }{
-      (\Phi, \mathcal{M}) \Join (\Phi', \mathcal{M}') \subtype %
-      (\Phi', \mathcal{M}'') } \\
+    \inference[ ATOMICS ]{ }{ } \\
     % join shared function:
     \inference[ FNS ]{
       % join the nested relational types:
@@ -429,17 +423,13 @@ refinement type in the (ternary) join relation are symmetric.
   \centering
   \begin{gather*}
     % subtype pair of atomic types:
-    \inference[ ATOMICS ]{
-      \Phi \subtype \Phi' & \mathcal{M} \subtype \mathcal{M}' }{
-      (\Phi, \mathcal{M}) \subtype (\Phi', \mathcal{M}') } \\
+    \inference[ ATOMICS ]{ }{ } \\
     % rules that deconstruct both sides. Relational functions:
     \inference[ FNS ]{
       % if parameter 1 subtypes parameter 0,
-      \tau_1 \subtype \tau_0 &
-      % and result 0 subtypes result 1
-      \tau_0' \subtype \tau_1' }{
+      \tau \subtype \tau' }{
       % then function types are subtypes,
-      \tau_0 \to_x^i \tau_0' \subtype \tau_1 \to_x^i \tau_1' } 
+      \to_x^i \tau \subtype \to_x^i \tau' } 
     % relational products:
     \inference[ PRODS ]{ \tau \subtype \tau'}{
       \times_{i, j}^k \tau \subtype \times_{i, j}^k \tau'}
@@ -450,14 +440,14 @@ refinement type in the (ternary) join relation are symmetric.
       % then sums are subtypes
       \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } \\
     % subtype function with atomic
-    \inference[ FNS-A]{ \tau \subtype A & A \subtype \tau' }{
-      A \subtype \tau \rightarrow_x^i \tau'} 
+    \inference[ FNS-A]{ \tau \subtype A }{
+      \rightarrow_x^i \tau \subtype A } 
     % subtype atomic with product
-    \inference[ PROD-A ]{ A \subtype \tau }{
-      A \subtype \times^k_{i, j} \tau }
+    \inference[ PROD-A ]{ \tau \subtype A }{
+      \times^k_{i, j} \tau \subtype A }
     % subtype atomic with sum
-    \inference[ SUM-A ]{ A \subtype \tau & A \subtype \tau' }{
-      A \subtype \tau +^i \tau' } \\
+    \inference[ SUM-A ]{ \tau \subtype A & \tau' \subtype A }{
+      \tau +^i \tau' \subtype A } \\
     % lfps:
     \inference[ LFPS ]{}{} 
   \end{gather*}
@@ -527,48 +517,51 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     % unit:
     \inference[ UNIT ]{
       % get types for remainder,
-      \Gamma \judges E : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ \unit } : \tau \Join \tau_1^p } 
+      \Gamma \judges E : \tau & %
+      \tau \Join \tau_1^p \subtype \tau' }{ %
+      \Gamma \judges \upd{ E }{ p }{ \unit } : \tau' } 
     % constant:
     \inference[ CONST ]{ %
       % remainder has type tau,
-      \Gamma \judges E : \tau }{ %
+      \Gamma \judges E : \tau &
+      \tau \Join \tau_c^p \subtype \tau' }{ %
       \Gamma \judges \upd{ E }{ p }{ c } : %
-      \tau \Join \tau^p_c } \\
+      \tau' } \\
     % base operation:
     \inference[ OP ]{ %
       % remainder has type tau,
       \Gamma \judges %
       \upd{ E }{ \leftchild \cons p, \rightchild \cons p }{ %
-        e_0, e_1 } : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : %
+        e_0, e_1 } : \tau \\
       \tau \Join \tau_{\leftchild \cons p \oplus \rightchild \cons
-        p}^p }
+        p}^p \subtype \tau' }{ %
+      \Gamma \judges \upd{ E }{ p }{ e_0 \oplus e_1 } : \tau' }
     % base pred:
     \inference[ PRED ]{ %
       % remainder has type tau,
       \Gamma \judges %
       \upd{ E }{ \leftchild \cons p, \rightchild \cons p }{ %
-        e_0, e_1 } : \tau }{ %
-      \Gamma \judges \upd{ E }{ p }{ e_0 \otimes e_1 } : %
+        e_0, e_1 } : \tau \\
       \tau \Join \tau_{\leftchild \cons p \otimes \rightchild \cons
-        p}^p } \\
+        p}^p \subtype \tau' }{ %
+      \Gamma \judges \upd{ E }{ p }{ e_0 \otimes e_1 } : \tau' } \\
     % abstraction:
     \inference[ ABS ]{ 
       % extend the context and typecheck the body,
-      \Gamma \judges \upd{ E }{ p }{ e } : \tau }{ %
+      \upd{ \Gamma }{ x }{ \sigma } \judges %
+      \upd{ E }{ p }{ e } : \tau }{ %
       % type of abstraction is
-      \Gamma' \judges \upd{ E }{ p }{ \abs{ x }{ \sigma }{ e } } : %
+      \Gamma \judges \upd{ E }{ p }{ \abs{ x }{ \sigma }{ e } } : %
       \to^p_x \tau } 
     % application:
     \inference[ APP ]{ %
       % get type of abstraction,
-      \Gamma \judges \upd{E}{p}{e_0} : \to^p_x \tau \\
+      \Gamma \judges \upd{E}{p}{e_0} : \to^p_x \tau &
       % get type of argument that is the parameter type,
-      \Gamma \judges \upd{E}{p}{e_1} : \tau' }{
+      \Gamma \judges \upd{E}{p}{e_1} : \tau' \\
+      \tau \Join \rename{ \tau' }{ p }{ x } \subtype \tau'' }{
       % return the result type
-      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : %
-      \tau \Join \rename{ \tau' }{ p }{ x } } \\
+      \Gamma \judges \upd{ E }{ p }{e_0\ e_1} : \tau'' } \\
     % pairing:
     \inference[ PAIR ]{
       % get type of both expressions,
@@ -582,13 +575,14 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     \inference[ LET ]{
       % get type of bound expression,
       \Gamma \judges \epsilon \mapsto e_0 : %
-      \times_{x, y}^{\epsilon} \tau \\
+      \times_{x, y}^{\epsilon} \tau &
       % get type of result under context that binds to x and y,
-      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau' }{
+      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau' \\
+      \tau \Join \tau' \subtype \tau'' }{
       % then complete let expression has type
       \Gamma \judges \upd{E}{p}{ %
         \letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1} } : %
-      \tau \Join \tau' } \\
+      \tau'' } \\
     % left injection:
     \inference[ LEFT ]{
       % get type of the nested exp,
@@ -620,9 +614,9 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     % vars:
     \inference[ VAR ]{ %
       \Gamma \judges E : \tau & %
-      \iseq{p}{f}(\Gamma(x), \tau') }{ %
-      \Gamma \judges \upd{ E }{ p }{ x } : %
-      \tau \Join \tau' } \\
+      \iseq{p}{f}(\Gamma(x), \tau') \\
+      \tau \Join \tau' \subtype \tau'' }{ %
+      \Gamma \judges \upd{ E }{ p }{ x } : \tau'' } \\
     % fixpoint:
     \inference[ FIX ]{
       % get type of body under context that binds symbol to tau,
@@ -827,6 +821,18 @@ Rule~SUB establishes that if $E$ have type $\tau$ a subtype of $\tau'$,
 then $E$ has type $\tau'$.
 
 \paragraph{Constraining equivalence over indices}
+%
+The typing system in \autoref{fig:reltype-rules} assigns types to
+occurrences of variables and to fixpoint expressions using a property
+over structural and relational types, namely that relational type
+$\tau$ constrains that indices $i$ and $j$ are equivalent over
+structural type $\sigma$.
+%
+We now define this property over types in terms of two auxiliary
+relations that define \textbf{(1)} when a relational type $\tau$ holds
+a structural type $\sigma$ at a given index and \textbf{(2)} when
+relational type $\tau'$ constrains that copies of a relational type
+$\tau$ at given indices are equivalent.
 
 % inference rules that define relational type of a structural type:
 \begin{figure}
@@ -836,69 +842,72 @@ then $E$ has type $\tau'$.
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
-      \iseq{i}{j}(\upd{ T }{ %
+      \upd{ T }{ %
         \leftchild \cons p, \rightchild \cons p }{ %
-        \sigma_{\alpha}, \sigma_{\nu} }, %
-      \tau) }{
+        \sigma_{\alpha}, \sigma_{\nu} } \hasreltype{i} \tau }{
       % construct relational function type
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_{\alpha} \to \sigma_{\nu} }, %
-      \to^i_x \to^j_x \tau) } 
+      \upd{ T }{ p }{ \sigma_{\alpha} \to \sigma_{\nu} } \hasreltype{i}
+      \to^i_x \tau } 
     % structural products:
     \inference[ PROD ]{
       % get relational types of components,
-      \iseq{i}{j}(\upd{ T }{ %
+      \upd{ T }{ %
         \leftchild \cons p, \rightchild \cons p }{ %
-        \sigma_l, \sigma_r }, %
-      \tau) }{
+        \sigma_l, \sigma_r } \hasreltype{i} \tau }{
       % construct relational product type
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l \times \sigma_r }, %
-      \times_{ \leftchild \cons i, \rightchild \cons i }^{i} %
-      \times_{ \leftchild \cons j, \rightchild \cons j }^{j} \tau) } \\
+      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \hasreltype{i}
+      \times_{ \leftchild \cons i, \rightchild \cons i }^{i} \tau } \\
     % structural sum:
     \inference[ SUM ]{
       % get relational type of lhs,
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l }, \tau_l) &
+      \upd{ T }{ p }{ \sigma_l } \hasreltype{i} \tau_l &
       % get relational type of rhs,
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_r }, \tau_r) }{
+      \upd{ T }{ p }{ \sigma_r } \hasreltype{i} \tau_r }{
       % combine results mutual sum:
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma_l + \sigma_r }, %
-      \tau_l +^{i, j} \tau_r) } 
+      \upd{ T }{ p }{ \sigma_l + \sigma_r } \hasreltype{i}
+      \tau_l +^{i} \tau_r } 
     % structural lfp:
     \inference[ LFP ]{
       % get relational type of nested type,
-      \iseq{i}{j}(\upd{ T }{ p }{ \sigma },  \tau) }{
+      \upd{ T }{ p }{ \sigma } \hasreltype{i} \tau }{
       % operate using the lfp operator
-      \iseq{i}{j}(\upd{ T }{ p }{ \mu X. \sigma }, %
-      \mu_j X. \mu_i X. \tau) }
+      \upd{ T }{ p }{ \mu X. \sigma } \hasreltype{i}
+      \mu_i X. \tau }
   \end{gather*}
-  \caption{Inductive inference rules that define relational refinement type that it constrain equivalence over types of structure $\sigma$ at indicies $i$ and $j$.
+  \caption{Inductive inference rules that define conditions under which a relational type is a relational type of a structural type.
     %
-    \BH{define metavariables used in rules} }
+    Metavariable $T$ ranges over maps from type positions to structural types, %
+    $p$ ranges over type positions, %
+    $\tau$ ranges over relational types, %
+    $\sigma$ ranges over structural types, %
+    $i$ ranges over indicies $I$, %
+    $x$ ranges over $\vars$, and %
+    $X$ ranges over $\lfpvars$. }
   \label{fig:eq-test}
 \end{figure}
 
 % define judgment:
 \autoref{fig:eq-test} contains a set of inductive inference rules that
 define the fact that relational type
-$\tau \in \reltypes{ \elts{i, j} }{ \lfpvars }$ asserts equality of
-indices $i$ and $j$ over structual type $\sigma \in \types$, denoted
-$\iseq{i}{j}(\sigma, \tau)$.
+$\tau \in \reltypes{ \add{i}{ \vars } }{ \lfpvars }$ is a relational
+type of structural type $\sigma$ at index $i$, denoted
+$\sigma \hasreltype{i} \tau$.
 %
-$\iseq{i}{j}$ is defined in terms of a relation $\iseq{i}{j}$ that
-relates structual types in an alternative represnetation as maps from
-type positions to structual types.
+The relation is defined in terms of a relation from relates structural
+types in an alternative representation as maps from type positions to
+structural types.
 %
 For $\Sigma: \typos \partto \types$, the fact that $\Sigma$ is related
-to relational refinement type $\tau$ is denoted
-$\iseq{i}{j}(\Sigma, \tau)$.
+to relational refinement type $\tau$ at $i$ is denoted
+$\Sigma \hasreltype{i} \tau$.
 %
-The equality-assertion property over structual types is defined to be
-$\iseq{i}{j}(\sigma, \tau) \equiv \iseq{i}{j}(\epsilon \mapsto \sigma,
+The relation over structural types is defined to be
+$\sigma \hasreltype{i} \tau \equiv \iseq{i}{j}(\epsilon \mapsto \sigma,
 \tau)$.
 
 % walk through the rules
-The equality-assertion property $\iseq{i}{j}(\sigma, \tau)$ is defined
-by the inductive inference rules given in \autoref{fig:eq-test}.
+The has-relational-type relation is defined by the inductive inference
+rules given in \autoref{fig:eq-test}.
 %
 Rule~ATOMS defines the correspondence for maps to atomic structural
 types.
@@ -920,33 +929,87 @@ $\mathcal{M}$ is an arbitrary mutual-induction set.
 % functions:
 Rule~FN establishes that for $T : \typos \partto \types$,
 $p \in \typos$, $\sigma_{\alpha}, \sigma_{\nu} \in \types$, and
-$\tau$, if $\tau$ tests equality over of $T$ extended to map type
-positions $\leftchild \cons p$ and $\rightchild \cons p$ to
-$\sigma_{\alpha}$ and $\sigma_{\nu}$ respectively, then $\tau$
-abstracted over $x$ at $i$ and $j$ tests equality over $T$ extended to
-bind $p$ to $\sigma_{\alpha} \to \sigma_{\nu}$.
-% products: sums
-Rule~PROD establishes that if $\tau$ constrains equality of $T$
-extended to bind $\leftchild \cons p$ and $\rightchild \cons p$ to
-structural types $\sigma_l$ and $\sigma_r$ respectively, then the
-relational product of $\tau$ from $\leftchild \cons j$ and
-$\rightchild \cons j$ to $j$, then from $\leftchild \cons i$ and
-$\rightchild \cons i$ to $i$ constrains equality over $T$ extended to
-map $p$ to $\sigma_l \times \sigma_r$.
+$\tau$, if $T$ extended to map type positions $\leftchild \cons p$ and
+$\rightchild \cons p$ to $\sigma_{\alpha}$ and $\sigma_{\nu}$
+respectively has relational type $\tau$, then $T$ extended to bind $p$
+to $\sigma_{\alpha} \to \sigma_{\nu}$ has relational type $\tau$
+abstracted over $x$ at $i$.
+% products
+Rule~PROD establishes that if $T$ extended to bind
+$\leftchild \cons p$ and $\rightchild \cons p$ to structural types
+$\sigma_l$ and $\sigma_r$ respectively has relational type $\tau$,
+then $T$ extended to map $p$ to $\sigma_l \times \sigma_r$ has
+relational product of $\tau$ from $\leftchild \cons i$ and
+$\rightchild \cons i$ to $i$ has relational type $\tau$.
 
 % sums:
 Rule~SUM establishes that if %
-\textbf{(1)} $\tau_l$ constrains equality of $T$ extended to map $p$
-to $\sigma_l$ and %
-\textbf{(2)} $\tau_r$ constrains equality of $T$ extended to map $p$
-to $\sigma_r$, then %
-the mutual sum of $\tau_l$ and $\tau_r$ and $i$ and $j$ constrains
-equality of $T$ extended to bind $p$ to $\sigma_l +^{i, j} \sigma_r$.
+\textbf{(1)} $T$ extended to map $p$ to $\sigma_l$ has relational type
+$\tau_l$ and %
+\textbf{(2)} $T$ extended to map $p$ to $\sigma_r$ has relational type
+$\tau_r$, then %
+$T$ extended to bind $p$ to $\sigma_l +^{i, j} \sigma_r$ has the sum
+of $\tau_l$ and $\tau_r$ at $i$.
 %
 Rule~LFP establishes that if %
-$\tau$ constrains equality of $T$ extended to map $p$ to $\sigma$,
-then $\mu_i X. \mu_j X. \tau$ constrains equality of $T$ extended to
-bind $p$ to $\mu X. \sigma$.
+$T$ extended to map $p$ to $\sigma$ has relational type $\tau$, then
+$T$ extended to bind $p$ to $\mu X. \sigma$ has
+$\mu_i X. \mu_j X. \tau$.
+
+% inference rules that define relational type of a structural type:
+\begin{figure}
+  \centering
+  \begin{gather*}
+    \inference[ ATOMS ]{ }{ A \copyrel{i}{j} A' } 
+    % structural functions:
+    \inference[ FN ]{ 
+      % get relational types of parameter, result
+      \tau \copyrel{i}{j} \tau' }{
+      % construct relational function type
+      \to_x^a \tau \copyrel{i}{j} \to_x^a \tau' } 
+    % structural products:
+    \inference[ PROD ]{
+      % get relational types of components,
+      \tau \copyrel{i}{j} \tau' }{
+      \times_{a, b}^c \tau \copyrel{i}{j} \times_{a, b}^c \tau' } \\
+    % structural sum:
+    \inference[ SUM ]{
+      % get relational type of lhs,
+      \tau_l \copyrel{i}{j} \tau_l' & %
+      \tau_r \copyrel{i}{j} \tau_r' }{
+      % combine results mutual sum:
+      \tau_l +^a \tau_r \copyrel{i}{j} \tau_l' +^a \tau_r' }
+    % structural lfp:
+    \inference[ LFP ]{
+      % get relational type of nested type,
+      \tau \copyrel{i}{j} \tau' }{
+      % operate using the lfp operator
+      \mu_a X. \tau \copyrel{i}{j} \mu_a X. \tau' }
+  \end{gather*}
+  \caption{Inductive inference rules that define when relational type $\tau'$ constrains that a copies of $\tau$ at $i$ are equal at $i$ and $j$.
+    %
+    Metavariable $\tau$ ranges over relational refinement types, %
+    $a$, $b$, and $c$ range over $\add{i}{\vars}$, and %
+    $X$ ranges over $\lfpvars$. }
+  \label{fig:ctr-eq}
+\end{figure}
+%
+\autoref{fig:ctr-eq} defines conditions under which relational type
+$\tau'$ contains that copies of relational type $\tau$ at indices $i$
+and $j$ are equivalent.
+%
+Rule~ATOMC \BH{complete}
+%
+Rules~FN, SUM, PROD, and LFP establish that the relation is preserved
+over relational type operations.
+
+% connect it back to typing rules:
+For indices $i$ and $j$, structural type $\sigma$, and relational type
+$\tau$, $\tau$ constrains equivalence from $i$ to $j$ over $\sigma$ if
+there is some $\tau'$ such that \textbf{(1)} $\tau'$ is a structural
+type of $\sigma$ at $i$ (i.e., $\sigma \hasreltype{i} \tau'$) and
+\textbf{(2)} $\tau$ constrains equality of copies of $\tau$ at $i$ and
+$j$.
 
 % main lemma of the typing system:
 \subsubsection{Correctness}

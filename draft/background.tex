@@ -35,8 +35,8 @@ We then define partial equivalence of STLC programs
                       |\ c\
                       % or a variable,
                       |\ a\ 
-                      % or a base operation,
-                      |\ e_0 \oplus e_1 \\
+                      % or a base operation or predicate,
+                      |\ e_0 \oplus e_1 |\ e_0 \otimes e_1 \\
       % or an abstraction,
       | &\ \abs{ x }{ \sigma }{ e } \
       % or an application,
@@ -55,7 +55,8 @@ We then define partial equivalence of STLC programs
       %
       Metavariable $e$ ranges over $\expr$, %
       $c$ ranges over $\consts$, %
-      $\oplus$ ranges over base operations and predicates, %
+      $\oplus$ ranges over base operations,
+      $\otimes$ ranges over base predicates, %
       $x$, $y$ and $f$, range over $\vars$, and %
       $\sigma$ ranges over structural types. } %
     \label{fig:exprs}
@@ -109,7 +110,7 @@ The space of Boolean values is
 $\bools = \elts{ \injl\ \cc{()}, \injr\ \cc{()}}$;
 %
 for each base predicate $\oplus$, there is a semantic function
-$\interp{\oplus} : \bools \to \bools$.
+$\interp{\otimes} : \consts \times \consts \to \bools$.
 
 \begin{figure}
   \centering
@@ -122,7 +123,12 @@ $\interp{\oplus} : \bools \to \bools$.
   \inference[ OP ]{ %
     e_0 \evalsto c_0 & %
     e_1 \evalsto c_1 }{ %
-    e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } \\
+    e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } 
+  % evaluate binary pred:
+  \inference[ PRED ]{ %
+    e_0 \evalsto c_0 & %
+    e_1 \evalsto c_1 }{ %
+    e_0 \otimes e_1 \evalsto c_0 \interp{\otimes} c_1 } \\
   % abstraction, 
   \inference[ ABS ]{ }{ \abs{ x }{ \sigma }{ e } \evalsto %
     \abs{ x }{ \sigma }{ e } \abs{x}{\sigma}{e} } 
