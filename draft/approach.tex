@@ -62,24 +62,26 @@ refinement predicates if for each $J \subseteq \idxpos{I}$ bound in
 $\Phi$, $\Phi(J) \in \refpreds{J}$.
 
 % define relational refinement types:
-For indices $I$ and $X \subseteq \lfpvars$, an \emph{relational
-  refinement type representation} over $I$ and $X$ is a tuple
-$(\Phi, N, P, E)$, where
+For indices $I$, a \emph{relational refinement type representation}
+over $I$ is a tuple $(\Phi, N, P, E)$, where
 % indexed refinement predicates
 \textbf{(1)}
 $\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
 refinement predicates;
 %
-\textbf{(2)} $N : X \to I$;
+\textbf{(2)} the least-fixed point variable \emph{indexing} is
+$N : \lfpvars \partto I$;
 %
-\textbf{(3)} $P : X \to \typos$;
+\textbf{(3)} the least-fixed point variable \emph{positioning}
+$P : \lfpvars \partto \typos$, where $X = \domain(N) = \domain(P)$
 %
 \textbf{(4)} $\mathcal{M} \subseteq X \times X$ an equivalence
 relation over $X$ such that for each equivalence class
-$E \in \equiv_{\mathcal{M}}$, $\restrict{N}{E}$ is one-to-one.
+$E \in \equiv_{\mathcal{M}}$, the restriction $\restrict{N}{E}$ is
+one-to-one.
 %
-The space of relational refinement types over $I$ and $X$ is denoted
-$\reltypes{I, X}$.
+The space of relational refinement types over $I$ is denoted
+$\reltypes{I}$.
 
 % declare typing relation:
 A key contribution of our work is the definition of a typing relation
@@ -120,13 +122,11 @@ Then for each $N : X \to I$ and $\mathcal{M} \in \equiv_X$, the
 $\mathcal{M}$ is
 $(\inv{g} \compose \Phi \compose f, N, P \compose g, \mathcal{M})$.
 
-\paragraph{Relational refinement function types}
+\paragraph{Abstraction of relational refinement function types}
 %
-The relational function from type $\tau$ to $\tau'$ at index $i$ over
-variable $x$ is a relational refinement type in which the type at $i$
-is a function from the type at $i$ in $\tau$ to the type at $i$ in
-$\tau'$, and all references to $x$ in $\tau'$ are replaced with
-references to components of $\tau$.
+The abstraction of $\tau$ over variable $x$ at index $i$ is a
+relational refinement type in which the type at $i$ is a function from
+the type at $x$ in $\tau$ to the type at $i$ in $\tau$.
 % define renaming over indices:
 For indices $I$ and $i, j \in I$, let
 $\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
@@ -187,12 +187,24 @@ prepending of $(\Phi, N, P, E)$ with $p$ at $i$ is
 $p \prepend{i} (\Phi, N, P, E) = (p \fullprepend{i}{N} \Phi, N, p
 \fullprepend{i}{N} P, E)$.
 
+% define well-formedness of indexed refinement predicates
+$\Phi \in \idxrefpreds{ I }$ are a \emph{valid instance} of index $i$
+over index $j$ if for all $J \in \domain(\Phi)$ and each
+$p \in \typos$ such that $(i, p) \in J$, there are no
+$q_0, q_1 \in \typos$ such that
+$q_0 \concat [ \typaramfield ] \concat q_1$ or
+$q_0 \concat [ \tyresfield ] \concat q_1 \in J$.
+
 % define function relational type operator
-For index $i \in I$, $X \subseteq \lfpvars$,
-$\tau \in \reltypes{I, X}$, $i \in I$, and $x \in \vars$, the
-abstraction of $\tau$ over $x$ at $i$ is
+For index $i, x \in I$, %
+$\Phi \in \idxrefpreds{I}$ a valid instance of $i$ over $x$, %
+$N : \lfpvars \partto I$, %
+$P : \lfpvars \partto \typos$, and %
+$E \subseteq \lfpvars \times \lfpvars$ such that
+$\tau = (\Phi, N, P, E)$ is a valid relational refinement type
+representation, the abstraction of $\tau$ over $x$ at $i$ is
 $\to_x^i \tau = \rename{ (\typaramfield \prepend{x} \tyresfield
-  \prepend{i} \tau)}{x}{i}$.
+  \prepend{i} \tau)}{ x }{ i }$.
 
 % define relational sum:
 \paragraph{Relational refinement sum types} The relational sum of
@@ -228,9 +240,9 @@ The indexed product of relational type $\tau$ from indices $i$ and $j$
 to index $k$ is a relational type in which the type at $k$ is the
 product of types at $i$ and $j$.
 %
-I.e., for indices $I$, $X \subseteq \lfpvars$,
-$\tau \in \reltypes{I, X}$, and indices $i, j, k \in I$, the
-relational product of $\tau$ from $i$ and $j$ to $k$ is
+I.e., for indices $I$, $\tau \in \reltypes{I}$, and indices
+$i, j, k \in I$, the relational product of $\tau$ from $i$ and $j$ to
+$k$ is
 $\times_{i, j}^k \tau = \rename{ (\tyleftprod \prepend{i} \tyrightprod
   \prepend{j} \tau)}{ i, j }{k}$.
 
@@ -240,9 +252,9 @@ The indexed least-fixed point of relational type $\tau$ at index $i$
 defines a relational type over unbounded unfoldings of the relational
 type at $i$.
 %
-I.e., for space of indices $I$, $\mathcal{X} \subseteq \lfpvars$,
-$\tau \in \reltypes{I, \mathcal{X}}$ and $X \in \mathcal{X}$, the
-least-fixed point of $\tau$ over $X$ at $i$ is $\mu_i X. \tau = %
+I.e., for space of indices $I$, $\tau \in \reltypes{I}$ and
+$X \in \mathcal{X}$, the least-fixed point of $\tau$ over $X$ at $i$
+is $\mu_i X. \tau = %
 \mu_X \prepend{i} \tau$.
 %
 For $\mathcal{Y} : I \partto \mathcal{X}$, the \emph{mutual} least
@@ -889,8 +901,8 @@ $\tau$ at given indices are equivalent.
 % define judgment:
 \autoref{fig:eq-test} contains a set of inductive inference rules that
 define the fact that relational type
-$\tau \in \reltypes{ \add{i}{ \vars } }{ \lfpvars }$ is a relational
-type of structural type $\sigma$ at index $i$, denoted
+$\tau \in \reltypes{ \add{i}{ \vars } }$ is a relational type of
+structural type $\sigma$ at index $i$, denoted
 $\sigma \hasreltype{i} \tau$.
 %
 The relation is defined in terms of a relation from relates structural
