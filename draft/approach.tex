@@ -1,45 +1,43 @@
 % give the real meat of the thing
 \section{Technical Approach}
 %
-In this section, we describe our technical approach in detail.
+This section describes our technical approach in detail.
 %
-In \autoref{sec:rel-types}, we define a type system for proving
-equivalence of programs.
+\autoref{sec:rel-types} we defines a type system that can be used to
+prove that collections of programs satisfy relational properties.
 %
-In \autoref{sec:infer}, we present an algorithm for
-inferring such types.
+\autoref{sec:infer} presents an algorithm for inferring typings in the
+system.
 
 \subsection{Relational properties as relational types}
 \label{sec:rel-types}
 %
-In this section, we describe a space of types over collections of
-expressions, which can represent proofs of equivalence of functional
-programs.
+This section describes a space of types over indexed expressions,
+which correspond to properties over the indexed expressions.
 %
-\autoref{sec:rel-type-space} defines the representation types, %
-\autoref{sec:rel-type-ops} defines the space of types as the closure
-under type operations, and %
+\autoref{sec:rel-type-space} defines the representation of types, %
+\autoref{sec:rel-type-ops} defines the space of relational types as
+the closure under type operations, and %
 \autoref{sec:rel-type-sys} defines a typing relation from indexed
-expressions to types.
+expressions to relational types.
 
 \subsubsection{Representation of relational refinement types}
 \label{sec:rel-type-space}
 % give overview:
 A relational type is a set of refinement predicates that relate data
-within components of algebraic types, combined with information that
-defines mutual inductive definitions of data.
+within components of structural types, combined with an association of
+related least-fixed-point structural types.
 %
 Relational types are defined partially over a space of type positions,
 which represent component types within algebraic types.
 %
-Relational positions are a class of sequences of type fields, which
-are symbols that denote component types to which algebraic type
-constructors are applied.
+A type position is a sequences of type fields, which are symbols that
+identify a structural type's component types.
 %
-The space of such fields consists of $\tyunitfield$, $\tydatafield$,
-$\typaramfield$, $\tyresfield$, $\tyleftprod$, $\tyrightprod$,
-$\tyleftsum$, $\tyrightsum$, and for each $X \in \lfpvars$, $X$ and
-$\mu_X$.
+The space of such fields, denoted $\typosfields$, consists of
+$\tyunitfield$, $\tydatafield$, $\typaramfield$, $\tyresfield$,
+$\tyleftprod$, $\tyrightprod$, $\tyleftsum$, $\tyrightsum$, and for
+each $X \in \lfpvars$, $X$ and $\mu_X$.
 %
 The space of positions is denoted $\typos = \typosfields^{*}$.
 % define subspaces of indexed positions:
@@ -49,8 +47,9 @@ denoted $\idxpos{I} = I \times \typos$.
 % define refinement predicates, indexed predicates:
 A relational refinement type is represented as indexed refinement
 predicates that represent relations over data components of types and
-an equivalence relation over type variables that define how
-least-fixed-point types are mutually unfolded.
+an association of least-fixed point variables, with which
+mutual-inductive properties over multiple least-fixed point types are
+defined.
 %
 For indices $I$, a \emph{relational refinement predicate} over $I$ is
 a refinement predicate whose vocabulary is the space of type positions
@@ -58,19 +57,19 @@ indexed by $I$ (i.e., the space $\refpreds{ \idxpos{I} }$).
 %
 $\Phi : \pset(I) \to \refpreds{ I }$ are \emph{indexed} relational
 refinement predicates if for each $J \in \domain(\Phi)$, it holds
-that$\Phi(J) \in \refpreds{J}$.
+that $\Phi(J) \in \refpreds{J}$.
 %
 The space of refinement predicates indexed by $I$ is denoted
 $\idxrefpreds{I}$.
 
 % define relational refinement types:
 Relational refinement types are represented as indexed refinement
-predicates and an association of least-fixed point types.
+predicates and an association of least-fixed point variables.
 %
 \begin{defn}
   \label{defn:rel-type-rep}
   For indices $I$, a \emph{relational refinement type representation}
-  over $I$ is a tuple $(\Phi, N, P, E)$, where
+  over $I$ is a tuple $(\Phi, N, P, M)$, where
   % indexed refinement predicates
   \textbf{(1)} $\Phi : \idxrefpreds{I}$ are refinement predicates
   indexed on $I$;
@@ -81,10 +80,9 @@ predicates and an association of least-fixed point types.
   \textbf{(3)} the least-fixed point variable \emph{positioning} is
   $P : \lfpvars \partto \typos$, where $X = \domain(N) = \domain(P)$
   % 
-  \textbf{(4)} $\mathcal{M} \subseteq X \times X$ is an equivalence
-  relation over $X$ such that for each equivalence class
-  $E \in \equiv_{\mathcal{M}}$, the restriction $\restrict{N}{E}$ is
-  one-to-one.
+  \textbf{(4)} $M \subseteq X \times X$ is an equivalence relation
+  over $X$ such that for each equivalence class $E \in \equiv_{M}$,
+  the restriction $\restrict{N}{E}$ is one-to-one.
 \end{defn}
 %
 The space of representations of relational refinement types over $I$
@@ -94,35 +92,39 @@ are denoted $\relreps{ I }$.
 \subsubsection{Operations and relations over relational refinement types}
 \label{sec:rel-type-ops}
 The space of relational refinement types is defined as a space of
-relational type representations closed under the following set of
-operations, which correspond to the space of constructors that define
-a conventional space of types (e.g., the space of structural types
+relational refinement type representations closed under the following
+set of operations.
+%
+Each operation corresponds to a constructor used to define a
+conventional space of types (e.g., the space of structural types
 defined in \autoref{sec:stlc}).
 
 \paragraph{Atomic relational refinement types}
 %
+Atomic representations are defined purely over trivial type positions.
+% e: pair each index with the empty type
+For indices $I$, let $e : I \to I \times \typos$ be the one-to-one
+function such that for each $i \in I$, $e(i) = (i, \epsilon)$.
 % introduce map
-For indices $I$, let $f : \refpreds{I} \to \refpreds{\idxpos{I} }$ be
-such that for each $\varphi \in \refpreds{I}$,
-$f(I) = \setformer{ (i, \epsilon) / i }{ i \in I }$.
+For each $f : I \to I \times \typos$, let
+$l_f : \refpreds{I} \to \refpreds{ \idxpos{I} }$ be such that for each
+$\varphi \in \refpreds{I}$,
+$l_f(\varphi) = \setformer{ e(i) / i }{ i \in I }$.
 %
-Let $g : I \to I \times \typos$ be the one-to-one function such that
-for each $i \in I$, $g(i) = (i, \epsilon)$.
-%
-Then for each $N : X \to I$ and $\mathcal{M} \in \equiv_X$, the
-\emph{atomic} relational type defined by $\Phi$, $P$, and
-$\mathcal{M}$ is
-$(\inv{g} \compose \Phi \compose f, N, P \compose g, \mathcal{M})$.
+Then for each $N : \lfpvars \partto I$ and $M \in \equiv_X$ for
+$X = \domain(N)$, the \emph{atomic} relational type defined by $\Phi$,
+$N$, and $M$ is
+$(\inv{e} \compose \Phi \compose l_{e}, N, X \mapsto \epsilon, M)$.
 %
 The space of atomic representations over $I$ is denoted $\atomics{I}$.
 
 \paragraph{Abstraction of relational refinement function types}
 %
-The abstraction of $\tau$ over variable $x$ at index $i$ is a
-relational refinement type in which the type at $i$ is a function from
+The abstraction of representation $\tau$ over variable $x$ at index
+$i$ is a representation in which the type at $i$ is a function from
 the type at $x$ in $\tau$ to the type at $i$ in $\tau$.
 % define renaming over indices:
-For indices $I$ and $i, j \in I$, let
+For space of indices $I$ and $i, j \in I$, let
 $\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
 % lift index renaming to position renaming
 For $f : I \to I$, let $\renamepos{f} : \idxpos{I} \to \idxpos{I}$ be
