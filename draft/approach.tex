@@ -62,23 +62,31 @@ refinement predicates if for each $J \subseteq \idxpos{I}$ bound in
 $\Phi$, $\Phi(J) \in \refpreds{J}$.
 
 % define relational refinement types:
-For indices $I$, a \emph{relational refinement type representation}
-over $I$ is a tuple $(\Phi, N, P, E)$, where
-% indexed refinement predicates
-\textbf{(1)}
-$\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
-refinement predicates;
+Relational refinement types are represented as refinement predicates
+indexed by sets of indexed type positions and a representation of
+least-fixed-point types across indices that are associated by mutual
+induction.
 %
-\textbf{(2)} the least-fixed point variable \emph{indexing} is
-$N : \lfpvars \partto I$;
-%
-\textbf{(3)} the least-fixed point variable \emph{positioning}
-$P : \lfpvars \partto \typos$, where $X = \domain(N) = \domain(P)$
-%
-\textbf{(4)} $\mathcal{M} \subseteq X \times X$ an equivalence
-relation over $X$ such that for each equivalence class
-$E \in \equiv_{\mathcal{M}}$, the restriction $\restrict{N}{E}$ is
-one-to-one.
+\begin{defn}
+  \label{defn:rel-type-rep}
+  For indices $I$, a \emph{relational refinement type representation}
+  over $I$ is a tuple $(\Phi, N, P, E)$, where
+  % indexed refinement predicates
+  \textbf{(1)}
+  $\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
+  refinement predicates;
+  % 
+  \textbf{(2)} the least-fixed point variable \emph{indexing} is
+  $N : \lfpvars \partto I$;
+  % 
+  \textbf{(3)} the least-fixed point variable \emph{positioning}
+  $P : \lfpvars \partto \typos$, where $X = \domain(N) = \domain(P)$
+  % 
+  \textbf{(4)} $\mathcal{M} \subseteq X \times X$ an equivalence
+  relation over $X$ such that for each equivalence class
+  $E \in \equiv_{\mathcal{M}}$, the restriction $\restrict{N}{E}$ is
+  one-to-one.
+\end{defn}
 %
 The space of relational refinement types over $I$ is denoted
 $\reltypes{I}$.
@@ -202,7 +210,8 @@ $N : \lfpvars \partto I$, %
 $P : \lfpvars \partto \typos$, and %
 $E \subseteq \lfpvars \times \lfpvars$ such that
 $\tau = (\Phi, N, P, E)$ is a valid relational refinement type
-representation, the abstraction of $\tau$ over $x$ at $i$ is
+representation (\autoref{defn:rel-type-rep}), the abstraction of
+$\tau$ over $x$ at $i$ is
 $\to_x^i \tau = \rename{ (\typaramfield \prepend{x} \tyresfield
   \prepend{i} \tau)}{ x }{ i }$.
 
