@@ -16,13 +16,13 @@ In this section, we describe a space of types over collections of
 expressions, which can represent proofs of equivalence of functional
 programs.
 %
-\autoref{sec:rel-type-space} defines the space of types, %
-\autoref{sec:rel-type-ops} defines key operations and relations over
-the types, and %
+\autoref{sec:rel-type-space} defines the representation types, %
+\autoref{sec:rel-type-ops} defines the space of types as the closure
+under type operations, and %
 \autoref{sec:rel-type-sys} defines a typing relation from indexed
-expressions to the types.
+expressions to types.
 
-\subsubsection{A space of relational types}
+\subsubsection{Representation of relational refinement types}
 \label{sec:rel-type-space}
 % give overview:
 A relational type is a set of refinement predicates that relate data
@@ -47,79 +47,63 @@ For indices $I$, the space of type positions \emph{indexed} by $I$ is
 denoted $\idxpos{I} = I \times \typos$.
 
 % define refinement predicates, indexed predicates:
-A relational refinement type is represented as a set of refinement
+A relational refinement type is represented as indexed refinement
 predicates that represent relations over data components of types and
 an equivalence relation over type variables that define how
 least-fixed-point types are mutually unfolded.
 %
 For indices $I$, a \emph{relational refinement predicate} over $I$ is
-a refinement predicate whose vocabulary is the space of data type
-positions indexed by $I$ (i.e., the space
-$\refpreds{ \idxpos{I} }$).
+a refinement predicate whose vocabulary is the space of type positions
+indexed by $I$ (i.e., the space $\refpreds{ \idxpos{I} }$).
 %
-For $f : \pset(I) \to \refpreds{ I }$ are \emph{indexed} relational
-refinement predicates if for each $J \subseteq \idxpos{I}$ bound in
-$\Phi$, $\Phi(J) \in \refpreds{J}$.
+$\Phi : \pset(I) \to \refpreds{ I }$ are \emph{indexed} relational
+refinement predicates if for each $J \in \domain(\Phi)$, it holds
+that$\Phi(J) \in \refpreds{J}$.
+%
+The space of refinement predicates indexed by $I$ is denoted
+$\idxrefpreds{I}$.
 
 % define relational refinement types:
-Relational refinement types are represented as refinement predicates
-indexed by sets of indexed type positions and a representation of
-least-fixed-point types across indices that are associated by mutual
-induction.
+Relational refinement types are represented as indexed refinement
+predicates and an association of least-fixed point types.
 %
 \begin{defn}
   \label{defn:rel-type-rep}
   For indices $I$, a \emph{relational refinement type representation}
   over $I$ is a tuple $(\Phi, N, P, E)$, where
   % indexed refinement predicates
-  \textbf{(1)}
-  $\Phi : \pset(\idxpos{I}) \partto \refpreds{ \idxpos{I} }$ are indexed
-  refinement predicates;
+  \textbf{(1)} $\Phi : \idxrefpreds{I}$ are refinement predicates
+  indexed on $I$;
   % 
   \textbf{(2)} the least-fixed point variable \emph{indexing} is
   $N : \lfpvars \partto I$;
   % 
-  \textbf{(3)} the least-fixed point variable \emph{positioning}
+  \textbf{(3)} the least-fixed point variable \emph{positioning} is
   $P : \lfpvars \partto \typos$, where $X = \domain(N) = \domain(P)$
   % 
-  \textbf{(4)} $\mathcal{M} \subseteq X \times X$ an equivalence
+  \textbf{(4)} $\mathcal{M} \subseteq X \times X$ is an equivalence
   relation over $X$ such that for each equivalence class
   $E \in \equiv_{\mathcal{M}}$, the restriction $\restrict{N}{E}$ is
   one-to-one.
 \end{defn}
 %
-The space of relational refinement types over $I$ is denoted
-$\reltypes{I}$.
-
-% declare typing relation:
-A key contribution of our work is the definition of a typing relation
-from finite tuples of expressions to relational types.
-%
-For $e_0, \ldots, e_n \in \expr$ and
-$\tau \in \reltypes{e_0, \ldots, e_n}$ (in which the indices are the
-expressions $e_0, \ldots, e_n$ themselves), the fact that
-$e_0, \ldots, e_n$ have type $\tau$ will be denoted
-$e_0, \ldots, e_n : \tau$.
-%
-The typing relation is defined in \autoref{sec:rel-type-sys}.
+The space of representations of relational refinement types over $I$
+are denoted $\relreps{ I }$.
 
 % walkthrough the operations over types:
 \subsubsection{Operations and relations over relational refinement types}
 \label{sec:rel-type-ops}
-Our relational type system is defined using operators over relational
-types.
-%
-The operators include generalizations of the type constructors and
-operators over structural types, generalizations of type operators
-used in refinement type systems, and operators introduced to operate
-over features unique to relational types.
+The space of relational refinement types is defined as a space of
+relational type representations closed under the following set of
+operations, which correspond to the space of constructors that define
+a conventional space of types (e.g., the space of structural types
+defined in \autoref{sec:stlc}).
 
 \paragraph{Atomic relational refinement types}
 %
 % introduce map
-For indices $I$ and $X \subseteq \lfpvars$, let
-$f : \refpreds{I} \to \refpreds{\idxpos{I} }$ be such that for each
-$\varphi \in \refpreds{I}$,
+For indices $I$, let $f : \refpreds{I} \to \refpreds{\idxpos{I} }$ be
+such that for each $\varphi \in \refpreds{I}$,
 $f(I) = \setformer{ (i, \epsilon) / i }{ i \in I }$.
 %
 Let $g : I \to I \times \typos$ be the one-to-one function such that
@@ -129,6 +113,8 @@ Then for each $N : X \to I$ and $\mathcal{M} \in \equiv_X$, the
 \emph{atomic} relational type defined by $\Phi$, $P$, and
 $\mathcal{M}$ is
 $(\inv{g} \compose \Phi \compose f, N, P \compose g, \mathcal{M})$.
+%
+The space of atomic representations over $I$ is denoted $\atomics{I}$.
 
 \paragraph{Abstraction of relational refinement function types}
 %
@@ -271,6 +257,51 @@ fixed point of $\tau$ over $\mathcal{Y}$ is
 $\mu_\mathcal{Y} \tau = \mu_{i_0} \mathcal{Y}(i_0). \mu_{i_1}
 \mathcal{Y}(i_1) \ldots \tau$ for all indices
 $i_k \in \domain(\mathcal{Y})$.
+
+% define space of relational types:
+The space of relational refinement types is the closure of the space
+of the atomic relational refinement types over the type operations
+defined above.
+%
+\begin{defn}
+  \label{defn:rel-types}
+  For indices $I$, the space of relational refinement types over $I$,
+  denoted $\reltypes{I}$, is defined inductively by the following
+  cases:
+  %
+  \begin{itemize}
+  \item % atomics,
+    For each $A \in \atomics{I}$, it holds that $A \in \reltypes{I}$;
+  \item % abstraction,
+    For each $\tau \in \reltypes{I}$, each $i \in I$ and
+    $x \in \vars$, $\to_x^i \tau \in \reltypes{I}$;
+  \item % product,
+    For each $\tau \in \reltypes{I}$ and all $i, j, k \in I$,
+    $\times_{i, j}^k \tau \in \reltypes{I}$;
+  \item % sum,
+    For all $\tau, \tau' \in \reltypes{I}$ and each $i \in I$,
+    $\tau +^i \tau' \in \reltypes{I}$;
+  \item % lfp,
+    For each $\tau \in \reltypes{I}$, $i \in I$, and $X \in \lfpvars$,
+    $\mu_i X. \tau \in \reltypes{I}$.
+  \end{itemize}
+\end{defn}
+
+\BH{define space of atomic representations}
+
+% declare typing relation:
+A key contribution of our work is the definition of a typing relation
+from finite tuples of expressions to relational types.
+%
+For $e_0, \ldots, e_n \in \expr$ and
+$\tau \in \reltypes{e_0, \ldots, e_n}$ (in which the indices are the
+expressions $e_0, \ldots, e_n$ themselves), the fact that
+$e_0, \ldots, e_n$ have type $\tau$ will be denoted
+$e_0, \ldots, e_n : \tau$.
+%
+The typing relation is defined in \autoref{sec:rel-type-sys}, using
+the type operators defined above, along with substitution and join
+operations and a subtyping operation, defined below.
 
 \paragraph{Substitution of relational refinement types}
 %
@@ -1496,7 +1527,7 @@ interpreted as $\false$.
       $F : \mathcal{E} \to )$ %
       \label{line:chkind-aux-begin} } %
     { % if all of the expressions are atomic,
-      \lIf{$E \subseteq \atomics$}{ %
+      \lIf{$E \subseteq \atomics{I}$}{ %
         % then whatever invariants that we have are inductive:
         \Return{$\isind$} \label{line:ret-isind} }
       % if E contains a fixpoint symbol, 
