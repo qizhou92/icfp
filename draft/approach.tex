@@ -311,10 +311,12 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
   \centering
   \begin{gather*}
     % join atomics:
-    \inference[ ATOMICS ]{ }{
+    \inference[ ATOMICS ]{
+      % 
+      E \union E' \subseteq E'' }{
       %
       \tau^A_{\Phi, N, E} \Join \tau^A_{\Phi', N', E'} \subtype %
-      \tau^A_{\Phi'', N'', E''} } \\
+      \tau^A_{\Phi \Join \Phi'', N \union N', E''} } \\
     % join shared function:
     \inference[ FNS ]{
       % join the nested relational types:
@@ -399,9 +401,19 @@ $\tau \join{ \varphi } \tau' \subtype \tau''$.
 The join operation is defined by the inductive inference rules given
 in \autoref{fig:join}.
 % atomic relational types:
-Rule~ATOMICS establishes that the atomic types defined by 
-%
-\BH{complete}
+Rule~ATOMICS establishes that the atomic types defined by %
+indexed refinement predicates $\Phi, \Phi' : \idxrefpreds{I}$, %
+variable indexings $N, N' : \lfpvars \partto I$, and %
+mutual induction relations $E, E' \subseteq \lfpvars \times \lfpvars$
+join to form any atomic relational refinement type defined by %
+\textbf{(1)} indexed refinement predicates
+$\Phi \Join \Phi'' : \idxrefpreds{I}$ such that for each
+$Q \in \domain(\Phi)$ and $Q' \in \domain(\Phi')$,
+$(\Phi \Join \Phi')(Q \union Q') = \Phi(Q) \land \Phi'(Q')$; %
+\textbf{(2)} variable indexing $N \union N'$; %
+\textbf{(3)} any equivalence relation
+$E'' \subseteq \lfpvars \times \lfpvars$ such that
+$E \union E' \subseteq E''$.
 
 % synchronous rules: functions:
 Rules~FNS, SUM, PROD, and LFP establish that the join relation is
