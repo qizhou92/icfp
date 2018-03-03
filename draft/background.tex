@@ -55,7 +55,7 @@ We then define partial equivalence of STLC programs
       %
       Metavariable $e$ ranges over $\expr$, %
       $c$ ranges over $\consts$, %
-      $\oplus$ ranges over base operations, %
+      $\oplus$ ranges over base operations and predicates, %
       $x$, $y$ and $f$, range over $\vars$, and %
       $\sigma$ ranges over structural types. } %
     \label{fig:exprs}
@@ -76,6 +76,9 @@ sum of types, a product of types, or a least-fixed point of a type.
 A type $\sigma$ is well-formed if each type variable $X$ occurs only
 as a component of a type of the form $\mu X. \sigma'$ that itself is a
 component of $\sigma$.
+%
+The unit type, base type, and space of type variables are
+\emph{atomic} structural types.
 
 % define expression syntax:
 \paragraph{Expressions}
@@ -83,8 +86,8 @@ component of $\sigma$.
 \autoref{fig:exprs} defines a space of expressions over spaces of
 constants $\consts$ and variables $\vars$.
 % define construction of expressions,
-An expression is the unit, a constant, a variable, a base operation
-over expressions, an abstraction, an application, a pair, a
+An expression is the unit, a constant, a variable, a base operation or
+predicate over expressions, an abstraction, an application, a pair, a
 \cc{let}-binding, a left injection, a right injection, a match, or a
 fixpoint.
 %
@@ -99,13 +102,14 @@ left-injection of a value, or a right-injection of a value;
 %
 the space of values is denoted $\values$.
 %
-The space of base values
-$\basevals = \consts \union \elts{ \injl\ \cc{()}, \injr\ \cc{()}}$
-contains the space of constants and the left injections of the unit,
-which will be used to model Boolean values.
-%
 For each base operation $\oplus$, there is a semantic function
-$\interp{\oplus} : \basevals \times \basevals \to \basevals$.
+$\interp{\oplus} : \consts \times \consts \to \consts$.
+%
+The space of Boolean values is
+$\bools = \elts{ \injl\ \cc{()}, \injr\ \cc{()}}$;
+%
+for each base predicate $\oplus$, there is a semantic function
+$\interp{\oplus} : \bools \to \bools$.
 
 \begin{figure}
   \centering
@@ -166,7 +170,7 @@ $\interp{\oplus} : \basevals \times \basevals \to \basevals$.
     %
     Metavariable $e$ ranges over $\expr$, %
     $c$ ranges over $\consts$, %
-    $\oplus$ ranges over base operations, %
+    $\oplus$ ranges over base operations and predicates, %
     $x$, $y$, and $f$ range over $\vars$, and
     $\sigma$ ranges over structual types.}
   \label{fig:nat-sem}
@@ -195,14 +199,15 @@ constants, $\injl\ \unit$, and $\injr\ \unit$, and whose binary
 functions are the space of binary operators.
 %
 Each model of $\mathcal{T}$ is isomorphic to the domain $\fovals$ and
-the semantic functions $\interp{\oplus}$ for each binary operation
-$\oplus$.
+the semantic functions $\interp{\oplus}$ for each binary operation and
+predicate $\oplus$.
 %
 For practical languages modeled by $\expr$, $\mathcal{T}$ may be,
 e.g., the quantifier-free fragment of the theory of linear arithmetic,
 where $\consts$ is the space of integers, $\injl\ \unit$ and
-$\injr\ \unit$ model true and false, and the space of binary operators
-contains plus and the less-than-or-equal comparitor.
+$\injr\ \unit$ model true and false, the space of binary operators
+contains plus, and the space of base predicates contains the
+less-than-or-equal comparitor.
 
 % define spaces of formulas:
 For each space of logical variables $X$, the space of $\mathcal{T}$
