@@ -34,10 +34,20 @@ data RHORT = RHORT
 
 -- RHORTNode is the node of the RHORT DAG, get predicate returns the nonterminal if it
 -- is a leaf node, getEdges returns the outgoing edge of this node
-data RHORTNode = RHORTNode
-  { getPredicate :: Maybe ([Int], Nonterminal)
-  , getEdges :: [RHORTEdge]
-  } deriving (Show, Read, Eq, Ord, Data)
+data RHORTNode
+  = SimpleRHORT [Int] Nonterminal
+  | CompositeRHORT [RHORTEdge]
+  deriving (Show, Read, Eq, Ord, Data)
+
+getEdges :: RHORTNode -> [RHORTEdge]
+getEdges = \case
+  SimpleRHORT{} -> []
+  CompositeRHORT es -> es
+
+getPredicate :: RHORTNode -> Maybe ([Int], Nonterminal)
+getPredicate = \case
+  SimpleRHORT is nt -> Just (is, nt)
+  CompositeRHORT{} -> Nothing
 
 -- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index list of this unwinding
 -- getNodes returns the RHORT nodes this edge points to.
@@ -162,11 +172,11 @@ freshDAGNode varPairs exprIds exprTypes = do
     let varName = map fst varPairs
     predicate <- lift (mkPredicate flatTypeList varName exprIds)
     let flatIdList = map getFlatTypeId flatTypeList
-    return (RHORTNode (Just (flatIdList, predicate)) [])
+    return (SimpleRHORT flatIdList predicate)
   else do 
     let allPossibleIndex = getAllPossibleIndex (map snd possibleIndexs)
     allEdges <- mapM (constructEdge varPairs exprIds exprTypes) allPossibleIndex
-    return (RHORTNode Nothing allEdges)
+    return (CompositeRHORT allEdges)
 
 -- each list is an index, which only contains one integer
 getAllPossibleIndex :: [Int] -> [[Int]]
@@ -332,9 +342,9 @@ getPredicates :: [RHORTNode] -> [Nonterminal]
 getPredicates = map safeGetNonterminal
 
 safeGetNonterminal :: RHORTNode -> Nonterminal
-safeGetNonterminal node = case getPredicate node of
-  Just (_,nonterminal) -> nonterminal
-  Nothing -> error "there is no nonterminal to get"
+safeGetNonterminal node = case node of
+  SimpleRHORT _ nonterminal -> nonterminal
+  _ -> error "there is no nonterminal to get"
 
 
 -- TODO:  needs to get varlist not set to equall
@@ -358,15 +368,17 @@ buildEqExpr fVars vars1 vars2 =
 witnessNode :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RHORTNode] -> RHORTNode -> m (Set RHORTNode) 
 witnessNode constraint fixTerminals bodys node = execStateT (witnessNode' constraint fixTerminals bodys node) S.empty
 
-witnessNode' :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RHORTNode] -> RHORTNode -> StateT (Set RHORTNode) m ()
+witnessNode' :: MonadWriter [Rule] m
+             => F.Expr -> [Nonterminal] -> [RHORTNode] -> RHORTNode
+             -> StateT (Set RHORTNode) m ()
 witnessNode' constraint fixTerminals bodys node = do
   visitedNodes <- get
   if S.member node visitedNodes then return ()
   else do
     put (S.insert node visitedNodes)
-    case getPredicate node of
-      Just (_, nonterminal) ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
-      Nothing -> do
+    case node of
+      SimpleRHORT _ nonterminal ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
+      CompositeRHORT{} -> do
         let headEdges = getEdges node
         let validEdgesList = map (sameEdges (map getEdges bodys)) headEdges
         let leftNodesList = map getLeftNodes validEdgesList 
