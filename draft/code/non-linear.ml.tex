@@ -1,0 +1,63 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{c}{(*}\PY{c}{ sum\PYZus{}1\PYZus{}inner: compute n }\PY{c}{*}\PY{c}{ }\PY{c}{(}\PY{c}{n \PYZhy{} i}\PY{c}{)}\PY{c}{ }\PY{c}{*)}
+\PY{k}{let} \PY{k}{rec} \PY{n}{sum\PYZus{}1\PYZus{}inner} \PY{n}{n} \PY{n}{i} \PY{o}{=}
+  \PY{k}{if} \PY{n}{i} \PY{o}{=} \PY{l+m+mi}{0} \PY{k}{then} \PY{l+m+mi}{0}
+  \PY{k}{else} \PY{n}{n} \PY{o}{+} \PY{o}{(}\PY{n}{sum\PYZus{}1\PYZus{}inner} \PY{n}{n} \PY{o}{(}\PY{n}{i} \PY{o}{\PYZhy{}} \PY{l+m+mi}{1}\PY{o}{)}\PY{o}{)}
+
+\PY{c}{(*}\PY{c}{ sum\PYZus{}1\PYZus{}outer n m i: compute }\PY{c}{(}\PY{c}{n }\PY{c}{*}\PY{c}{ n}\PY{c}{)}\PY{c}{ }\PY{c}{*}\PY{c}{ }\PY{c}{(}\PY{c}{n \PYZhy{} i}\PY{c}{)}\PY{c}{ }\PY{c}{*)}
+\PY{k}{let} \PY{k}{rec} \PY{n}{sum\PYZus{}1\PYZus{}outer} \PY{n}{n} \PY{n}{i} \PY{o}{=}
+  \PY{k}{if} \PY{n}{i} \PY{o}{=} \PY{l+m+mi}{0} \PY{k}{then} \PY{l+m+mi}{0}
+  \PY{k}{else} \PY{o}{(}\PY{n}{sum\PYZus{}1\PYZus{}inner} \PY{n}{n} \PY{n}{n}\PY{o}{)} \PY{o}{+} \PY{o}{(}\PY{n}{sum\PYZus{}1\PYZus{}outer} \PY{n}{n} \PY{o}{(}\PY{n}{i} \PY{o}{\PYZhy{}} \PY{l+m+mi}{1}\PY{o}{)}\PY{o}{)}
+
+\PY{c}{(*}\PY{c}{ sum\PYZus{}1 n m: compute n }\PY{c}{*}\PY{c}{ n }\PY{c}{*}\PY{c}{ n }\PY{c}{*)}
+\PY{k}{let} \PY{n}{sum\PYZus{}1} \PY{n}{n} \PY{o}{=} \PY{n}{sum\PYZus{}1\PYZus{}outer} \PY{n}{n} \PY{n}{n}
+
+\PY{c}{(*}\PY{c}{ sum\PYZus{}2\PYZus{}aux: compute n }\PY{c}{*}\PY{c}{ }\PY{c}{(}\PY{c}{n \PYZhy{} i}\PY{c}{)}\PY{c}{ }\PY{c}{*}\PY{c}{ }\PY{c}{(}\PY{c}{n \PYZhy{} j}\PY{c}{)}\PY{c}{ }\PY{c}{*)}
+\PY{k}{let} \PY{k}{rec} \PY{n}{sum\PYZus{}2\PYZus{}aux} \PY{n}{n} \PY{n}{i} \PY{n}{j} \PY{o}{=}
+  \PY{k}{if} \PY{n}{i} \PY{o}{=} \PY{l+m+mi}{0} \PY{k}{then} \PY{l+m+mi}{0}
+  \PY{k}{else} \PY{k}{if} \PY{n}{j} \PY{o}{=} \PY{l+m+mi}{0} \PY{k}{then} \PY{n}{sum\PYZus{}2\PYZus{}aux} \PY{n}{n} \PY{o}{(}\PY{n}{i} \PY{o}{\PYZhy{}} \PY{l+m+mi}{1}\PY{o}{)} \PY{n}{n}
+  \PY{k}{else} \PY{n}{n} \PY{o}{+} \PY{o}{(}\PY{n}{sum\PYZus{}2\PYZus{}aux} \PY{n}{n} \PY{n}{i} \PY{o}{(}\PY{n}{j} \PY{o}{\PYZhy{}} \PY{l+m+mi}{1}\PY{o}{)}\PY{o}{)}
+
+\PY{c}{(*}\PY{c}{ sum\PYZus{}2 n c: compute n }\PY{c}{*}\PY{c}{ n }\PY{c}{*}\PY{c}{ n }\PY{c}{*)}
+\PY{k}{let} \PY{n}{sum\PYZus{}2} \PY{n}{n} \PY{o}{=} \PY{n}{sum\PYZus{}2\PYZus{}aux} \PY{n}{n} \PY{n}{n} \PY{n}{n}
+
+\PY{c}{(*}\PY{c}{ relational invariants proving equivalence: }
+
+\PY{c}{0: goal: functions are equivalent}
+\PY{c}{\PYZob{} sum\PYZus{}1, sum\PYZus{}2 \PYZcb{} |\PYZhy{}\PYZgt{} \PYZbs{}alpha\PYZus{}0\PYZca{}0 = \PYZbs{}alpha\PYZus{}1\PYZca{}0 =\PYZgt{} \PYZbs{}nu\PYZus{}0 = \PYZbs{}nu\PYZus{}1}
+
+\PY{c}{0.0: function bodies: under equivalent contexts, give equivalent values}
+\PY{c}{\PYZob{} sum\PYZus{}1\PYZhy{}body, sum\PYZus{}2\PYZhy{}body \PYZcb{} |\PYZhy{}\PYZgt{} n\PYZus{}0 = n\PYZus{}1 =\PYZgt{} \PYZbs{}nu\PYZus{}0 = \PYZbs{}nu\PYZus{}1}
+
+\PY{c}{0.0.0: deconstruct bodies of main functions on abstraction:}
+\PY{c}{\PYZob{} sum\PYZus{}1\PYZhy{}outer\PYZhy{}body, sum\PYZus{}2\PYZhy{}aux\PYZhy{}body \PYZcb{} |\PYZhy{}\PYZgt{} }
+\PY{c}{  arg\PYZus{}0\PYZca{}0 = arg\PYZus{}1\PYZca{}0, arg\PYZus{}0\PYZca{}1 = arg\PYZus{}1\PYZca{}1, arg\PYZus{}1\PYZca{}2 = n =\PYZgt{}}
+\PY{c}{  \PYZbs{}nu\PYZus{}0 = \PYZbs{}nu\PYZus{}1}
+
+\PY{c}{0.0.0.x: sum\PYZus{}1\PYZus{}outer evaluates under its else case, sum\PYZus{}2\PYZus{}aux evaluates under its third case.}
+
+\PY{c}{\PYZob{} sum\PYZus{}1\PYZhy{}outer\PYZhy{}else, sum\PYZus{}2\PYZus{}aux\PYZhy{}case\PYZhy{}2 \PYZcb{} |\PYZhy{}\PYZgt{}}
+\PY{c}{  n\PYZus{}0 = n\PYZus{}1, i\PYZus{}0 = i\PYZus{}1, j\PYZus{}1 = n =\PYZgt{} \PYZbs{}nu\PYZus{}0 = \PYZbs{}nu\PYZus{}1}
+
+\PY{c}{If we restrict relational invariants to only pair a sub\PYZhy{}expression in one program with a sub\PYZhy{}expression in the other term, that it seems like the proof gets stuck }\PY{c}{(}\PY{c}{assuming all invariants are expressed in linear arithmetic}\PY{c}{)}\PY{c}{.}
+
+\PY{c}{But if we relax invariants to be over sets of subexpressions, then we can support the invariant given directly above by supporting the following invariant, which groups two sub\PYZhy{}expressions of program 0 with one sub\PYZhy{}expression of program 1:}
+
+\PY{c}{\PYZob{} sum\PYZus{}1\PYZhy{}term0, sum\PYZus{}1\PYZhy{}term1, sum\PYZus{}2\PYZhy{}aux\PYZhy{}case\PYZhy{}2 \PYZcb{} |\PYZhy{}\PYZgt{}}
+\PY{c}{  n\PYZus{}00 = n\PYZus{}01 = n\PYZus{}1, i\PYZus{}00 = i\PYZus{}01 = i\PYZus{}1, j\PYZus{}1 = 0 =\PYZgt{} \PYZbs{}nu\PYZus{}00 + \PYZbs{}nu\PYZus{}01 = \PYZbs{}nu\PYZus{}1}
+
+\PY{c}{The remaining bindings in the proof deconstruct the recursive functions called in the else case of sum\PYZus{}1\PYZus{}outer }\PY{c}{(}\PY{c}{sum\PYZus{}1\PYZus{}inner and sum\PYZus{}1\PYZus{}outer itself}\PY{c}{)}\PY{c}{ and called in the second else case of sum\PYZus{}2\PYZus{}aux }\PY{c}{(}\PY{c}{sum\PYZus{}2\PYZus{}aux itself}\PY{c}{)}\PY{c}{.}
+
+\PY{c}{0.0.1: deconstruct bodies of main functions on arguments:}
+\PY{c}{\PYZob{} sum\PYZus{}1\PYZhy{}body\PYZhy{}args, sum\PYZus{}2\PYZhy{}body\PYZhy{}args \PYZcb{} |\PYZhy{}\PYZgt{} }
+\PY{c}{  arg\PYZus{}0\PYZca{}0 = arg\PYZus{}1\PYZca{}0, arg\PYZus{}0\PYZca{}1 = arg\PYZus{}1\PYZca{}1, arg\PYZus{}1\PYZca{}2 = 0}
+
+\PY{c}{*)}
+
+\PY{c}{(*}\PY{c}{ constraints for which each solution are relational invariants:}
+\PY{c}{   TODO: }
+
+\PY{c}{\PYZhy{}would this happen to work in invariants}
+
+\PY{c}{ }\PY{c}{*)}
+\end{Verbatim}

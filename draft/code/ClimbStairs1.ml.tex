@@ -1,0 +1,16 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8}]
+\PY{o}{(}\PY{k}{fun} \PY{n}{n} \PY{o}{\PYZhy{}\PYZgt{}}
+  \PY{o}{(}\PY{k}{if} \PY{o}{(}\PY{n}{n} \PY{o}{\PYZlt{}}\PY{o}{=} \PY{l+m+mi}{1} \PY{c}{(*}\PY{c}{ 2 }\PY{c}{*)} \PY{o}{)} \PY{k}{then} \PY{o}{(}\PY{l+m+mi}{1} \PY{c}{(*}\PY{c}{ 3 }\PY{c}{*)}\PY{o}{)}
+   \PY{k}{else}
+      \PY{o}{(}\PY{o}{(}\PY{n}{fix} \PY{o}{(}\PY{k}{fun} \PY{n}{cS1rec} \PY{o}{(}\PY{n}{count1}\PY{o}{,} \PY{n}{count2}\PY{o}{,} \PY{n}{i}\PY{o}{)} \PY{o}{\PYZhy{}\PYZgt{}}
+        \PY{o}{(}\PY{k}{if} \PY{n}{i} \PY{o}{\PYZlt{}}\PY{o}{=} \PY{n}{n} \PY{c}{(*}\PY{c}{ 8 }\PY{c}{*)} \PY{k}{then}
+            \PY{o}{(}\PY{n}{cS1rec} \PY{o}{(}\PY{n}{count2}\PY{o}{,} \PY{n}{count2} \PY{o}{+} \PY{n}{count1}\PY{o}{,} \PY{n}{i} \PY{o}{+} \PY{l+m+mi}{1} \PY{c}{(*}\PY{c}{ 11 }\PY{c}{*)}\PY{o}{)}
+            \PY{c}{(*}\PY{c}{ 9 }\PY{c}{*)}\PY{o}{)}
+         \PY{k}{else} \PY{o}{(}\PY{n}{count2} \PY{c}{(*}\PY{c}{ 10 }\PY{c}{*)}\PY{o}{)}
+        \PY{c}{(*}\PY{c}{ 7 }\PY{c}{*)}\PY{o}{)}\PY{o}{)}
+       \PY{c}{(*}\PY{c}{ 5 }\PY{c}{*)}\PY{o}{)}
+          \PY{o}{(}\PY{l+m+mi}{1}\PY{o}{,} \PY{l+m+mi}{1}\PY{o}{,} \PY{l+m+mi}{2} \PY{c}{(*}\PY{c}{ 6 }\PY{c}{*)} \PY{o}{)}
+      \PY{c}{(*}\PY{c}{ 4 }\PY{c}{*)} \PY{o}{)}
+  \PY{c}{(*}\PY{c}{ 1 }\PY{c}{*)} \PY{o}{)}
+\PY{c}{(*}\PY{c}{ 0 }\PY{c}{*)} \PY{o}{)}
+\end{Verbatim}

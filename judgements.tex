@@ -1,0 +1,60 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{semantic}
+
+\newcommand{\judges}{\vdash}
+\newcommand{\subtype}{\prec}
+
+\begin{document}
+
+\begin{figure}
+\begin{gather*}
+  \inference[\textsc{Lambda}]{%
+    \Gamma[x \mapsto \sigma] \judges e : \tau
+  }{%
+    \Gamma \judges \lambda x.e : \sigma \rightarrow \tau
+  }
+  \inference[\textsc{Var}]{%
+  }{%
+    \Gamma[x \mapsto \tau] \judges x : \tau
+  }
+  \\ \\
+  \inference[\textsc{AppPrim}]{%
+    \mathsf{Prim}(\sigma) & \tau' \subtype \tau \\
+    \Gamma \judges e : \sigma \rightarrow \tau' &
+    \Gamma \judges e' : \sigma
+  }{%
+    \Gamma \judges e\:e' : \tau
+  }
+  \inference[\textsc{AppHO}]{%
+    \mathsf{HO}(\sigma') & \tau' \subtype \tau & \sigma \subtype \sigma' \\
+    \Gamma \judges e : \sigma' \rightarrow \tau' &
+    \Gamma \judges e' : \sigma
+  }{%
+    \Gamma \judges e\:e' : \tau
+  }
+  \\ \\
+  \inference[\textsc{If}]{%
+    \Gamma \judges c : \sigma \\
+    \Gamma \judges (\sigma \subtype \mathsf{True} \implies e : \tau') & \tau' \subtype \tau \\
+    \Gamma \judges (\sigma \subtype \mathsf{False} \implies e' : \tau'') & \tau'' \subtype \tau
+  }{%
+    \Gamma \judges \mathsf{if}\:c\:\mathsf{then}\:e\:\mathsf{else}\:e' : \tau
+  }
+  \\ \\
+  \inference[\textsc{Const}]{%
+  }{%
+    \Gamma \judges c : c
+  }
+  \\ \\
+  \inference[\textsc{Plus}]{%
+    \Gamma \judges e : \tau' & \Gamma \judges e' : \tau'' \\
+    \tau' + \tau'' \subtype \tau
+  }{%
+    \Gamma \judges e + e' : \tau
+  }
+\end{gather*}
+\end{figure}
+
+\end{document}
