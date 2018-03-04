@@ -95,7 +95,7 @@
 
 \newcommand{\exppos}{P_E}
 
-\newcommand{\expr}{E}
+\newcommand{\expr}{\mathcal{E}}
 
 \newcommand{\exprel}[1]{\mathsf{ExpRel}[ #1 ]}
 
@@ -123,7 +123,9 @@
 
 \newcommand{\fresh}{\mathsf{Fresh}}
 
-\newcommand{\fullprepend}[2]{\concat_{#1}^{#2}}
+\newcommand{\fullprecat}[2]{\concat_{#1}^{#2}}
+
+\newcommand{\fullprepend}[2]{\cons_{#1}^{#2}}
 
 \newcommand{\hasreltype}[1]{\sim_{#1}}
 
@@ -133,11 +135,13 @@
 
 \newcommand{\headof}[1]{\mathsf{Head}_{#1}}
 
+\newcommand{\id}[1]{\mathsf{id}_{#1}}
+
 \newcommand{\idxpos}[1]{P_{#1}}
 
 \newcommand{\idxdatapos}[1]{P_{#1}^D}
 
-\newcommand{\idxrefpreds}[1]{\mathsf{Ref}_{#1}}
+\newcommand{\idxrefpreds}[1]{\mathcal{R}_{#1}}
 
 \newcommand{\idxvarpos}[1]{P_{#1}^X}
 
@@ -189,7 +193,7 @@
 
 \newcommand{\letexp}[6]{\cc{let(} #1 : #2 \cc{,} #3 : #4 \cc{)=} #5 \cc{ in } #6}
 
-\newcommand{\lfpvars}{X_L}
+\newcommand{\lfpvars}{X_{\mu}}
 
 \newcommand{\matchexp}[7]{\cc{match } #1 \cc{ with } #2 : #3 \cc{->} #4 \cc{|} #5 : #6 \cc{->} #7}
 
@@ -213,13 +217,13 @@
 
 \newcommand{\renameclauses}[3]{\mathsf{Rename}[ #1, #2, #3 ]}
 
-\newcommand{\renamefn}[2]{\mathsf{renm}_{#1}^{#2}}
+\newcommand{\renamefn}[2]{\mathsf{renm}_{#2}^{#1}}
 
-\newcommand{\renameidxpos}[1]{\mathsf{renm}_{#1}^{P_I}}
+\newcommand{\renameidxpos}[1]{\mathsf{renm}^{\mathcal{P}}[ #1 ]}
 
-\newcommand{\renamepos}[1]{\mathsf{renm}_{#1}^P}
+\newcommand{\renamepos}[1]{\mathsf{renm}^P[ #1 ]}
 
-\newcommand{\renamepred}[1]{\mathsf{renm}_{#1}^R}
+\newcommand{\renamepred}[1]{\mathsf{renm}^{\mathcal{R}}[ #1 ]}
 
 \newcommand{\renamesub}[4]{\mathsf{Rename}[ #1, #2, #3, #4 ]}
 
@@ -233,7 +237,9 @@
 
 \newcommand{\posexps}{E_P}
 
-\newcommand{\posreltypes}{T_R^{X \union \exppos}}
+\newcommand{\posreltypes}{T_{X \union \exppos}}
+
+\newcommand{\precat}[1]{\concat_{#1}}
 
 \newcommand{\prepend}[1]{\cons_{#1}}
 
@@ -247,9 +253,7 @@
 
 \newcommand{\queryof}[1]{\mathsf{Query}_{#1}}
 
-\newcommand{\refpreds}[1]{\mathsf{Ref}_{#1}}
-
-\newcommand{\reftypes}{\mathsf{Ref}}
+\newcommand{\refpreds}[1]{\mathcal{R}_{#1}}
 
 \newcommand{\relatable}[3]{#2 \sim_{#1} #3}
 
@@ -265,7 +269,7 @@
 
 \newcommand{\relreps}[1]{\mathsf{Reps}_{#1}}
 
-\newcommand{\reltypes}[1]{T_{R}^{#1}}
+\newcommand{\reltypes}[1]{T_{#1}}
 
 \newcommand{\reltypespos}[3]{\mathsf{RelTypes}[ #1, #2, #3 ]}
 
@@ -343,9 +347,9 @@
 
 \newcommand{\typepos}{F_T^{*}}
 
-\newcommand{\typosfields}{F_T}
+\newcommand{\typosfields}{F_{\Sigma}}
 
-\newcommand{\typos}{P_T}
+\newcommand{\typos}{P_{\Sigma}}
 
 \newcommand{\typosty}[1]{P_{#1}}
 
@@ -353,7 +357,7 @@
 
 \newcommand{\openpos}[1]{O_T^{#1}}
 
-\newcommand{\types}{T}
+\newcommand{\types}{ \Sigma }
 
 \newcommand{\tyresfield}{\nu}
 

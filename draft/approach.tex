@@ -114,7 +114,8 @@ $l_f(\varphi) = \setformer{ e(i) / i }{ i \in I }$.
 Then for each $N : \lfpvars \partto I$ and $M \in \equiv_X$ for
 $X = \domain(N)$, the \emph{atomic} relational type defined by $\Phi$,
 $N$, and $M$ is
-$(\inv{e} \compose \Phi \compose l_{e}, N, X \mapsto \epsilon, M)$.
+$\tau^A_{\Phi, N, M} = (\inv{e} \compose \Phi \compose l_{e}, N, X
+\mapsto \epsilon, M)$.
 %
 The space of atomic representations over $I$ is denoted $\atomics{I}$.
 
@@ -122,10 +123,15 @@ The space of atomic representations over $I$ is denoted $\atomics{I}$.
 %
 The abstraction of representation $\tau$ over variable $x$ at index
 $i$ is a representation in which the type at $i$ is a function from
-the type at $x$ in $\tau$ to the type at $i$ in $\tau$.
+the type at $x$ in $\tau$ to the type at $i$ in $\tau$;
+%
+it is defined using operators that transform indices and type
+positions in the components of a type representation.
+%
+The operators that transform indices are as follows.
 % define renaming over indices:
 For space of indices $I$ and $i, j \in I$, let
-$\renamefn{i}{j} = \upd{ \iota_I }{i}{j}$.
+$\renamefn{i}{j} = \upd{ \id{I} }{i}{j}$.
 % lift index renaming to position renaming
 For $f : I \to I$, let $\renamepos{f} : \idxpos{I} \to \idxpos{I}$ be
 such that for each $i \in I$ and $p \in \typos$,
@@ -142,8 +148,8 @@ be such that for each $\varphi \in \refpreds{ \idxpos{I} }$,
 $\renamepred{f}(\varphi) = \varphi[ \setformer{ f(p) / p }{ p \in
   \idxpos{I} } ]$.
 %
-For each $\Phi : \idxpos{I} \to \refpreds{ \idxpos{I} }$, the renaming
-of $\Phi$ from $i$ to $j$ is
+For each $\Phi : \idxrefpreds{I}$, the renaming of $\Phi$ from $i$ to
+$j$ is
 $\rename{ \Phi }{ i }{ j } = \renameidxpos{ \renamefn{j}{i} } \compose
 \Phi \compose \renamepred{ \renameidxpos{ \renamefn{j}{i} } }$.
 
@@ -152,47 +158,60 @@ For all $i, j \in I$, the renaming of $N$ from $i$ to $j$ is
 $N \compose \renamefn{i}{j}$.
 %
 For each $\Phi : \idxrefpreds{ I }$, $N : \lfpvars \to I$,
-$P : \lfpvars \to \typos$, $E \in \equiv_{\mathcal{X}}$, and all
+$P : \lfpvars \to \typos$, $M \in \equiv_{\mathcal{X}}$, and all
 $i, j \in I$, the renaming in $(\Phi, N, P, E)$ from $i$ to $j$ is
-$\rename{(\Phi, N, P, E) }{ i }{ j } = (\rename{ \Phi }{ i }{ j },
-\rename{ N }{ i }{ j }, P, E)$.
+$\rename{ (\Phi, N, P, M) }{ i }{ j } = (\rename{ \Phi }{ i }{ j },
+\rename{ N }{ i }{ j }, P, M)$.
 
 % define prepending over indexed predicates:
-For $i \in I$, $p \in \typos$,
+The operators that transform type positions are as follows.
+%
+For $i \in I$, $p \in \typos$, operator
 $\prependpos{i}{p} : \idxpos{I} \to \idxpos{I}$ is such that for each
 $q \in \typos$, $\prependpos{i}{p}(i, q) = (i, p \concat q)$, and for
 each $j \not= i \in I$, $\prependpos{i}{p}(j, q) = q$.
 %
 For $\Phi : \idxrefpreds{ I }$, $i \in I$, and $p \in \typos$, $p$
-prepended to $\Phi$ at $i$ is $p \prepend{i} \Phi = %
+\emph{pre-concatenated} to $\Phi$ at $i$ is $p \precat{i} \Phi = %
 \renameidxpos{ \inv{ \prependpos{i}{p} } } \compose \Phi \compose
 \prependpos{i}{p}$.
+%
+For each $f \in \typosfields$, $f$ prepended to $\Phi$ is
+$f \prepend{i} \Phi = [ f ] \precat{i} \Phi$.
 
 % define prepending over mapped type positions:
-For $N : \mathcal{X} \to I$, $i \in I$, and $p \in \typos$, let
-$\mathsf{pair}_{P}^N : \mathcal{X} \to I \times \typos$ be such that
-for each $X \in \mathcal{X}$, $p_{P}^N(X) = (N(X), P(X))$.
+For $N : \lfpvars \partto I$, $P : \lfpvars \partto I$ such that
+$\mathcal{X} = \domain(N) = \domain(P)$, $i \in I$, and
+$p \in \typos$, let
+$\mathsf{pair}^N_P : \mathcal{X} \to I \times \typos$ be such that for
+each $X \in \mathcal{X}$, $\mathsf{pair}^N_P(X) = (N(X), P(X))$.
 %
-The \emph{prepending} of $P$ with $p$ at $i$ under $N$ is
-$p \fullprepend{i}{N} P = \mathsf{pair}_{P}^{N} \compose
+$p$ \emph{pre-concatenated} to $P$ at $i$ under $N$ is
+$p \fullprecat{i}{N} P = \mathsf{pair}_{P}^{N} \compose
 \prependpos{i}{p}$.
 %
 For $\Phi : \idxrefpreds{ I }$, $N : \lfpvars \to I$,
-$P : \lfpvars \to \typos$, and $E \in \equiv_{\mathcal{X}}$ the
-prepending of $(\Phi, N, P, E)$ with $p$ at $i$ is
-$p \prepend{i} (\Phi, N, P, E) = (p \fullprepend{i}{N} \Phi, N, p
+$P : \lfpvars \to \typos$, and $M \in \equiv_{\mathcal{X}}$, $p$
+prepended to $\tau (\Phi, N, P, M)$ at $i$ is
+$p \precat{i} (\tau) = (p \fullprepend{i}{N} \Phi, N, p
 \fullprepend{i}{N} P, E)$.
+%
+For $f \in \typosfields$, $f$ prepended to $\tau$ is
+$f \prepend{i} \tau$.
 
 % define well-formedness of indexed refinement predicates
-$\Phi \in \idxrefpreds{ I }$ are a \emph{valid instance} of index $i$
-over index $j$ if for all $J \in \domain(\Phi)$ and each
+The abstraction of type representation $\tau$ over index $i$ at index
+$j$ is defined if $\tau$ does not contain an index that relates the
+parameter or result of a nested abstraction with a component of $i$.
+%
+I.e., $\Phi \in \idxrefpreds{ I }$ are a \emph{valid instance} of
+index $i$ over index $j$ if for all $J \in \domain(\Phi)$ and each
 $p \in \typos$ such that $(i, p) \in J$, there are no
 $q_0, q_1 \in \typos$ such that
 $q_0 \concat [ \typaramfield ] \concat q_1$ or
 $q_0 \concat [ \tyresfield ] \concat q_1 \in J$.
-
-% define function relational type operator
-For index $i, x \in I$, %
+% define relational type operator:
+For indices $i, x \in I$, %
 $\Phi \in \idxrefpreds{I}$ a valid instance of $i$ over $x$, %
 $N : \lfpvars \partto I$, %
 $P : \lfpvars \partto \typos$, and %
@@ -202,57 +221,61 @@ representation (\autoref{defn:rel-type-rep}), the abstraction of
 $\tau$ over $x$ at $i$ is
 $\to_x^i \tau = \rename{ (\typaramfield \prepend{x} \tyresfield
   \prepend{i} \tau)}{ x }{ i }$.
-
-% define relational sum:
-\paragraph{Relational refinement sum types} The relational sum of
-types $\tau$ and $\tau'$ from indices $i$ and $j$ to index $k$ is a
-relational refinement type in which the type at $k$ is the sum of
-types at $i$ in $\tau$ and at $j$ in $\tau'$.
 %
-I.e., for space of indices $I$,
-$\mathcal{X}, \mathcal{X}' \subseteq \lfpvars$, index $i \in I$,
-$\Phi, \Phi' \in \idxrefpreds{ \idxpos{I} }$,
-% lfp vars to indices,
-$N : \mathcal{X} \to I$, $N' : \mathcal{X}' \to I$,
-% lfp vars to positions,
-$P : \mathcal{X} \to \typos$, $P' : \mathcal{X}' \to \typos$, 
-% equivalence classes:
-$\mathcal{M} \in \equiv_{\mathcal{X}}$, and
-$\mathcal{M}' \in \equiv_{\mathcal{X}'}$, the sum of
-$(\Phi, N, P, \mathcal{M})$ and $(\Phi', N', P', \mathcal{M}')$ at $i$
-is $(\Phi, N, P, \mathcal{M}) +^i (\Phi', N', P', \mathcal{M}') = %
-% build disjoint union of extended indexed relational preds,
-(\tyleftsum \prepend{i} \Phi \union \tyrightsum \prepend{i} \Phi',
-% build disjoint union of variable map,
-N \union N',
-% build disjoint union of extended position maps,
-\tyleftsum \fullprepend{i}{N} P \union \tyrightsum \fullprepend{i}{N}
-P',
-% equivalence classes: build union:
-\mathcal{M} \union \mathcal{M}')$.
+Thus, the abstraction operator over type representations is a
+\emph{unary} operator that operates on a two \emph{indices} over which
+its operand is defined.
 
 % define relational product:
 \paragraph{Relational refinement product types}
-The indexed product of relational type $\tau$ from indices $i$ and $j$
-to index $k$ is a relational type in which the type at $k$ is the
-product of types at $i$ and $j$.
+The product of relational type $\tau$ from indices $i$ and $j$ to
+index $k$ is a relational type in which the type at $k$ is the product
+of types at $i$ and $j$.
 %
 I.e., for indices $I$, $\tau \in \reltypes{I}$, and indices
 $i, j, k \in I$, the relational product of $\tau$ from $i$ and $j$ to
 $k$ is
 $\times_{i, j}^k \tau = \rename{ (\tyleftprod \prepend{i} \tyrightprod
   \prepend{j} \tau)}{ i, j }{k}$.
+%
+Thus, similarly to the abstraction operator, the product operator over
+relational types is a unary type operator that operates over two
+indices over which its operand is defined.
+
+% define relational sum:
+\paragraph{Relational refinement sum types} The relational sum of
+types $\tau$ and $\tau'$ at index $i$ is a relational refinement type
+in which $i$ is bound to the sum of types at $i$ in each of $\tau$ and
+$\tau'$.
+%
+I.e., for space of indices $I$, index $i \in I$, %
+$\Phi, \Phi' \in \idxrefpreds{ \idxpos{I} }$,
+% lfp vars to indices,
+$N, N' : \lfpvars \partto I$,
+% lfp vars to positions,
+$P : \lfpvars \partto \typos$,
+% equivalence classes:
+$M, M' \in \equiv_{\lfpvars}$ such that $\tau = (\Phi, N, P, M)$ and
+$\tau' = (\Phi', N', P', M')$ are type representations, the sum of
+$\tau$ and $\tau'$ at $i$ is $\tau +^i \tau' = %
+% build disjoint union of extended indexed relational preds,
+((\tyleftsum \prepend{i} \Phi) \union (\tyrightsum \prepend{i} \Phi'),
+% build disjoint union of variable map,
+N \union N',
+% build disjoint union of extended position maps,
+(\tyleftsum \fullprepend{i}{N} P) \union (\tyrightsum \fullprepend{i}{N}
+P'),
+% equivalence classes: build union:
+M \union M')$.
 
 % define lfp:
 \paragraph{Relational refinement least-fixed points}
-The indexed least-fixed point of relational type $\tau$ at index $i$
-defines a relational type over unbounded unfoldings of the relational
-type at $i$.
+A least-fixed point at index $i$ of a type representation $\tau$
+represents unbounded unfoldings of the type at $i$.
 %
 I.e., for space of indices $I$, $\tau \in \reltypes{I}$ and
-$X \in \mathcal{X}$, the least-fixed point of $\tau$ over $X$ at $i$
-is $\mu_i X. \tau = %
-\mu_X \prepend{i} \tau$.
+$X \in \lfpvars$, the least-fixed point of $\tau$ over $X$ at $i$ is
+$\mu_i X. \tau = \mu_X \prepend{i} \tau$.
 %
 For $\mathcal{Y} : I \partto \mathcal{X}$, the \emph{mutual} least
 fixed point of $\tau$ over $\mathcal{Y}$ is
@@ -276,34 +299,31 @@ defined above.
     For each $A \in \atomics{I}$, it holds that $A \in \reltypes{I}$;
   \item % abstraction,
     For each $\tau \in \reltypes{I}$, each $i \in I$ and
-    $x \in \vars$, $\to_x^i \tau \in \reltypes{I}$;
+    $x \in \vars$, it holds that $\to_x^i \tau \in \reltypes{I}$;
   \item % product,
-    For each $\tau \in \reltypes{I}$ and all $i, j, k \in I$,
-    $\times_{i, j}^k \tau \in \reltypes{I}$;
+    For each $\tau \in \reltypes{I}$ and all $i, j, k \in I$, it holds
+    that $\times_{i, j}^k \tau \in \reltypes{I}$;
   \item % sum,
-    For all $\tau, \tau' \in \reltypes{I}$ and each $i \in I$,
-    $\tau +^i \tau' \in \reltypes{I}$;
+    For all $\tau, \tau' \in \reltypes{I}$ and each $i \in I$, it
+    holds that $\tau +^i \tau' \in \reltypes{I}$;
   \item % lfp,
     For each $\tau \in \reltypes{I}$, $i \in I$, and $X \in \lfpvars$,
-    $\mu_i X. \tau \in \reltypes{I}$.
+    it holds that $\mu_i X. \tau \in \reltypes{I}$.
   \end{itemize}
 \end{defn}
-
-\BH{define space of atomic representations}
 
 % declare typing relation:
 A key contribution of our work is the definition of a typing relation
 from finite tuples of expressions to relational types.
 %
-For $e_0, \ldots, e_n \in \expr$ and
-$\tau \in \reltypes{e_0, \ldots, e_n}$ (in which the indices are the
-expressions $e_0, \ldots, e_n$ themselves), the fact that
-$e_0, \ldots, e_n$ have type $\tau$ will be denoted
-$e_0, \ldots, e_n : \tau$.
+For $E = e_0, \ldots, e_n \in \expr$ and $\tau \in \reltypes{E}$
+(i.e., the space of relational types in which the indices are the
+expressions $E$ themselves), the fact that $E$ have type $\tau$ will
+be denoted $E : \tau$.
 %
 The typing relation is defined in \autoref{sec:rel-type-sys}, using
 the type operators defined above, along with substitution and join
-operations and a subtyping operation, defined below.
+operations and a subtyping relation, defined below.
 
 \paragraph{Substitution of relational refinement types}
 %
@@ -319,7 +339,7 @@ $m \concat \Phi = m(i_n) \prepend{i_n} \ldots m(i_0) \prepend{i_0}
 %
 For each $N : \mathcal{X} \to \typos$, the prepending of
 $P : \mathcal{X} \to \typos$ with $m$ under $N$ is
-$m \concat^N m(i_n) \fullprepend{i_n}{N} \ldots m(i_0)
+$m \concat^N = m(i_n) \fullprepend{i_n}{N} \ldots m(i_0)
 \fullprepend{i_0}{N} P$, where $i_k$ range over the $\domain(m)$.
 
 % define the substitution of relational types:
@@ -346,10 +366,10 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
     % join atomics:
     \inference[ ATOMICS ]{
       % 
-      E \union E' \subseteq E'' }{
+      M \union M' \subseteq M'' }{
       %
-      \tau^A_{\Phi, N, E} \Join \tau^A_{\Phi', N', E'} \subtype %
-      \tau^A_{\Phi \Join \Phi'', N \union N', E''} } \\
+      \tau^A_{\Phi, N, M} \Join \tau^A_{\Phi', N', M'} \subtype %
+      \tau^A_{\Phi \Join \Phi'', N \union N', M''} } \\
     % join shared function:
     \inference[ FNS ]{
       % join the nested relational types:
@@ -380,20 +400,20 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
       \mu_i X. \tau \Join \mu_i X. \tau' \subtype %
       \mu_i X. \tau'' } \\
     % join unshared function:
-    \inference[ FNS-A ]{
+    \inference[ FNS-UN ]{
       % join the nested relational types:
       \tau \Join \tau' \subtype \tau'' }{
       % combine results using relational function,
       \to_x^i \tau \Join \tau' \subtype \to_x^i \tau'' }
     % join unshared product:
-    \inference[ PROD-A ]{
+    \inference[ PROD-UN ]{
       % get refinement for nested type,
       \tau \Join \tau' \subtype \tau'' }{
       % complete type is product
       \times_{i, j}^k \tau \Join \tau' \subtype %
       \times_{i, j}^k \tau'' } \\
     % join unshared sum:
-    \inference[ SUM-A ]{
+    \inference[ SUM-UN ]{
       % join the lhs's
       \tau_l \Join \tau' \subtype \tau_l'' &
       % join the rhs's
@@ -402,7 +422,7 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
       \tau_l +^i \tau_r \Join \tau' %
       \subtype \tau_l'' +^i \tau_r'' } 
     % join unshared lfp:
-    \inference[ LFP-A ]{
+    \inference[ LFP-UN ]{
       % get refinement for nested type,
       \tau \join \tau' \subtype \tau'' }{
       % wrap lhs type in lfp constructor,
@@ -415,10 +435,12 @@ $m = \inv{ \restrict{N}{ \mathcal{Y} } } \compose P$.
   \caption{Inductive inference rules that define the join of two relational types.
     %
     Metavariable $\Phi$ ranges over indexed refinement predicates, %
+    $N$ ranges over variable indexes, %
+    $M$ ranges over equivalence relations over $\lfpvars$, %
     $\tau$ ranges over relational refinement types, %
-    $i$ ranges over indices, %
+    $i$, $j$, and $k$ range over indices, %
     $X$ ranges over least-fixed point variables, and %
-    $x$ ranges over program variables. }
+    $x$ ranges over variables. }
   \label{fig:join}
 \end{figure}
 % give overview:
@@ -437,7 +459,7 @@ in \autoref{fig:join}.
 Rule~ATOMICS establishes that the atomic types defined by %
 indexed refinement predicates $\Phi, \Phi' : \idxrefpreds{I}$, %
 variable indexings $N, N' : \lfpvars \partto I$, and %
-mutual induction relations $E, E' \subseteq \lfpvars \times \lfpvars$
+mutual induction relations $M, M' \subseteq \lfpvars \times \lfpvars$
 join to form any atomic relational refinement type defined by %
 \textbf{(1)} indexed refinement predicates
 $\Phi \Join \Phi'' : \idxrefpreds{I}$ such that for each
@@ -445,39 +467,18 @@ $Q \in \domain(\Phi)$ and $Q' \in \domain(\Phi')$,
 $(\Phi \Join \Phi')(Q \union Q') = \Phi(Q) \land \Phi'(Q')$; %
 \textbf{(2)} variable indexing $N \union N'$; %
 \textbf{(3)} any equivalence relation
-$E'' \subseteq \lfpvars \times \lfpvars$ such that
-$E \union E' \subseteq E''$.
+$M'' \subseteq \lfpvars \times \lfpvars$ such that
+$M \union M' \subseteq M''$.
 
-% synchronous rules: functions:
+% highlight the boring rules:
 Rules~FNS, SUM, PROD, and LFP establish that the join relation is
 preserved by the abstraction, sum, production, and least-fixed point
-operators over relational refinement types on common indices.
+operators over relational refinement types on indices common to the
+joined types.
 %
-For relational refinement types $\tau$, $\tau'$, and $\tau''$, if
-$\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then the
-abstractions of each of $\tau$ and $\tau'$ at index $i$ join to form
-$\tau''$ abstracted at $i$.
-% relational sums:
-For relational refinement types $\tau_l$, $\tau_l'$, $\tau_l''$,
-$\tau_r$, $\tau_r'$, and $\tau_r''$, if %
-\textbf{(1)} $\tau_l$ joins with $\tau_l'$ on $\varphi$ to form
-$\tau_l''$ and %
-\textbf{(2)} $\tau_r$ joins with $\tau_r'$ on $\varphi$ to form
-$\tau_r''$, then $\tau_l +^i \tau_r$ joins with $\tau_l' +^i \tau_r'$
-to form $\tau_l'' +^i \tau_r''$.
-% relational products:
-If $\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then %
-$\times_{i, j}^k \tau$ joins with $\times_{i, j}^k \tau'$ to form
-$\times_{i, j}^k \tau''$.
-% relational lfp:
-If $\tau$ joins with $\tau'$ on $\varphi$ to form $\tau''$, then %
-$\mu_i X. \tau$ joins with $\mu_i X. \tau'$ on $\varphi$ to from
-$\mu_i X. \tau''$.
-
-% walkthrough asynchronous rules:
-Rules~FNS-A, SUM-A, PROD-A, and LFP-A are defined similarly to
-Rules~FNS, SUM, PROD, and LFP, but define the join relation over pairs
-of relational refinement types that may not share all indices.
+Rules~FNS, SUM-UN, PROD-UN, and LFP-UN establish an analogous property
+for cases in which the left-hand joined type is defined over an index
+of which the right-hand joined type is not defined.
 %
 Rule~SYM establishes if $\tau$ joins with $\tau'$ to form $\tau''$,
 then $\tau'$ joins with $\tau$ to form $\tau''$ as well.
@@ -509,13 +510,13 @@ refinement type in the (ternary) join relation are symmetric.
       % then sums are subtypes
       \tau_l +^i \tau_r \subtype \tau_l' +^i \tau_r' } \\
     % subtype function with atomic
-    \inference[ FNS-A]{ \tau \subtype A }{
+    \inference[ FNS-UN]{ \tau \subtype A }{
       \rightarrow_x^i \tau \subtype A } 
     % subtype atomic with product
-    \inference[ PROD-A ]{ \tau \subtype A }{
+    \inference[ PROD-UN ]{ \tau \subtype A }{
       \times^k_{i, j} \tau \subtype A }
     % subtype atomic with sum
-    \inference[ SUM-A ]{ \tau \subtype A & \tau' \subtype A }{
+    \inference[ SUM-UN ]{ \tau \subtype A & \tau' \subtype A }{
       \tau +^i \tau' \subtype A } \\
     % lfps:
     \inference[ LFPS ]{}{} 
@@ -526,16 +527,17 @@ refinement type in the (ternary) join relation are symmetric.
   \label{fig:subtypes}
 \end{figure}
 
-\BH{walk through subtyping rules}
+\BH{complete}
 
 \subsubsection{A relational type system}
 \label{sec:rel-type-sys}
 %
 The typing relation from tuples of expressions to relational types is
-defined as an instance of a typing relation from sub-expressions to
+defined in terms of a typing relation from indexed expressions to
 relational types.
 % define context:
-A context is a partial map from variables to structural types;
+A context, as used in the typing relation, is a partial map from
+variables to structural types;
 %
 i.e., the space of contexts is $\ctxs = \vars \partto \types$.
 % define expression positions:
@@ -567,11 +569,11 @@ In particular, for each $n \in \nats$, let the
 \emph{expression-position encoding} of $n$ be
 $\pos{n} = \leftchild \cons \rightchild^{n}$.
 %
-Then for all $e_0, \ldots, e_{n - 1} \in \expr$ and
-$\tau \in \reltypes{ e_0, \ldots, e_{n - 1} }$, the typing relation
+Then for all $E = e_0, \ldots, e_{n - 1} \in \expr$ and
+$\tau \in \reltypes{ E }$, the typing relation
 $e_0, \ldots, e_{n - 1} : \tau$ is
-\[ \cdot \judges [ \pos{0} \mapsto e_0, \ldots, \pos{n - 1} \mapsto
-  e_{n - 1} ] : %
+\[ \cdot \judges \pos{0} \mapsto e_0, \ldots, \pos{n - 1} \mapsto e_{n
+    - 1} : %
   \rename{ \tau }{ e_0, \ldots, e_{n - 1} }{ %
     \pos{0}, \ldots, \pos{n - 1} } \]
 
@@ -644,9 +646,10 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     \inference[ LET ]{
       % get type of bound expression,
       \Gamma \judges \epsilon \mapsto e_0 : %
-      \times_{x, y}^{\epsilon} \tau &
+      \times_{x, y}^{\epsilon} \tau \\
       % get type of result under context that binds to x and y,
-      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau' \\
+      \upd{ \Gamma }{ x, y }{ \sigma_x, \sigma_y } \judges %
+      \upd{ E }{ p }{ e_1 } : \tau' \\
       \tau \Join \tau' \subtype \tau'' }{
       % then complete let expression has type
       \Gamma \judges \upd{E}{p}{ %
@@ -672,10 +675,12 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
       \Gamma \judges \epsilon \mapsto e_0 : %
       \tau_0^l +^\epsilon \tau_0^r \\
       % get type of left branch under context that binds x to left op,
-      \Gamma \judges \upd{ E }{ p }{ e_1 } : \tau_1 & %
+      \upd{ \Gamma }{ x }{ \sigma_x } \judges %
+      \upd{ E }{ p }{ e_1 } : \tau_1 & %
       \rename{ \tau_0^l }{ \epsilon }{ x } \Join \tau_1 \subtype \tau' \\
       % get type of right branch under context that binds y to right op,
-      \Gamma \judges \upd{ E }{ p }{ e_2 } : \tau_2 & %
+      \upd{ \Gamma }{ y }{ \sigma_y } \judges %
+      \upd{ E }{ p }{ e_2 } : \tau_2 & %
       \rename{ \tau_0^r }{ \epsilon }{ y } \Join \tau_2 \subtype \tau' }{
       % then type of match exp is type of both branches,
       \Gamma \judges %
@@ -724,18 +729,18 @@ $e_0, \ldots, e_{n - 1} : \tau$ is
     $c$ ranges over constants, %
     $x$, $y$, and $f$ range over variables, and %
     $\mathcal{X}$ ranges over sets of least-fixed-point variables. }
-  \label{fig:reltypes-rules}
+  \label{fig:reltype-rules}
 \end{figure}
 
 % define judgment:
 The typing relation over positioned expressions is defined by the
-inductive inference rules given in \autoref{fig:reltypes-rules}.
+inductive inference rules given in \autoref{fig:reltype-rules}.
 %
 The inference rules consist of syntax-directed rules that define the
 typing relation for arbitrary expressions in a collection of
 positioned expressions, along with rules that define the typing
-relation for special cases of positioned expressions, unfold
-least-fixed point types, and use the subtype relation.
+relation for the empty map of positioned expressions, that unfold
+least-fixed point types, and that apply the subtype relation.
 % empty:
 Rule~EMPTY establishes that the empty positioned expressions (denoted
 $\cdot$) have the empty positioned relational type $\tau_{\emptyset}$,
@@ -747,10 +752,9 @@ Rule~UNIT establishes that if positioned expressions $E$ have type
 $\tau$, then $E$ extended to bind position $p$ to the unit expression
 have type $\tau$ joined with $\tau_1^p$, the unit atomic type at $p$.
 %
-$\tau_1^p$ is unique the atomic type over indices $[ p ]$ and the
-empty space of least-fixed point variables defined by the indexed
-refinement predicates that only bind $\elts{ (p, \epsilon) }$ to the
-refinement predicate $\true$.
+$\tau_1^p$ is the unique the atomic type over indices $[ p ]$ and the
+empty space of least-fixed-point variables defined by the indexed
+refinement predicates $\elts{ (p, \epsilon) } \mapsto \true$.
 
 % const:
 Rule~CONST establishes that if $E$ have type $\tau$, then $E$ extended
@@ -759,27 +763,26 @@ the atomic type that binds $c$ to $p$.
 %
 $\tau_c^p$ is the unique atomic type over indices $[ p ]$ and the
 empty space of least-fixed point variables defined by indexed
-refinement predicates that only bind $\elts{ (p, \epsilon) }$ to
-refinement predicate $(p, \epsilon) = c$.
+refinement predicates
+$\elts{ (p, \epsilon) } \mapsto (p, \epsilon) = c$.
 
 % op:
-Rule~OP establishes that if $E$ extended to bind positions
+Rule~OP establishes that if $E$ extended to bind expression positions
 $\leftchild \cons p$ and $\rightchild \cons p$ to expressions $e_0$
 and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
 $e_0 \oplus e_1$ have type $\tau$ joined with
 $\tau_{\leftchild \cons p \oplus \rightchild \cons p}^p$, the atomic
-type that binds $p$ to $\oplus$ over $\leftchild \cons p$ and
-$\rightchild \cons p$.
+type that constrains that $p$ is
+$\leftchild \cons p \oplus \rightchild \cons p$.
 %
 $\tau_{\leftchild \cons p \oplus \rightchild \cons p}^p$ is the unique
 atomic type over indices
 $\elts{ (p, \epsilon), (\leftchild \cons p, \epsilon), (\rightchild
   \cons p, \epsilon) }$ and the empty set of least-fixed point
-variables defined by the indexed refinement predicates that only bind
-$\elts{ (p, \epsilon), (\leftchild \cons p, \rightchild \cons p) }$ to
-refinement predicate
-$(p, \epsilon) = (\leftchild \cons p, \epsilon) \oplus (\rightchild
-\cons p, \epsilon)$.
+variables defined by the indexed refinement predicates
+$\elts{ (p, \epsilon), (\leftchild \cons p, \rightchild \cons p) }
+\mapsto (p, \epsilon) = (\leftchild \cons p, \epsilon) \oplus
+(\rightchild \cons p, \epsilon)$.
 
 % preds:
 Rule~PRED establishes that if $E$ extended to bind positions
@@ -787,23 +790,22 @@ $\leftchild \cons p$ and $\rightchild \cons p$ to expressions $e_0$
 and $e_1$ have type $\tau$, then $E$ extended to bind $p$ to
 $e_0 \otimes e_1$ have type $\tau$ joined with
 $\tau_{\leftchild \cons p \otimes \rightchild \cons p}^p$, the atomic
-type that binds $p$ to $\otimes$ over $\leftchild \cons p$ and
-$\rightchild \cons p$.
+type that constrains that $p$ is
+$\leftchild \cons p \otimes \rightchild \cons p$.
 %
 $\tau_{\leftchild \cons p \otimes \rightchild \cons p}^p$ is the
 unique atomic type over indices
 $\elts{ (p, \epsilon), (\leftchild \cons p, \epsilon), (\rightchild
   \cons p, \epsilon) }$ and the empty set of least-fixed point
-variables defined by the indexed refinement predicates that only bind
-\textbf{(1)}
-$\elts{ (p, [ \tyleftsum ]), (\leftchild \cons p, \rightchild \cons p)
-}$ to refinement predicate
-$(\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
-\epsilon)$ and bind \textbf{(2)}
-$\elts{ (p, [ \tyrightsum ]), (\leftchild \cons p, \rightchild \cons
-  p) }$ to the refinement predicate
-$\lnot (\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
-\epsilon)$.
+variables defined by the indexed refinement predicates
+%
+\begin{align*}
+  \elts{ (p, [ \tyleftsum ]), (\leftchild \cons p, \rightchild \cons p) }
+  \mapsto & (\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p,
+            \epsilon) \\
+  \elts{ (p, [ \tyrightsum ]), (\leftchild \cons p, \rightchild \cons
+  p) } \mapsto & \lnot (\leftchild \cons p, \epsilon) \otimes (\rightchild \cons p, \epsilon)
+\end{align*}
 
 % abs:
 Rules~ABS and APP are defined using the relational function type
@@ -832,7 +834,7 @@ $\leftchild \cons p$ and $\rightchild \cons p$ to $p$.
 % let:
 Rule~LET establishes that if %
 \textbf{(1)} $e_0$ has as a relational type the relational product of
-$\tau$ from variables $x$ and $y$ to the empty position;
+$\tau$ from variables $x$ and $y$ to the empty position and
 %
 \textbf{(2)} $E$ extended to bind $p$ to $e_1$ have type $\tau'$, then
 $E$ extended to bind $p$ to
@@ -851,8 +853,8 @@ $\tau'$.
 Rule~RIGHT is defined symmetrically to Rule~LEFT.
 % match:
 Rule~MATCH establishes that if %
-\textbf{(1)} $e_0$ is the relational sum at $\epsilon$ of $\tau_0^l$
-and $\tau_0^r$;
+\textbf{(1)} $e_0$ is the relational sum at position $\epsilon$ of
+$\tau_0^l$ and $\tau_0^r$;
 % 
 \textbf{(2)} $E$ extended to bind $p$ to $e_1$ has type $\tau_1$ that
 joins with $\tau_0^l$ with $\epsilon$ renamed to $x$ to form $\tau'$;
@@ -866,25 +868,24 @@ $\tau'$.
 % var:
 Rule~VAR establishes that if %
 \textbf{(1)} $E$ have type $\tau$ and %
-\textbf{(2)} $\tau'$ is a relational type in which $p$ has structure
-$\Gamma(x)$ (denoted as stating that $\Gamma(x)$ and $\tau'$ hold the
-property the relation $\iseq{p}{f}$), then %
-$E$ extended to bind $p$ to
-$x$ have type $\tau$ joined with the type $\tau_{x : \Gamma(x)}^p$,
-which binds $p$ to variable $x$ of type $\Gamma(x)$.
+\textbf{(2)} $\tau'$ constrains that $x$ and $p$ are bound to equal
+values of structure $\Gamma(x)$ (i.e., that $\Gamma(x)$ and $\tau'$
+satisfy the relational-type property $\iseq{p}{f}$ defined below),
+then %
+$E$ extended to bind $p$ to $x$ have type $\tau$ joined with $\tau'$.
 %
 The type property $\iseq{p}{f}$ is defined below.
 % fix:
 Rule~FIX establishes that if %
-\textbf{(1)} $E$ extended to bind $p$ to $e$ has type $\tau$; %
-\textbf{(2)} $\tau'$ asserts that $p$ and $f$ are equivalent with
-structural type $\sigma$ (i.e., $\sigma$ and $\tau'$ hold the property
-$\iseq{p}{f}$); %
+\textbf{(1)} $E$ extended to bind $p$ to $e$ have type $\tau$; %
+\textbf{(2)} $\tau'$ constrains that $p$ and $f$ are bound to equal
+values of structure $\sigma$; %
 \textbf{(3)} $\tau$ is a subtype of $\tau'$, then %
 $E$ extended to bind $p$ to $\fix{f}{p}{e}$ have type $\tau$.
 % unfold:
-Rule~UNFOLD establishes that if $E$ has type $\tau$ unfolded on
-least-fixed-point variables $\mathcal{X}$, then $E$ have type $\tau$.
+Rule~UNFOLD establishes that if $E$ has type $\tau$ substituted for
+least-fixed-point variables $\mathcal{X}$ in $\tau$, then $E$ have
+type $\tau$.
 % sub:
 Rule~SUB establishes that if $E$ have type $\tau$ a subtype of $\tau'$,
 then $E$ has type $\tau'$.
@@ -901,7 +902,8 @@ We now define this property over types in terms of two auxiliary
 relations that define \textbf{(1)} when a relational type $\tau$ holds
 a structural type $\sigma$ at a given index and \textbf{(2)} when
 relational type $\tau'$ constrains that copies of a relational type
-$\tau$ at given indices are equivalent.
+$\tau$ defined over a single index are equivalent across two given
+indices.
 
 % inference rules that define relational type of a structural type:
 \begin{figure}
@@ -915,71 +917,68 @@ $\tau$ at given indices are equivalent.
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
-      \upd{ T }{ %
+      \upd{ S }{ %
         \leftchild \cons p, \rightchild \cons p }{ %
         \sigma_{\alpha}, \sigma_{\nu} } \hasreltype{i} \tau }{
       % construct relational function type
-      \upd{ T }{ p }{ \sigma_{\alpha} \to \sigma_{\nu} } \hasreltype{i}
+      \upd{ S }{ p }{ \sigma_{\alpha} \to \sigma_{\nu} } \hasreltype{i}
       \to^i_x \tau } 
     % structural products:
     \inference[ PROD ]{
       % get relational types of components,
-      \upd{ T }{ %
+      \upd{ S }{ %
         \leftchild \cons p, \rightchild \cons p }{ %
         \sigma_l, \sigma_r } \hasreltype{i} \tau }{
       % construct relational product type
-      \upd{ T }{ p }{ \sigma_l \times \sigma_r } \hasreltype{i}
+      \upd{ S }{ p }{ \sigma_l \times \sigma_r } \hasreltype{i}
       \times_{ \leftchild \cons i, \rightchild \cons i }^{i} \tau } \\
     % structural sum:
     \inference[ SUM ]{
       % get relational type of lhs,
-      \upd{ T }{ p }{ \sigma_l } \hasreltype{i} \tau_l &
+      \upd{ S }{ p }{ \sigma_l } \hasreltype{i} \tau_l &
       % get relational type of rhs,
-      \upd{ T }{ p }{ \sigma_r } \hasreltype{i} \tau_r }{
+      \upd{ S }{ p }{ \sigma_r } \hasreltype{i} \tau_r }{
       % combine results mutual sum:
-      \upd{ T }{ p }{ \sigma_l + \sigma_r } \hasreltype{i}
+      \upd{ S }{ p }{ \sigma_l + \sigma_r } \hasreltype{i}
       \tau_l +^{i} \tau_r } 
     % structural lfp:
     \inference[ LFP ]{
       % get relational type of nested type,
-      \upd{ T }{ p }{ \sigma } \hasreltype{i} \tau }{
+      \upd{ S }{ p }{ \sigma } \hasreltype{i} \tau }{
       % operate using the lfp operator
-      \upd{ T }{ p }{ \mu X. \sigma } \hasreltype{i}
-      \mu_i X. \tau }
+      \upd{ S }{ p }{ \mu X. \sigma } \hasreltype{i} \mu_i X. \tau }
   \end{gather*}
   \caption{Inductive inference rules that define conditions under which a relational type is a relational type of a structural type.
     %
     Metavariable %
-    $A$ ranges over atomic structual types, %
+    $A$ ranges over atomic structural types, %
     $E$ ranges over equivalence relations over $\lfpvars$, %
-    $T$ ranges over maps from type positions to structural types, %
-    $p$ ranges over type positions, %
-    $\tau$ ranges over relational types, %
-    $\sigma$ ranges over structural types, %
-    $i$ ranges over indicies $I$, %
+    $S$ ranges over $\typos \partto \Sigma$, %
+    $p$ ranges over $\typos$, %
+    $\tau$ ranges over $\reltypes{\typos}$, %
+    $\sigma$ ranges over $\types$, %
+    $i$ ranges over indicies $\typos$, %
     $x$ ranges over $\vars$, and %
     $X$ ranges over $\lfpvars$. }
   \label{fig:struct-rel}
 \end{figure}
 
 % define judgment:
-\autoref{fig:struct-rel} contains a set of inductive inference rules
-that define the fact that relational type
+The property that relational type
 $\tau \in \reltypes{ \add{i}{ \vars } }$ is a relational type of
 structural type $\sigma$ at index $i$, denoted
-$\sigma \hasreltype{i} \tau$.
+$\sigma \hasreltype{i} \tau$, is defined in terms of a relation from
+structural types in an alternative representation as maps from type
+positions to structural types.
 %
-The relation is defined in terms of a relation from relates structural
-types in an alternative representation as maps from type positions to
-structural types.
+For $S: \typos \partto \types$, the fact that $S$ is related to
+relational refinement type $\tau$ at $i$ is denoted
+$S \hasreltype{i} \tau$, which is defined by the inductive inference
+rules in \autoref{fig:struct-rel} (which are discussed below).
 %
-For $\Sigma: \typos \partto \types$, the fact that $\Sigma$ is related
-to relational refinement type $\tau$ at $i$ is denoted
-$\Sigma \hasreltype{i} \tau$.
-%
-The relation over structural types is defined to be
-$\sigma \hasreltype{i} \tau \equiv \iseq{i}{j}(\epsilon \mapsto \sigma,
-\tau)$.
+The relation from structural
+$\sigma \hasreltype{i} \tau \equiv \iseq{i}{j}(\epsilon \mapsto
+\sigma, \tau)$.
 
 % walk through the rules
 The has-relational-type relation is defined by the inductive inference
@@ -992,43 +991,43 @@ For $A : \typos \partto \types$ if the range of $A$ consists of only
 atomic structual types, then $A$ itself is \emph{atomic}.
 % define relational refinement type:
 For each $\mathcal{Q} \subseteq \pset(\domain(A))$, let
-$\Phi_Q^{\true} = \mathcal{Q} \to \true$.
+$\Phi_Q^{\true} = \mathcal{Q} \mapsto \true$.
 % var indexing,
-$N_A : \lfpvars \partto \typos$ such that for each $p \in \domain(A)$,
-it holds that $N_A(A(p)) = p$; %
+Let $N_A : \lfpvars \partto \typos$ be such that for each
+$p \in \domain(A)$, it holds that $N_A(A(p)) = p$. %
 % 
-and each equivalence class $E \in \equiv_{\lfpvars}$, $A$ has as a
-relational type the atomic type defined by $\Phi_Q^{\true}$, $N_A$,
-and $E$.
+Then for each equivalence class $E \in \equiv_{\lfpvars}$, $A$ has as
+a relational type the atomic relational type defined by
+$\Phi_Q^{\true}$, $N_A$, and $E$.
 
 % functions:
-Rule~FN establishes that for $T : \typos \partto \types$,
+Rule~FN establishes that for $S : \typos \partto \types$,
 $p \in \typos$, $\sigma_{\alpha}, \sigma_{\nu} \in \types$, and
-$\tau$, if $T$ extended to map type positions $\leftchild \cons p$ and
+$\tau$, if $S$ extended to map type positions $\leftchild \cons p$ and
 $\rightchild \cons p$ to $\sigma_{\alpha}$ and $\sigma_{\nu}$
-respectively has relational type $\tau$, then $T$ extended to bind $p$
+respectively has relational type $\tau$, then $S$ extended to bind $p$
 to $\sigma_{\alpha} \to \sigma_{\nu}$ has relational type $\tau$
 abstracted over $x$ at $i$.
 % products
-Rule~PROD establishes that if $T$ extended to bind
+Rule~PROD establishes that if $S$ extended to bind
 $\leftchild \cons p$ and $\rightchild \cons p$ to structural types
 $\sigma_l$ and $\sigma_r$ respectively has relational type $\tau$,
-then $T$ extended to map $p$ to $\sigma_l \times \sigma_r$ has
-relational product of $\tau$ from $\leftchild \cons i$ and
-$\rightchild \cons i$ to $i$ has relational type $\tau$.
+then $S$ extended to map $p$ to $\sigma_l \times \sigma_r$ has as a
+relational type the product of $\tau$ from $\leftchild \cons i$ and
+$\rightchild \cons i$ to $i$.
 
 % sums:
 Rule~SUM establishes that if %
-\textbf{(1)} $T$ extended to map $p$ to $\sigma_l$ has relational type
+\textbf{(1)} $S$ extended to map $p$ to $\sigma_l$ has relational type
 $\tau_l$ and %
-\textbf{(2)} $T$ extended to map $p$ to $\sigma_r$ has relational type
+\textbf{(2)} $S$ extended to map $p$ to $\sigma_r$ has relational type
 $\tau_r$, then %
-$T$ extended to bind $p$ to $\sigma_l +^{i, j} \sigma_r$ has the sum
+$S$ extended to bind $p$ to $\sigma_l +^{i, j} \sigma_r$ has the sum
 of $\tau_l$ and $\tau_r$ at $i$.
 %
 Rule~LFP establishes that if %
-$T$ extended to map $p$ to $\sigma$ has relational type $\tau$, then
-$T$ extended to bind $p$ to $\mu X. \sigma$ has
+$S$ extended to map $p$ to $\sigma$ has relational type $\tau$, then
+$S$ extended to bind $p$ to $\mu X. \sigma$ has
 $\mu_i X. \mu_j X. \tau$.
 
 % inference rules that define relational type of a structural type:
@@ -1036,8 +1035,8 @@ $\mu_i X. \mu_j X. \tau$.
   \centering
   \begin{gather*}
     \inference[ ATOMS ]{ }{ %
-      \tau^A_{\Phi, N, E} \copyrel{i}{j} %
-      \tau^A_{\Phi'_{i, j}, N_{i, j}, E_{i, j}} } 
+      \tau^A_{\Phi, N, M} \copyrel{i}{j} %
+      \tau^A_{\Phi'_{i, j}, N_{i, j}, M_{i, j}} } 
     % structural functions:
     \inference[ FN ]{ 
       % get relational types of parameter, result
@@ -1072,52 +1071,61 @@ $\mu_i X. \mu_j X. \tau$.
 \end{figure}
 %
 \autoref{fig:ctr-eq} defines conditions under which relational type
-$\tau'$ contains that copies of relational type $\tau$ at indices $i$
-and $j$ are equivalent.
+$\tau'$ constrains that copies of relational type $\tau$ at indices
+$i$ and $j$ are equivalent.
 %
 Rules~FN, SUM, PROD, and LFP establish that the relation is preserved
 over relational type operations.
 %
-Rule~ATOMIC relates the atomic relational type defined by, for some
-$X \subseteq \vars$ $I = \add{i}{X}$, indexed refinement predicates
-$\Phi : \idxrefpreds{ I }$, %
-$N : \lfpvars \partto I$, and for $\mathcal{X} = \domain(N)$,
-$E \subseteq \mathcal{X} \times \mathcal{X}$, to the atomic relational
-predicate over indices $I' = I \union \add{ j }{ \vars_j }$ defined by
-the following indexed refinement predicates $\Phi'$, least-fixed-point
-mapping $N'$, and equivalence relation $E'$ over least-fixed point
-variables.
+Rule~ATOMS relates the atomic relational type defined by, for some
+$Y \subseteq \vars$ and $I = \add{i}{Y}$, indexed refinement
+predicates $\Phi : \idxrefpreds{ I }$, %
+variable indices $N : \lfpvars \partto I$, and for
+$\mathcal{X} = \domain(N)$, mutual induction set
+$M \subseteq \mathcal{X} \times \mathcal{X}$, to the atomic relational
+type defined by the following indexed refinement predicates $\Phi'$,
+least-fixed-point mapping $N'$, and mutual induction set $M'$.
+
+% walk through components:
+The related type is defined over disjoint copies of the spaces of
+program variables and least-fixed-point variables.
 %
-$X_j \subseteq \vars$ denotes a disjoint copy of $X$ such that for
-each $x \in X$, there is a corresponding $x_j \in X_j$, and
-$\mathcal{X} \subseteq \lfpvars$ denotes a disjoint copy of
-$\mathcal{X}$ such that for each $X \in \mathcal{X}$ there is a
-corresponding $X_j \in \mathcal{X}$.
+Let $Y_j \subseteq \vars$ be a disjoint copy of $Y$ such that for each
+$x \in Y$, there is a corresponding $x_j \in Y_j$;
+%
+the related type has indices $I' = I \union \elts{ j } \union Y_j$.
 % define indexed refinement predicates:
 $\Phi' : I' \partto \idxrefpreds{ I' }$ is such that for each
 $Q \subseteq \idxpos{ I }$ in the domain of $\Phi$, $\Phi'$ binds the
 indexed type positions
 $\setformer{ (i, p), (j, p) }{ p \in \typos, (i, p) \in Q } \union
-\setformer{ (x_j, p) }{ x \in \vars, p \in \typos }$ to refinement predicate
-\[ \Phi(Q) \bigland_{p \in \typos} (i, p) = (j, p) \land %
+\setformer{ (x_j, p) }{ x \in \vars, p \in \typos }$ to refinement
+predicate
+\[ \Phi(Q) \land \bigland_{p \in \typos} (i, p) = (j, p) \land %
   \bigland_{ x \in \vars } (x, p) = (x_j, p) \]
+
+% lfpvar stuff:
+Let $\mathcal{X}_j \subseteq \lfpvars$ be a disjoint copy of
+$\mathcal{X}$ such that for each $X \in \mathcal{X}$ there is a
+corresponding $X_j \in \mathcal{X}_j$.
+%
+\BH{fix}
 % define variable indexing:
-$N' : \lfpvars \partto I'$ is such that %
-for each $i \in I$, $N'(i) = N(i)$; %
-if $i \in \domain(N)$, then $N'(j) = N(i)_j$;
-for each $x \in \vars$, $N'(x_j) = N'(x)_j$.
+$N' : \lfpvars \partto I'$ extends $N$ to $I'$ such that %
+for each $X \in \mathcal{X}$, if $N(X) = i$ then $N'(X) = j$, and
+otherwise $N'(X) = N(X)_j$.
 % define equivalence class
-$E' \subseteq \lfpvars \times \lfpvars$ is the reflexive, symmetric,
+$M' \subseteq \lfpvars \times \lfpvars$ is the reflexive, symmetric,
 transitive closure of
-$E \union \setformer{ (X, X_j) }{ X \in \mathcal{ X } }$.
+$M \union \setformer{ (X, X_j) }{ X \in \mathcal{ X } }$.
 
 % connect it back to typing rules:
 For indices $i$ and $j$, structural type $\sigma$, and relational type
 $\tau$, $\tau$ constrains equivalence from $i$ to $j$ over $\sigma$ if
 there is some $\tau'$ such that \textbf{(1)} $\tau'$ is a structural
 type of $\sigma$ at $i$ (i.e., $\sigma \hasreltype{i} \tau'$) and
-\textbf{(2)} $\tau$ constrains equality of copies of $\tau$ at $i$ and
-$j$.
+\textbf{(2)} $\tau$ constrains equivalence of copies of $\tau$ at $i$
+and $j$.
 
 % main lemma of the typing system:
 \subsubsection{Correctness}
@@ -1127,10 +1135,10 @@ The typing relation is preserved by the evaluation relation.
 %
 \begin{lemma}
   \label{lemma:preservation}
-  For all $e_0, \ldots, e_n$, $v_0, \ldots, v_n \in \values$ such that
-  $v_0 \evalsto v_0, \ldots, e_n \evalsto v_n$, and
-  $\tau \in \reltypes{e_0, \ldots, e_n}$ such that
-  $e_0, \ldots, e_n : \tau$, it holds that $v_0, \ldots, v_n : \tau$.
+  For all $E = e_0, \ldots, e_n$, $v_0, \ldots, v_n \in \values$ such
+  that $v_0 \evalsto v_0, \ldots, e_n \evalsto v_n$, and
+  $\tau \in \reltypes{E}$ such that $E : \tau$, it holds that
+  $v_0, \ldots, v_n : \tau$.
 \end{lemma}
 %
 One proof of \autoref{lemma:preservation} uses proof by induction on
@@ -1156,10 +1164,9 @@ such collections of relational refinement types
 \subsubsection{Relational types of sub-expressions}
 \label{sec:bnd-unfoldings}
 %
-\sys, given expressions $e_0, \ldots, e_n$ and relational type
-$\tau \in \reltypes{e_0, \ldots, e_n}$, attempts to determine if
-$e_0, \ldots, e_n : \tau$ by finding types of expansions of
-$e_0, \ldots, e_n$.
+\sys, given expressions $E = e_0, \ldots, e_n$ and relational type
+$\tau \in \reltypes{E}$, attempts to determine if $E : \tau$ by
+finding types of expansions of $E$.
 %
 \begin{defn}
   \label{defn:unfoldings}
@@ -1194,8 +1201,8 @@ $e_0, \ldots, e_n$.
   % Declare sub-program (procedure) markers.
   \SetKwProg{myproc}{Procedure}{}{}
   % Inputs: a program
-  \Input{$e_0, \ldots, e_n \in \expr$ and
-    $\tau \in \reltypes{e_0, \ldots, e_n}$.}
+  \Input{$E = e_0, \ldots, e_n \in \expr$ and
+    $\tau \in \reltypes{E}$.}
   % Output: decision for safety
   \Output{A decision whether $e_0, \ldots, e_n : \tau$ holds.}
   % infer: top-level procedure
@@ -1236,9 +1243,9 @@ $e_0, \ldots, e_n$.
 % inference procedure top-level:
 The type-inference procedure \sys is given in \autoref{alg:infer}.
 %
-\sys (\autoref{alg:infer}) expressions $e_0, \ldots, e_n \in \expr$
-and relational type $\tau \in \reltypes{e_0, \ldots, e_n}$, attempts
-to decide if $e_0, \ldots, e_n : \tau$.
+\sys (\autoref{alg:infer}) expressions
+$E = e_0, \ldots, e_n \in \expr$ and relational type
+$\tau \in \reltypes{E}$, attempts to decide if $E : \tau$.
 %
 \sys uses a procedure \inferaux
 (\autoref{line:infer-aux-begin}---\autoref{line:infer-aux-end}) that,
@@ -1312,10 +1319,11 @@ $\symrelpreds{ T }$ be defined as follows.
 % base case: T is the empty set of types:
 If $T = \emptyset$, then $R_T = \emptyset$.
 % inductive case: T is a non-empty set
-Otherwise, let $R$ be such that for all $\tau_0, \ldots, \tau_n, \tau'
-\in \reftypes$ such that $\tau = \tau_0 \rightarrow \ldots \rightarrow
-\tau_n \rightarrow \tau'$, $R$ has variables corresponding to
-$\tau_0$, \ldots, $\tau_n$, and $\tau'$.
+Otherwise, let $R$ be such that for all
+$\tau_0, \ldots, \tau_n, \tau' \in ...$ such that
+$\tau = \tau_0 \rightarrow \ldots \rightarrow \tau_n \rightarrow
+\tau'$, $R$ has variables corresponding to $\tau_0$, \ldots, $\tau_n$,
+and $\tau'$.
 %
 Let $T'$ be collection of typed symbols in which each symbol is a pair
 of a typed symbol $f \in T$ and the position of a higher-order
