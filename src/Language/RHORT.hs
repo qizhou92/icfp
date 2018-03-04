@@ -21,8 +21,6 @@ import           Language.Types
 import           Grammar
 import qualified Formula as F
 
-import Debug.Trace
-
 -- RHORT is relatioanl high order refinement type
 data RHORT = RHORT
   -- getRHORT returns the DAG the represent the relational high order refinement type
@@ -86,31 +84,32 @@ isPrimFlatType :: FlatType -> Bool
 isPrimFlatType (FlatType _ _) = True
 isPrimFlatType _ = False
 
+increment :: MonadState Int m => m Int
+increment = state (\x -> (x, x+1))
+
 -- Convert a type to a flat type.
-getFlatType :: Type -> FlatType
-getFlatType t = evalState (convertToFlatType t) 1
+mkFlatType :: Type -> FlatType
+mkFlatType ty = evalState (go ty) 1
+  where
+    go :: Type -> State Int FlatType
+    go t = do
+      let (basicTypes, highOrderTypes) = L.partition isPrimitiveType (flattenType t)
+      uniqueTypeId <- increment
+      let flatType = FlatType uniqueTypeId basicTypes
+      if null highOrderTypes
+      then return flatType
+      else do
+        allFlattenTypes <- mapM go highOrderTypes
+        constructFlatType (allFlattenTypes++[flatType])
 
-convertToFlatType :: Type -> State Int FlatType
-convertToFlatType t = do
-  let flattenTypes = flattenType t
-  let (basicTypes,highOrderTypes) = L.partition isPrimitiveType flattenTypes
-  uniqueTypeId <- get
-  put (uniqueTypeId + 1)
-  let flatType = FlatType uniqueTypeId basicTypes
-  if null highOrderTypes
-  then return flatType
-  else do
-    allFlattenTypes <- mapM convertToFlatType highOrderTypes
-    constructFlatType (allFlattenTypes++[flatType])
-
-constructFlatType :: [FlatType] -> State Int FlatType
-constructFlatType [] = error "construct flat type cannot accept empty list"
-constructFlatType [x] = return x
-constructFlatType (x:xs) = do
-  uniqueTypeId <- get
-  put (uniqueTypeId + 1)
-  secondIdType <- constructFlatType xs
-  return (FlatTypeArr uniqueTypeId x secondIdType)
+    constructFlatType :: [FlatType] -> State Int FlatType
+    constructFlatType = \case
+      [] -> error "construct flat type cannot accept empty list"
+      [x] -> return x
+      (x:xs) -> do
+        uniqueTypeId <- increment
+        secondIdType <- constructFlatType xs
+        return (FlatTypeArr uniqueTypeId x secondIdType)
 
 flattenType :: Type -> [Type]
 flattenType = \case
@@ -127,18 +126,18 @@ isPrim index rhort =
 
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
 freshType  varTypesSet types uniqueIds = do
-  let flattenTypeList = map (second getFlatType) (S.toList varTypesSet)
-  let exprTypeList = map getFlatType (toList types)
+  let flattenTypeList = map (second mkFlatType) (S.toList varTypesSet)
+  let exprTypeList = map mkFlatType (toList types)
   rhortNode <- evalStateT (getDAGNode flattenTypeList (toList uniqueIds) exprTypeList) M.empty
   let basicTypes = toList types
   let varTypes = map snd (S.toList varTypesSet)
   return (RHORT rhortNode varTypes basicTypes)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
-fetchVarComponents v t = mkVarArgs v (getFlatType t)
+fetchVarComponents v t = mkVarArgs v (mkFlatType t)
 
 fetchExprComponents :: ExprID -> Type -> [F.Var]
-fetchExprComponents i t= mkExprArgs i (getFlatType t)
+fetchExprComponents i t= mkExprArgs i (mkFlatType t)
 
 getDAGNode :: MonadState Int m
            => [(Var, FlatType)] -> [Int] -> [FlatType]
@@ -209,7 +208,6 @@ constructEdge varPairs exprIds exprTypes edgeIndexs= do
 mkPredicate :: MonadState Int m => [FlatType] -> [Var] -> [Int] -> m Nonterminal
 mkPredicate flatTypes varName uniqueIds = do
   idNumber <- get
-  traceM (show idNumber ++ " " ++ show varName)
   let (aVarTypes,exprTypes) = L.splitAt (length varName) flatTypes
   let varListArg = concat (zipWith mkVarArgs varName aVarTypes)
   let exprListArg = concat (zipWith mkExprArgs uniqueIds exprTypes)
@@ -262,7 +260,7 @@ addNewVarIntoContext :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORT -> RH
 addNewVarIntoContext newVar uniqueId index varHort oldContext newContext = do
   let samePairNodes = getAllSamePairNodes index (getRHORT varHort) (getRHORT newContext)
   let rightPairs = map (first getAnLeafNode) samePairNodes
-  let types = getOrderOfFlattenType (getFlatType (getBasicTypes varHort !! index) )
+  let types = getOrderOfFlattenType (mkFlatType (getBasicTypes varHort !! index) )
   _ <- zipWithM (buildConstrainForAddNewVar newVar uniqueId index (getRHORT oldContext)) types rightPairs
   return () 
 
@@ -352,7 +350,6 @@ buildConstrains constraint fixTerminals bodys headN =
  let varsLists = map (\(Nonterminal _ vars)->vars) bodys
      Nonterminal _ headVars = headN
      equalExprs =
-       traceShow (toListOf F.vars constraint) $
        F.manyAnd (map (buildEqExpr (toListOf F.vars constraint) headVars) varsLists)
  in Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys)
 
