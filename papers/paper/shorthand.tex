@@ -1,4 +1,6 @@
 % shorthand: paper-specific shorthand
+\newcommand{\abs}[3]{\lambda #1 : #2. #3}
+
 \newcommand{\alltrue}{\mathsf{AllTrue}}
 
 \newcommand{\andsub}{\mathsf{AndSub}}
@@ -17,7 +19,7 @@
 
 \newcommand{\arityof}[1]{\mathsf{Arity}_{#1}}
 
-\newcommand{\atomics}{\mathsf{Atomics}}
+\newcommand{\atomics}[1]{\mathcal{A}_{#1}}
 
 \newcommand{\bodies}[1]{\mathsf{Bodies}_{#1}}
 
@@ -25,7 +27,9 @@
 
 \newcommand{\base}{\mathsf{Base}}
 
-\newcommand{\basevalues}{\mathsf{Vals}_B}
+\newcommand{\basety}{\mathbb{D}}
+
+\newcommand{\basevals}{V_D}
 
 \newcommand{\chc}[1]{\mathsf{CHC}[ #1 ]}
 
@@ -33,7 +37,7 @@
 
 \newcommand{\chkindaux}{\textsc{ChkAux}\xspace}
 
-\newcommand{\chkinductive}{\textsc{ChkInd}\xspace}
+\newcommand{\chkinductive}{\textsc{FindTy}\xspace}
 
 \newcommand{\chooseder}{\mathsf{ChooseDer}}
 
@@ -41,11 +45,15 @@
 
 \newcommand{\clauses}[1]{\mathsf{Clauses}[ #1 ]}
 
-\newcommand{\const}{\mathsf{Const}}
+\newcommand{\consts}{C}
+
+\newcommand{\copyrel}[2]{\approx_{#1}^{#2}}
 
 \newcommand{\ctrclause}[3]{ #1 \bowtie #2 \preceq #3 }
 
 \newcommand{\ctrof}[1]{\mathsf{Ctr}[#1]}
+
+\newcommand{\ctxreltypes}{T_R^{X}}
 
 \newcommand{\ctxs}{\mathsf{Ctxs}}
 
@@ -83,7 +91,11 @@
 
 \newcommand{\explabel}[1]{\mathsf{ExpLbl}[ #1 ]}
 
-\newcommand{\expr}{\mathsf{Exprs}}
+\newcommand{\expposfields}{F_E}
+
+\newcommand{\exppos}{P_E}
+
+\newcommand{\expr}{\mathcal{E}}
 
 \newcommand{\exprel}[1]{\mathsf{ExpRel}[ #1 ]}
 
@@ -91,23 +103,31 @@
 
 \newcommand{\firstarg}[1]{\mathsf{First}}
 
-\newcommand{\fix}[2]{\cc{fix}\ #1\ #2}
+\newcommand{\fix}[3]{\cc{fix}\ #1 : #2\ #3}
 
 \newcommand{\fixexpr}[1]{ \mathsf{FixExpr}[ #1 ] }
 
 \newcommand{\fixexps}{\mathsf{Exprs}_{\cc{fix}}}
 
-\newcommand{\fixvars}{\mathsf{FixVars}}
+\newcommand{\fixvars}{X_F}
 
 \newcommand{\fns}{\mathsf{Fns}}
 
 \newcommand{\folded}{\mathsf{Folded}}
 
-\newcommand{\formulas}[1]{\mathsf{Forms}[ #1 ]}
+\newcommand{\formulas}[1]{\mathcal{F}_{#1}}
+
+\newcommand{\fovals}{V_R}
 
 \newcommand{\freevars}{\mathsf{FreeVars}}
 
 \newcommand{\fresh}{\mathsf{Fresh}}
+
+\newcommand{\fullprecat}[2]{\concat_{#1}^{#2}}
+
+\newcommand{\fullprepend}[2]{\cons_{#1}^{#2}}
+
+\newcommand{\hasreltype}[1]{\sim_{#1}}
 
 \newcommand{\head}[1]{\mathsf{hd}[ #1 ]}
 
@@ -115,17 +135,43 @@
 
 \newcommand{\headof}[1]{\mathsf{Head}_{#1}}
 
+\newcommand{\id}[1]{\mathsf{id}_{#1}}
+
+\newcommand{\idxpos}[1]{P_{#1}}
+
+\newcommand{\idxdatapos}[1]{P_{#1}^D}
+
+\newcommand{\idxrefpreds}[1]{\mathcal{R}_{#1}}
+
+\newcommand{\idxvarpos}[1]{P_{#1}^X}
+
 \newcommand{\immsubders}[1]{\mathsf{ImmSubs}[ #1 ]}
+
+\newcommand{\inferaux}{\textsc{Infer}'\xspace}
+
+\newcommand{\inferbnd}{\textsc{InferBnd}\xspace}
+
+\newcommand{\injl}{\cc{injl}}
+
+\newcommand{\injr}{\cc{injr}}
 
 \newcommand{\instrules}[1]{\mathsf{InstRules}[ #1 ]}
 
 \newcommand{\instrulepreds}[1]{\mathsf{InstPreds}[ #1 ]}
 
+\newcommand{\interp}[1]{\hat{#1}}
+
 \newcommand{\interps}[1]{\mathsf{Interps[ #1 ]}}
+
+\newcommand{\inv}[1]{#1^{-1}}
+
+\newcommand{\invert}[2]{\overline{#1}^{#2}}
 
 \newcommand{\invsof}[1]{\mathsf{Invs}[ #1 ]}
 
-\newcommand{\isind}{\mathsf{IsInd}}
+\newcommand{\iseq}[2]{\mathsf{Eq}_{#1}^{#2}}
+
+\newcommand{\isind}{\mathsf{HasTy}}
 
 \newcommand{\isvalid}{\mathsf{IsValid}}
 
@@ -135,9 +181,25 @@
 
 \newcommand{\itectr}[3]{\mathsf{ITE}(#1, #2, #3)}
 
+\newcommand{\join}[1]{\bowtie_{#1}}
+
 \newcommand{\joinctr}{\bowtie}
 
 \newcommand{\judges}{\vdash}
+
+\newcommand{\justpos}[1]{#1\downarrow}
+
+\newcommand{\leftchild}{\mathsf{l}}
+
+\newcommand{\letexp}[6]{\cc{let(} #1 : #2 \cc{,} #3 : #4 \cc{)=} #5 \cc{ in } #6}
+
+\newcommand{\lfpvars}{X_{\mu}}
+
+\newcommand{\matchexp}[7]{\cc{match } #1 \cc{ with } #2 : #3 \cc{->} #4 \cc{|} #5 : #6 \cc{->} #7}
+
+\newcommand{\mutclosure}[2]{\mathcal{C}_{#1}^{#2}}
+
+\newcommand{\mutinds}[1]{\mathcal{M}_I}
 
 \newcommand{\nilrel}{\mathsf{NilRel}}
 
@@ -151,11 +213,39 @@
 
 \newcommand{\orsub}{\mathsf{OrSub}}
 
+\newcommand{\pair}[2]{\cc{(} #1 \cc{,} #2 \cc{)} }
+
 \newcommand{\renameclauses}[3]{\mathsf{Rename}[ #1, #2, #3 ]}
+
+\newcommand{\renamefn}[2]{\mathsf{renm}_{#2}^{#1}}
+
+\newcommand{\renameidxpos}[1]{\mathsf{renm}^{\mathcal{P}}[ #1 ]}
+
+\newcommand{\renamepos}[1]{\mathsf{renm}^P[ #1 ]}
+
+\newcommand{\renamepred}[1]{\mathsf{renm}^{\mathcal{R}}[ #1 ]}
 
 \newcommand{\renamesub}[4]{\mathsf{Rename}[ #1, #2, #3, #4 ]}
 
+\newcommand{\restypes}{T}
+
+\newcommand{\rightchild}{\mathsf{r}}
+
 \newcommand{\subtype}{\preceq}
+
+\newcommand{\pos}[1]{p_{#1}}
+
+\newcommand{\posexps}{E_P}
+
+\newcommand{\posreltypes}{T_{X \union \exppos}}
+
+\newcommand{\precat}[1]{\concat_{#1}}
+
+\newcommand{\prepend}[1]{\cons_{#1}}
+
+\newcommand{\prependfn}[4]{\mathsf{pre}^{#1, #2}_{#3, #4}}
+
+\newcommand{\prependpos}[2]{\mathsf{pre}_{#1, #2}}
 
 \newcommand{\prevrule}[1]{\mathsf{Prev}[ #1 ]}
 
@@ -163,7 +253,9 @@
 
 \newcommand{\queryof}[1]{\mathsf{Query}_{#1}}
 
-\newcommand{\reftypes}{\mathsf{Ref}}
+\newcommand{\refpreds}[1]{\mathcal{R}_{#1}}
+
+\newcommand{\relatable}[3]{#2 \sim_{#1} #3}
 
 \newcommand{\relinvs}[2]{\mathsf{ExpsInvs}[ #1, #2 ]}
 
@@ -175,11 +267,15 @@
 
 \newcommand{\relctxs}{\mathsf{RelCtxs}}
 
-\newcommand{\reltypes}{\mathsf{RelTypes}}
+\newcommand{\relreps}[1]{\mathsf{Reps}_{#1}}
+
+\newcommand{\reltypes}[1]{T_{#1}}
 
 \newcommand{\reltypespos}[3]{\mathsf{RelTypes}[ #1, #2, #3 ]}
 
 \newcommand{\reltypestypes}[1]{\mathsf{RelTypes}[ #1 ]}
+
+\newcommand{\rename}[3]{ #1[ #2 \rightharpoonup #3 ] }
 
 \newcommand{\resvar}[1]{\nu[ #1 ]}
 
@@ -217,7 +313,7 @@
 
 \newcommand{\subexpseqs}{\mathsf{ExpSeqs}}
 
-\newcommand{\subexptypes}[2]{\mathsf{SubExpTypes}[ #1, #2 ]}
+\newcommand{\subexptypes}[2]{S_{#1}^{#2}}
 
 \newcommand{\symrelpreds}[1]{\mathsf{RelPreds}[ #1 ]}
 
@@ -227,6 +323,8 @@
 
 \newcommand{\symvars}[1]{\mathsf{symvars}_{#1}}
 
+\newcommand{\terminates}[2]{\Omega(#1, #2)}
+
 \newcommand{\tileind}{\mathsf{i}}
 
 \newcommand{\tiles}{\mathsf{Tiles}}
@@ -235,31 +333,70 @@
 
 \newcommand{\tilings}[2]{\mathsf{Tilings}[ #1, #2 ]}
 
-\newcommand{\typepos}{\mathsf{TypePos}}
+\newcommand{\tydatafield}{D}
 
-\newcommand{\types}{\mathsf{Types}}
+\newcommand{\tyleftprod}{\times_l}
 
-\newcommand{\unfoldings}[1]{\mathsf{Unfoldings}[ #1 ]}
+\newcommand{\tyleftsum}{+_l}
+
+\newcommand{\tylfp}{\mu}
+
+\newcommand{\typaramfield}{\alpha}
+
+\newcommand{\typarampos}{\alpha}
+
+\newcommand{\typepos}{F_T^{*}}
+
+\newcommand{\typosfields}{F_{\Sigma}}
+
+\newcommand{\typos}{P_{\Sigma}}
+
+\newcommand{\typosty}[1]{P_{#1}}
+
+\newcommand{\tyunitfield}{U}
+
+\newcommand{\openpos}[1]{O_T^{#1}}
+
+\newcommand{\types}{ \Sigma }
+
+\newcommand{\tyresfield}{\nu}
+
+\newcommand{\tyrightprod}{\times_r}
+
+\newcommand{\tyrightsum}{+_r}
+
+\newcommand{\tyvarfield}{X}
+
+\newcommand{\unfold}[1]{#1\uparrow}
+
+\newcommand{\unfoldexp}{\textsc{Unfold}}
+
+\newcommand{\unfolding}{ \preceq }
+
+\newcommand{\unfoldings}[1]{ U_{#1} }
 
 \newcommand{\unfoldreltypes}[2]{\mathsf{UnfoldTypes}[ #1, #2 ]}
 
 \newcommand{\unify}{\mathsf{Unify}}
 
+\newcommand{\unit}{\cc{()}}
+
+\newcommand{\unitty}{1}
+
 \newcommand{\unwind}{\textsc{Unwind}\xspace}
 
-\newcommand{\values}{\mathsf{Values}}
+\newcommand{\values}{V}
 
-\newcommand{\vars}{\mathsf{Vars}}
+\newcommand{\vars}{X}
 
+% dep:
 \newcommand{\verify}{\textsc{Infer}\xspace}
-
-\newcommand{\verifyaux}{\textsc{VAux}\xspace}
 
 \newcommand{\verifybnd}{\textsc{InferUnfld}\xspace}
 
 \newcommand{\verifyunfoldingsaux}{\textsc{VerifyUnfoldings}'\xspace}
 
-\newcommand{\vocab}{\mathsf{Vocab}}
+\newcommand{\vocab}{V}
 
 %%% Local Variables: 
 %%% mode: latex

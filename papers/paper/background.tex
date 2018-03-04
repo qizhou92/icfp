@@ -7,184 +7,235 @@ simply-typed $\lambda$-calculus (STLC) (\autoref{sec:stlc}).
 We then define partial equivalence of STLC programs
 (\autoref{sec:peq}).
 
-\subsection{The Simply-Typed $\lambda$-calculus}
+\subsection{A subject functional language}
 \label{sec:stlc}
 \begin{figure}[t]
-  \begin{minipage}{0.48\linewidth}
+  % structural types,
+  \begin{minipage}{0.36\linewidth}
+    \begin{align*} %
+      \sigma \rightarrow &\ \unitty\ |\ \basety\ |\ X \\
+      | &\ \sigma \rightarrow \sigma \\
+      | &\ \sigma \times \sigma \\
+      | &\ \sigma + \sigma \\
+      | &\ \mu X. \sigma
+    \end{align*}
+    \caption{The space of structural types, $\types$.
+      % 
+      Metavariable $\sigma$ ranges over $\types$ and $X$ ranges over
+      least-fixed point variables.} %
+    \label{fig:types}
+  \end{minipage}
+  \qquad
+  % expressions,
+  \begin{minipage}{0.55\linewidth}
     \begin{align*}
-      % expression is a constant,
-      e \rightarrow &\ c \\
-      % or a variable,
-      | &\ x \\
-      % or a binary operation,
-      | &\ e \oplus e \\
-      % or an if-then-else, 
-      | &\ \ite{ e }{ e }{ e } \\
+      % expression is the unit,
+      e \rightarrow &\ \unit\ 
+                      % a constant,
+                      |\ c\
+                      % or a variable,
+                      |\ x\ 
+                      % or a base operation or predicate,
+                      |\ e_0 \oplus e_1 |\ e_0 \otimes e_1 \\
       % or an abstraction,
-      | &\ \lambda x.\ e \\
+      | &\ \abs{ x }{ \sigma }{ e } \
       % or an application,
-      | &\ e\ e \\
-      % or a fixpoint,
-      | &\ \fix{ f }{ e } 
+          | \ e_0\ e_1 \\
+      % or a pairing,
+      | &\ \pair{e_0}{e_1} \
+      % or a let-expression,
+          |\ \letexp{x}{\sigma_x }{y}{\sigma_y }{e_0}{e_1} \\
+      % or an injection or a match,
+      | &\ \injl\ e\ |\ \injr\ e\ \\
+      | &\ \matchexp{e_0}{x}{\sigma_x}{e_1}{y}{\sigma_y}{e_2} \\
+      % or a fix
+      | &\ \fix{f}{\sigma}{e}
     \end{align*}
     \caption{The space of program expressions, $\expr$.
       %
       Metavariable $e$ ranges over $\expr$, %
-      $c$ ranges over $\const$, %
-      $x$ ranges over $\vars$, and %
-      $f$ ranges over $\fixvars$. } %
+      $c$ ranges over $\consts$, %
+      $x$, $y$ and $f$, range over $\vars$, %
+      $\oplus$ ranges over base operations,
+      $\otimes$ ranges over base predicates, and
+      $\sigma$ ranges over structural types. } %
     \label{fig:exprs}
   \end{minipage}
-  %
-  \begin{minipage}{0.48\linewidth}
-    \begin{align*} %
-      \tau \rightarrow &\ \bools\ |\ \ints\ |\ \tau \to \tau 
-    \end{align*}
-    \caption{The space of types, $\types$.
-      % 
-      Metavariable $\tau$ ranges over $\types$.} %
-    \label{fig:types}
-  \end{minipage}
+  \qquad
 \end{figure}
 
-% define STLC syntax:
-\paragraph{Syntax} \autoref{fig:exprs} defines the space of
-simply-typed $\lambda$-calculus expressions, $\expr$.
+% define base types:
+\paragraph{Structural types}
 %
-For the remainder of this paper, metavariable $e$ ranges over
-$\expr$, %
-$c$ ranges over constants, %
-$\oplus$ ranges over binary operators from the combination of Boolean
-and linear integer arithmetic, %
-$x$ ranges over program variables, and %
-$f$ ranges over fixpoint variables.
+A structural type defines the structure of values.
 %
-An expression is a Boolean or integer constant, %
-a variable (drawn from the space of variables $\vars$), %
-a fixpoint variable (drawn from the space of fixpoint $\fixvars$), %
-an application of an fixed operator to a pair of expressions, %
-an \cc{if}-\cc{then}-\cc{else} expression, %
-a $\lambda$-abstraction, %
-an application, or %
-a fixpoint expression.
+The space of types is defined in \autoref{fig:types}.
+%
+A type is the unit, the base type, a type variable, a function type, a
+sum of types, a product of types, or a least-fixed point of a type.
+%
+A type $\sigma$ is well-formed if each type variable $X$ occurs only
+as a component of a type of the form $\mu X. \sigma'$ that itself is a
+component of $\sigma$.
+%
+The unit type, base type, and space of type variables are
+\emph{atomic} structural types.
+
+% define expression syntax:
+\paragraph{Expressions}
+% define spaces,
+\autoref{fig:exprs} defines a space of expressions over spaces of
+constants $\consts$ and variables $\vars$.
+% define construction of expressions,
+An expression is the unit, a constant, a variable, a base operation or
+predicate over expressions, an abstraction, an application, a pair, a
+\cc{let}-binding, a left injection, a right injection, a match, or a
+fixpoint.
 %
 For each $e \in \expr$, the \emph{free-variables} of $e$ are denoted
 $\freevars(e)$.
-%
-A STLC \emph{program} is a closed expression---i.e., an expression $e$
-such that $\freevars(e) = \emptyset$.
-%
-The space of STLC programs is denoted $\stlc$.
-%
-For $P \in \stlc$, the subexpressions of $P$ are denoted
-$\subexps{ P }$.
-%
-Let $P$ be fixed for the rest of this section.
 
 % define semantics:
 \paragraph{Semantics}
 %
-\begin{figure}
-  \centering
-  \begin{gather*}
-  % evaluate const:
-  \inference[ CONST ]{ }{ c \evalsto c }
-  % evaluate binary operations:
-  \inference[ OP ]{ %
-    e_0 \evalsto v_0 & %
-    e_1 \evalsto v_1 } %
-  { e_0 \oplus e_1 \evalsto v_0 \oplus v_1 } \\
-  % evaluate if-then-else by then branch
-  \inference[ ITE-T ]{ %
-    e_0 \evalsto \true & %
-    e_1 \evalsto v_1 } %
-  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_1 }
-  % evaluate if-then-else by else branch
-  \inference[ ITE-F ]{ %
-    e_0 \evalsto \false & %
-    e_2 \evalsto v_2 } %
-  { \ite{ e_0 }{ e_1 }{ e_2 } \evalsto v_2 } \\
-  % evaluate an abstraction:
-  \inference[ ABS ]{ } %
-  { \lambda x.\ e \evalsto \lambda x.\ e }
-  % evaluate a fix:
-  \inference[ FIX ]{ \replace{e}{ \fix{ f }{ e } }{ f } \evalsto v } %
-  { \fix{ f }{ e } \evalsto v }
-  % application:
-  \inference[ APP ]{ %
-    e_0 \evalsto \lambda x.\ e_0' & %
-    e_1 \evalsto v_1 & %
-    \replace{ e_0' }{ x }{ v_1 } \evalsto v }
-  { e_0\ e_1 \evalsto v } 
-  \end{gather*}
-  \caption{The natural semantics of $\stlc$.}
-  \label{fig:nat-sem}
-\end{figure}
-%
-A value is a Boolean, an integer, or a $\lambda$ abstraction;
+A value is the unit, a constant, an abstraction, a pair of values, a
+left-injection of a value, or a right-injection of a value;
 %
 the space of values is denoted $\values$.
 %
-For $e \in \expr$ and $v \in \values$, the fact that $e$
+For each base operation $\oplus$, there is a semantic function
+$\interp{\oplus} : \consts \times \consts \to \consts$.
+%
+The space of Boolean values is
+$\bools = \elts{ \injl\ \cc{()}, \injr\ \cc{()}}$;
+%
+for each base predicate $\oplus$, there is a semantic function
+$\interp{\otimes} : \consts \times \consts \to \bools$.
+
+\begin{figure}
+  \centering
+  \begin{gather*}
+    % unit,
+  \inference[ UNIT ]{ }{ \unit \evalsto \unit } 
+  % evaluate const:
+  \inference[ CONST ]{ }{ c \evalsto c } 
+  % evaluate binary operations:
+  \inference[ OP ]{ %
+    e_0 \evalsto c_0 & %
+    e_1 \evalsto c_1 }{ %
+    e_0 \oplus e_1 \evalsto c_0 \interp{\oplus} c_1 } 
+  % evaluate binary pred:
+  \inference[ PRED ]{ %
+    e_0 \evalsto c_0 & %
+    e_1 \evalsto c_1 }{ %
+    e_0 \otimes e_1 \evalsto c_0 \interp{\otimes} c_1 } \\
+  % abstraction, 
+  \inference[ ABS ]{ }{ \abs{ x }{ \sigma }{ e } \evalsto %
+    \abs{ x }{ \sigma }{ e } \abs{x}{\sigma}{e} } 
+  % application,
+  \inference[ APP ]{ %
+    e_0 \evalsto \abs{x}{\sigma}{e_0'} & %
+    e_1 \evalsto v_1 &
+    \replace{ e_0' }{ x }{ v_1 } \evalsto v }{ %
+    e_0\ e_1 \evalsto v } \\
+  % pair,
+  \inference[ PAIR ]{ %
+    % evaluate components,
+    e_0 \evalsto v_0 & e_1 \evalsto v_1 }{ %
+    % pair them up to get final result
+    \pair{ e_0 }{ e_1 } \evalsto (v_0, v_1) } 
+  % let,
+  \inference[ LET ]{
+    % evaluate bound expression,
+    e_0 \evalsto (v_0^l, v_0^r) &
+    % evaluate result with values replaced
+    \replace{ e_1 }{ x, y }{ v_0^l, v_1^r } \evalsto v_1 }{ %
+    \letexp{x}{\sigma_x}{y}{\sigma_y}{e_0}{e_1} \evalsto v_1 } \\
+  % inject left,
+  \inference[ INJL ]{ e \evalsto v }{ %
+    \injl\ e \evalsto \injl\ v } 
+  % match left injection,
+  \inference[ MATCHL ]{
+    % evaluate target exp to a left injection,
+    e_0 \evalsto \injl\ v_0 & %
+    \replace{ e_1 }{ x }{ v_0 } \evalsto v_1 }{ %
+    \matchexp{ e_0 }{ x }{\sigma_x}{ e_1 }{ y }{\sigma_y}{ e_2 } \evalsto v_1 } \\
+  % inject right,
+  \inference[ INJR ]{ e \evalsto v }{ \injr\ e \evalsto \injr\ v }
+  % match right injection,
+  \inference[ MATCHR ]{
+    % evaluate target exp to a left injection,
+    e_0 \evalsto \injr\ v_0 &
+    \replace{ e_2 }{ y }{ v_0 } \evalsto v_2 }{ %
+    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } 
+  % fix:
+  \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{\sigma}{ e } } \evalsto v } %
+  { \fix{ f }{\sigma}{ e } \evalsto v }
+  \end{gather*}
+  \caption{The natural semantics of expressions.
+    %
+    Metavariable $e$ ranges over $\expr$, %
+    $c$ ranges over $\consts$, %
+    $\oplus$ ranges over base operations and predicates, %
+    $x$, $y$, and $f$ range over $\vars$, and
+    $\sigma$ ranges over structual types.}
+  \label{fig:nat-sem}
+\end{figure}
+%
+For each $e \in \expr$ and $v \in \values$, the fact that $e$
 \emph{evaluates} to $v$ is denoted $e \evalsto v$.
 % 
-The evaluation relation is defined by a natural semantics, given in
+The evaluation relation is a natural (i.e., \emph{big-step})
+semantics, defined inductively by inference rules given in
 \autoref{fig:nat-sem}.
 
-% define base types:
-\paragraph{Base types}
-%
-A base type is defines a basic structure of values.
-%
-I.e., a value's base type defines the structure of values on which it
-is parameterized, and th e
-
-%
-Each expression $e$ has a type that describe the spaces of values that
-it takes as input and the spaces of values to which it evaluates.
-%
-The space of types is given in \autoref{fig:types}.
-%
-A type is either a base type or a function from a type to a type.
-
-% introduce has-type symbol:
-For expression $e \in \expr$, typing context $\Gamma : \vars \to
-\types$, and type $\tau \in \types$, the fact that $e$ \emph{has type}
-$\tau$ under $\Gamma$ is denoted $\Gamma \judges e : \tau$.
-%
-The definition of the has-type relation is standard.
 
 % standard defns for logic:
 \paragraph{Logic}
+% define theory:
+\sys infers types that relate evaluations of expressions using
+formulas in formal logic.
 %
-\sys infers types that related possible evaluations of expressions
-using formulas in formal logic.
+Let the space of \emph{refinement values} be
+$\fovals = \consts \union \elts{ \injl\ \unit, \injr\ \unit }$.
 %
-The quantifier-free fragment of the theory of linear arithmetic is
-denoted $\lia$.
+Let the \emph{refinement theory} $\mathcal{T}$ be a logical theory
+with equality with a vocabularly whose constants are the program
+constants, $\injl\ \unit$, and $\injr\ \unit$, and whose binary
+functions are the space of binary operators.
 %
-For each space of logical variables $X$, the space of $\lia$ formulas
-over $X$ is denoted $\formulas{ X }$.
+Each model of $\mathcal{T}$ is isomorphic to the domain $\fovals$ and
+the semantic functions $\interp{\oplus}$ for each binary operation and
+predicate $\oplus$.
+%
+For practical languages modeled by $\expr$, $\mathcal{T}$ may be,
+e.g., the quantifier-free fragment of the theory of linear arithmetic,
+where $\consts$ is the space of integers, $\injl\ \unit$ and
+$\injr\ \unit$ model true and false, the space of binary operators
+contains plus, and the space of base predicates contains the
+less-than-or-equal comparitor.
+
+% define spaces of formulas:
+For each space of logical variables $X$, the space of $\mathcal{T}$
+formulas over $X$ is denoted $\formulas{ X }$.
 %
 For each formula $\varphi \in \formulas{X}$, the set of variables that
 occur in $\varphi$ (i.e., the \emph{vocabulary} of $\varphi$) is
 denoted $\vocab(\varphi)$.
 % define models, satisfaction, entailment
-A \lia \emph{model} $m$ over $X$ is an assignment from each variable
-in $X$ to an integer.
-%
-The fact that model $m$ \emph{satisfies} a formula $\varphi$ is
-denoted $m \sats \varphi$.
-%
 For formulas $\varphi_0, \ldots, \varphi_n, \varphi \in \formulas{X}$,
 the fact that $\varphi_0, \ldots, \varphi_n$ \emph{entail} $\varphi$
 is denoted $\varphi_0, \ldots, \varphi_n \entails \varphi$.
+%
+There is a formula $\true \in \formulas{\emptyset}$ such that each
+sequence of formulas entails $\true$.
 
 % Define replacement and substitution:
-For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and $Y = [
-y_0, \ldots, y_n ]$, the \lia formula constraining the equality of
-each element in $X$ with its corresponding element in $Y$, i.e., the
-formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted $X = Y$.
+For all vectors of variables $X = [ x_0, \ldots, x_n ]$ and
+$Y = [ y_0, \ldots, y_n ]$, the $\mathcal{T}$ formula constraining the
+equality of each element in $X$ with its corresponding element in $Y$,
+i.e., the formula $\bigland_{0 \leq i \leq n} x_i = y_i$, is denoted
+$X = Y$.
 %
 The repeated replacement of variables $\varphi[ y_0 / x_0 \ldots y_{n}
 / x_{n} ]$ is denoted $\replace{\varphi}{Y}{X}$.
@@ -194,57 +245,6 @@ $\replace{\varphi}{X}{Y}$ is denoted alternatively as $\varphi[Y]$.
 %
 The number of free variables in formula $\varphi$ is denoted
 $\degreeof(\varphi)$.
-
-% Introduce decision procedure:
-Although determining the satisfiability of a \lia formula is
-NP-complete in general, decision procedures for \lia have been
-proposed that often determine the satisfiability of formulas that
-arise from practical verification problems
-efficiently~\cite{demoura08}.
-%
-\sys assumes access to a procedure that, given \lia formulas
-$\varphi_0$ and $\varphi_1$, decides if $\varphi_0 \entails
-\varphi_1$.
-
-\subsection{Partial equivalence of STLC programs}
-\label{sec:peq}
-%
-\BH{generalize all of this to be in terms of $k$-safety properties}
-%
-If STLC programs $P_0$ and $P_1$, applied to the same input, evaluate
-to the same value, then $P_0$ and $P_1$ are partially equivalent.
-%
-\begin{defn}
-  \label{defn:val-equiv}
-  Let $\Gamma \in \ctxs$.
-  % case: equivalence over base values:
-  \textbf{(1)} For each $v_0 \in \basevalues$, $\Gamma \judges
-  v_0 \equiv v_1$.
-  % case: equivalence over functions:
-  \textbf{(2)} For all $x_0, y_0 \in \vars$ and $e_0, e_1 \in \expr$
-  such that $f_0 = \lambda\ x_0. e_0, f_1 = \lambda x_1.\ e_1 \in
-  \values$, if for all $v_0, v_1 \in \values$ such that $v_0 \equiv
-  v_1$ and %
-  all $v_0', v_1' \in \values$ such that $\emptyset \judges f_0\ v_0
-  \evalsto v_0'$ and $\emptyset \judges f_1\ v_1 \evalsto v_1'$, it
-  holds that $v_0' \equiv v_1'$, then %
-  $f_0 \equiv f_1$.
-\end{defn}
-
-%
-Two programs are partially equivalent if they evaluate to equivalent
-values.
-%
-\begin{defn}
-  \label{defn:prog-equiv}
-  For all $P_0, P_1 \in \stlc$, if for all $v_0, v_1 \in \values$ such
-  that $\emptyset \judges P_0 \evalsto v_0$ and $\emptyset \judges
-  P_1 \evalsto v_1$ it holds that $v_0 \equiv v_1$, then $P_0 \equiv
-  P_1$.
-\end{defn}
-%
-The main problem that we address in this work is, given STLC programs
-$P_0$ and $P_1$, to determine if $P_0 \equiv P_1$.
 
 \subsection{Constrained Horn Clauses}
 \label{sec:chcs}
