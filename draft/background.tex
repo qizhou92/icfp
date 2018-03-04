@@ -34,7 +34,7 @@ We then define partial equivalence of STLC programs
                       % a constant,
                       |\ c\
                       % or a variable,
-                      |\ a\ 
+                      |\ x\ 
                       % or a base operation or predicate,
                       |\ e_0 \oplus e_1 |\ e_0 \otimes e_1 \\
       % or an abstraction,
@@ -55,9 +55,9 @@ We then define partial equivalence of STLC programs
       %
       Metavariable $e$ ranges over $\expr$, %
       $c$ ranges over $\consts$, %
+      $x$, $y$ and $f$, range over $\vars$, %
       $\oplus$ ranges over base operations,
-      $\otimes$ ranges over base predicates, %
-      $x$, $y$ and $f$, range over $\vars$, and %
+      $\otimes$ ranges over base predicates, and
       $\sigma$ ranges over structural types. } %
     \label{fig:exprs}
   \end{minipage}
