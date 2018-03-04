@@ -90,6 +90,16 @@ isPrimFlatType = \case
   FlatType{} -> True
   _ -> False
 
+flatTypeArgument :: FlatType -> Maybe FlatType
+flatTypeArgument = \case
+  FlatTypeArr _ _ t -> Just t
+  _ -> Nothing
+
+flatTypeApplicand :: FlatType -> Maybe FlatType
+flatTypeApplicand = \case
+  FlatTypeArr _ t _ -> Just t
+  _ -> Nothing
+
 increment :: MonadState Int m => m Int
 increment = state (\x -> (x, x+1))
 
@@ -166,28 +176,21 @@ mkTypeDAG varPairs exprIds exprTypes =
         _ -> CompositeRHORT <$> mapM (mkEdge . (: [])) possibleIndexes
 
     mkEdge edgeIndexs = do
-      leftNode  <- mkChild getLeftFlatType
-      rightNode <- mkChild getRightFlatType
+      leftNode  <- mkChild flatTypeApplicand
+      rightNode <- mkChild flatTypeArgument
       return (RHORTEdge edgeIndexs [leftNode, rightNode])
       where
         mkChild f = do
-          let childTypeList  = foldr getLeftFlatType flatTypeList  edgeIndexs
+          let childTypeList = foldr (unfoldChild f) flatTypeList  edgeIndexs
           let (childVarType,childExprType) = L.splitAt (length varTypes) childTypeList
           mkTypeDAG (zip varName childVarType) exprIds childExprType
 
-        getLeftFlatType index flatTypeList =
-          case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
-            FlatTypeArr _ t1 _ ->
-              let (left,right) = L.splitAt (index+1) flatTypeList
-              in (init left ++ [t1] ++ right)
-            _ -> error "primitive type cannot get left type"
-
-        getRightFlatType index flatTypeList =
-          case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
-            FlatTypeArr _ _ t1 ->
-              let (left,right) = L.splitAt (index+1) flatTypeList
-              in (init left ++ [t1] ++ right)
-            _ -> error "primitive type cannot get right type"
+        unfoldChild f idx flatTypeList =
+          case f (safeGet "cannot get this type from unfoldChild" idx flatTypeList) of
+            Just t ->
+              let (left,right) = L.splitAt (idx+1) flatTypeList
+              in (init left ++ [t] ++ right)
+            Nothing -> error "primitive type cannot get indexed type"
 
 mkPredicate :: MonadState Int m => [FlatType] -> [Var] -> [Int] -> m Nonterminal
 mkPredicate flatTypes varName uniqueIds = do
