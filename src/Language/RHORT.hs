@@ -52,33 +52,34 @@ data RHORTEdge = RHORTEdge
   , getNodes  :: [RHORTNode]
   } deriving (Show, Read, Eq, Ord, Data)
 
--- |Given a relational higher order refinement type, the unique id of the expression and the corresponding index, 
--- fetch the formula (variable) which represents the value of the expression.
+-- | Given a relational higher order refinement type, the unique id of the
+-- expression and the corresponding index, fetch the formula (variable) which
+-- represents the value of the expression.
 valueOf :: Int -> Int -> RHORT -> F.Var
-valueOf uniqueId index rhort = 
+valueOf uniqueId index rhort =
   let t = safeGet "valueOf given the index over the basic length" index (getBasicTypes rhort)
       prims = filter isPrimitiveType (flattenType t)
-      lastT = L.last prims
-    in case lastT of
-          TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, length prims)
-          TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, length prims)
-          _ -> error "this type is not supported (argumentOf in RHORT)"
+  in case L.last prims of
+       TBool -> mkBoundVar uniqueId TBool (length prims)
+       TInt  -> mkBoundVar uniqueId TInt (length prims)
+       _ -> error "this type is not supported (argumentOf in RHORT)"
 
--- | Given a relational higher order refinement type, the unique id of the expression and the corresponding index, 
--- fetch the formula (variable) which represents the first argument of the expression and its type is primitive type.
+-- | Given a relational higher order refinement type, the unique id of the
+-- expression and the corresponding index, fetch the formula (variable) which
+-- represents the first argument of the expression and its type is primitive
+-- type.
 argumentOf :: Int -> Int -> RHORT -> F.Var
-argumentOf uniqueId index rhort =
-  let t = safeGet "argumentOf given the index over the basic length" index (getBasicTypes rhort)
+argumentOf uniqueId idx rhort =
+  let t = safeGet "argumentOf given the index over the basic length" idx (getBasicTypes rhort)
   in case t of
-    TArr t1 _ -> mkVarArg ("arg#" ++ show uniqueId) (t1,1)
-    _ -> error "this type is not supported (argumentOf in RHORT)"  
+    TArr t1 _ -> mkBoundVar uniqueId t1 1
+    _ -> error "this type is not supported (argumentOf in RHORT)"
 
 -- FlatType is the type the collect all first order argument into one type
 data FlatType
   = FlatType Int [Type]
   | FlatTypeArr Int FlatType FlatType
   deriving (Show, Read, Eq, Ord, Data)
-
 
 -- Whether the given flat type is a primitive type.
 isPrimFlatType :: FlatType -> Bool
@@ -218,17 +219,20 @@ mkPredicate flatTypes varName uniqueIds = do
 
 mkVarArgs :: Var -> FlatType -> [F.Var]
 mkVarArgs _ FlatTypeArr{} = error "mkVarArgs would not accept flat type that is not all primitive"
-mkVarArgs (Var name) (FlatType _ typeList) = map (mkVarArg name) (zip typeList [1 ..])
+mkVarArgs (Var name) (FlatType _ typeList) = zipWith (mkVarArg name) typeList [1 ..]
 
-mkVarArg :: String -> (Type,Int) -> F.Var
-mkVarArg name (t,uniqueId) = case t of
+mkVarArg :: String -> Type -> Int -> F.Var
+mkVarArg name t uniqueId = case t of
   TInt -> F.Var (name ++ "/" ++ show uniqueId) F.Int
   TBool -> F.Var (name ++ "/" ++ show uniqueId) F.Bool
   _ -> error "it is not an primitive type  free vars (mkVarArg in RHORT)"
 
+mkBoundVar :: Int -> Type -> Int -> F.Var
+mkBoundVar uid = mkVarArg ("arg#" ++ show uid)
+
 mkExprArgs :: Int -> FlatType -> [F.Var]
 mkExprArgs _ FlatTypeArr{} = error "mkExprArgs would not accept flat type that is not all primitive"
-mkExprArgs uniqueId (FlatType _ typeList) = map (mkVarArg ("arg#" ++ show uniqueId)) (zip typeList [1 ..])
+mkExprArgs uniqueId (FlatType _ typeList) = zipWith (mkBoundVar uniqueId) typeList [1 ..]
 
 
 -- | Split a relational high order refinement type at the arrow position with index
@@ -271,7 +275,7 @@ buildConstrainForAddNewVar var uniqueId index oldContext t (newVar,newContext) =
   return ()
 
 getAllSamePairNodes :: Int -> RHORTNode -> RHORTNode -> [(RHORTNode,RHORTNode)]
-getAllSamePairNodes index varNode newContextNode = 
+getAllSamePairNodes index varNode newContextNode =
   let validEdges = findEdges [index] (getEdges varNode) in
   if null validEdges then [(varNode,newContextNode)]
   else let correspondingEdge = safeFind [0] (getEdges newContextNode)
