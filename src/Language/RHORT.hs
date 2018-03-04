@@ -6,16 +6,15 @@ import           Control.Monad.State
 import           Control.Monad.Writer
 import           Control.Monad
 import           Data.Data (Data)
-import           Data.Foldable (foldrM)
 import           Data.Tree
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Set (Set)
 import qualified Data.Set as S
-import Data.Foldable (toList)
 import           Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import qualified Data.List as L
+import           Data.Foldable (toList, foldrM)
 import Control.Lens
 
 import           Language.Types
@@ -80,10 +79,16 @@ data FlatType
   | FlatTypeArr Int FlatType FlatType
   deriving (Show, Read, Eq, Ord, Data)
 
+getFlatTypeId :: FlatType -> Int
+getFlatTypeId = \case
+  FlatType i _ -> i
+  FlatTypeArr i _ _ -> i
+
 -- Whether the given flat type is a primitive type.
 isPrimFlatType :: FlatType -> Bool
-isPrimFlatType (FlatType _ _) = True
-isPrimFlatType _ = False
+isPrimFlatType = \case
+  FlatType{} -> True
+  _ -> False
 
 increment :: MonadState Int m => m Int
 increment = state (\x -> (x, x+1))
@@ -116,10 +121,10 @@ isPrim index rhort =
   in isPrimitiveType t
 
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
-freshType  varTypesSet types uniqueIds = do
+freshType varTypesSet types uniqueIds = do
   let flattenTypeList = map (second mkFlatType) (S.toList varTypesSet)
   let exprTypeList = map mkFlatType (toList types)
-  rhortNode <- evalStateT (getDAGNode flattenTypeList (toList uniqueIds) exprTypeList) M.empty
+  rhortNode <- evalStateT (mkTypeDAG flattenTypeList (toList uniqueIds) exprTypeList) M.empty
   let basicTypes = toList types
   let varTypes = map snd (S.toList varTypesSet)
   return (RHORT rhortNode varTypes basicTypes)
@@ -130,81 +135,67 @@ fetchVarComponents v t = mkVarArgs v (mkFlatType t)
 fetchExprComponents :: ExprID -> Type -> [F.Var]
 fetchExprComponents i t= mkExprArgs i (mkFlatType t)
 
-getDAGNode :: MonadState Int m
-           => [(Var, FlatType)] -> [Int] -> [FlatType]
-           -> StateT (Map [Int] RHORTNode) m RHORTNode
-getDAGNode  varPairs exprIds exprTypes = do
-  let varTypes = map snd varPairs
-  let indexList = map getFlatTypeId (varTypes ++ exprTypes)
-  visitedMap <- get
-  case M.lookup indexList visitedMap of
+mkTypeDAG :: MonadState Int m
+          => [(Var, FlatType)] -> [Int] -> [FlatType]
+          -> StateT (Map [Int] RHORTNode) m RHORTNode
+mkTypeDAG varPairs exprIds exprTypes =
+  let indexList = map getFlatTypeId flatTypeList
+  in M.lookup indexList <$> get >>= \case
     Just dagNode -> return dagNode
     Nothing -> do
-      newDAGNode <- freshDAGNode varPairs exprIds exprTypes
-      put (M.insert indexList newDAGNode visitedMap)
+      newDAGNode <- freshDAGNode
+      modify (M.insert indexList newDAGNode)
       return newDAGNode
-
-getFlatTypeId :: FlatType -> Int
-getFlatTypeId = \case
-  FlatType i _ -> i
-  FlatTypeArr i _ _ -> i
-
-freshDAGNode ::  MonadState Int m => [(Var,FlatType)] -> [Int] -> [FlatType] -> StateT (Map [Int] RHORTNode) m RHORTNode
-freshDAGNode varPairs exprIds exprTypes = do
-  let varTypes = map snd varPairs
-  let flatTypeList = varTypes ++ exprTypes 
-  let possibleIndexs = filter (\(t,_) ->not (isPrimFlatType t)) (zip flatTypeList ([0 .. ]::[Int])) 
-  if null possibleIndexs
-  then do
-    let varName = map fst varPairs
-    predicate <- lift (mkPredicate flatTypeList varName exprIds)
-    let flatIdList = map getFlatTypeId flatTypeList
-    return (SimpleRHORT flatIdList predicate)
-  else do 
-    let allPossibleIndex = getAllPossibleIndex (map snd possibleIndexs)
-    allEdges <- mapM (constructEdge varPairs exprIds exprTypes) allPossibleIndex
-    return (CompositeRHORT allEdges)
-
--- each list is an index, which only contains one integer
-getAllPossibleIndex :: [Int] -> [[Int]]
-getAllPossibleIndex = map (: [])
-
-constructEdge :: MonadState Int m => [(Var,FlatType)] -> [Int] -> [FlatType] -> [Int] -> StateT (Map [Int] RHORTNode) m RHORTEdge
-constructEdge varPairs exprIds exprTypes edgeIndexs= do
-  let varTypes = map snd varPairs
-  let varName = map fst varPairs
-  let flatTypeList = varTypes ++ exprTypes
-  let leftFlatTypeList  = foldr getLeftFlatType flatTypeList  edgeIndexs
-  let rightFlatTypeList = foldr getRightFlatType flatTypeList edgeIndexs
-  let (leftVarType,leftExprType) = L.splitAt (length varTypes) leftFlatTypeList
-  let (rightVarType,rightExprType) = L.splitAt (length varTypes) rightFlatTypeList
-  leftNode <- getDAGNode (zip varName leftVarType) exprIds leftExprType
-  rightNode <- getDAGNode (zip varName rightVarType) exprIds rightExprType
-  return (RHORTEdge edgeIndexs [leftNode,rightNode])
   where
-    getLeftFlatType index flatTypeList =
-      case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
-        FlatTypeArr _ t1 _ ->
-          let (left,right) = L.splitAt (index+1) flatTypeList
-          in (init left ++ [t1] ++ right)
-        _ -> error "primitive type cannot get left type"
+    varName = map fst varPairs
+    varTypes = map snd varPairs
+    flatTypeList = varTypes ++ exprTypes
 
-    getRightFlatType index flatTypeList =
-      case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
-        FlatTypeArr _ _ t1 ->
-          let (left,right) = L.splitAt (index+1) flatTypeList
-          in (init left ++ [t1] ++ right)
-        _ -> error "primitive type cannot get right type"
+    freshDAGNode = do
+      let possibleIndexes =
+            zip flatTypeList [0..]
+            & filter (not . isPrimFlatType . fst)
+            & map snd
+      case possibleIndexes of
+        [] -> do
+          predicate <- lift (mkPredicate flatTypeList varName exprIds)
+          let flatIdList = map getFlatTypeId flatTypeList
+          return (SimpleRHORT flatIdList predicate)
+        -- To construct a composite rhort, we have to continue building
+        -- the dag by looking a potential children.
+        _ -> CompositeRHORT <$> mapM (mkEdge . (: [])) possibleIndexes
+
+    mkEdge edgeIndexs = do
+      leftNode  <- mkChild getLeftFlatType
+      rightNode <- mkChild getRightFlatType
+      return (RHORTEdge edgeIndexs [leftNode, rightNode])
+      where
+        mkChild f = do
+          let childTypeList  = foldr getLeftFlatType flatTypeList  edgeIndexs
+          let (childVarType,childExprType) = L.splitAt (length varTypes) childTypeList
+          mkTypeDAG (zip varName childVarType) exprIds childExprType
+
+        getLeftFlatType index flatTypeList =
+          case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
+            FlatTypeArr _ t1 _ ->
+              let (left,right) = L.splitAt (index+1) flatTypeList
+              in (init left ++ [t1] ++ right)
+            _ -> error "primitive type cannot get left type"
+
+        getRightFlatType index flatTypeList =
+          case safeGet "cannot get this type from getLeftFlatType" index flatTypeList of
+            FlatTypeArr _ _ t1 ->
+              let (left,right) = L.splitAt (index+1) flatTypeList
+              in (init left ++ [t1] ++ right)
+            _ -> error "primitive type cannot get right type"
 
 mkPredicate :: MonadState Int m => [FlatType] -> [Var] -> [Int] -> m Nonterminal
 mkPredicate flatTypes varName uniqueIds = do
-  idNumber <- get
-  let (aVarTypes,exprTypes) = L.splitAt (length varName) flatTypes
+  idNumber <- increment
+  let (aVarTypes, exprTypes) = L.splitAt (length varName) flatTypes
   let varListArg = concat (zipWith mkVarArgs varName aVarTypes)
   let exprListArg = concat (zipWith mkExprArgs uniqueIds exprTypes)
-  let nonterminal = Nonterminal (ConcreteID idNumber) (varListArg++exprListArg)
-  put (idNumber + 1)
-  return nonterminal
+  return $ Nonterminal (ConcreteID idNumber) (varListArg ++ exprListArg)
 
 mkVarArgs :: Var -> FlatType -> [F.Var]
 mkVarArgs _ FlatTypeArr{} = error "mkVarArgs would not accept flat type that is not all primitive"
