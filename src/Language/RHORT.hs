@@ -124,10 +124,10 @@ freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHO
 freshType varTypesSet types uniqueIds = do
   let flattenTypeList = map (second mkFlatType) (S.toList varTypesSet)
   let exprTypeList = map mkFlatType (toList types)
-  rhortNode <- evalStateT (mkTypeDAG flattenTypeList (toList uniqueIds) exprTypeList) M.empty
+  dag <- evalStateT (mkTypeDAG flattenTypeList (toList uniqueIds) exprTypeList) M.empty
   let basicTypes = toList types
   let varTypes = map snd (S.toList varTypesSet)
-  return (RHORT rhortNode varTypes basicTypes)
+  return (RHORT dag varTypes basicTypes)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
 fetchVarComponents v t = mkVarArgs v (mkFlatType t)
@@ -214,25 +214,25 @@ mkExprArgs :: Int -> FlatType -> [F.Var]
 mkExprArgs _ FlatTypeArr{} = error "mkExprArgs would not accept flat type that is not all primitive"
 mkExprArgs uniqueId (FlatType _ typeList) = zipWith (mkBoundVar uniqueId) typeList [1 ..]
 
-
--- | Split a relational high order refinement type at the arrow position with index
 split :: Int -> RHORT -> (RHORT,RHORT)
-split index rhort = case safeGet "split is over index" index (getBasicTypes rhort) of
-  TArr t1 t2 -> 
-    let dagNode = getRHORT rhort
+split idx rhort = case safeGet "split is over index" idx (getBasicTypes rhort) of
+  TArr t1 t2 ->
+    ( child "split should find left node"  0 t1
+    , child "split should find right node" 1 t2
+    )
+      where
         availableVar = getAvailable rhort
         varLength = length availableVar
-        validEdges = filter (\(RHORTEdge indexs _) -> indexs == [index+varLength]) (getEdges dagNode)
-        nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
-        leftNode = safeGet "split should find left node" 0 nodes
-        rightNode = safeGet "split should find right node" 1 nodes
+        validEdges = filter (\(RHORTEdge idxs _) -> idxs == [idx+varLength])
+          (getEdges (getRHORT rhort))
         types = getBasicTypes rhort
-        (leftTypes,rightTypes) = L.splitAt (index+1) types
-        newLeftTypes = L.init leftTypes ++ [t1] ++ rightTypes
-        newRightTypes = L.init leftTypes ++ [t2] ++ rightTypes
-        leftRHORT = RHORT leftNode availableVar newLeftTypes 
-        rightRHORT = RHORT rightNode availableVar newRightTypes
-    in (leftRHORT, rightRHORT)
+        (leftTypes,rightTypes) = L.splitAt (idx+1) types
+        nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
+
+        child msg idx' t =
+          let node = safeGet msg idx' nodes
+              newTs = L.init leftTypes ++ [t] ++ rightTypes
+          in RHORT node availableVar newTs
   _ ->  error "not a supported type (split in RHORT)"
 
 
