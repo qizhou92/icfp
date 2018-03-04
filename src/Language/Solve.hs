@@ -6,7 +6,7 @@ import           Control.Monad.Reader
 
 import qualified Language.TypeInference as TI
 import           Language.RHOTypeInference
-import           Language.RHORT (isPrimFlatType, getFlatType)
+import           Language.RHORT (isPrimFlatType, mkFlatType)
 import           Language.Types
 
 import           Data.Generics.Fixplate.Base
@@ -38,7 +38,7 @@ solveCE q exs =
   where
     prepare = fmap (availableVars . annMap fst) . numberExpressions . emptyAttr
     applyTypes = annMap (\(ctxt, t, (vs, fixed)) ->
-      let vs' = S.filter (\(_, t) -> isPrimFlatType (getFlatType t))
+      let vs' = S.filter (\(_, t) -> isPrimFlatType (mkFlatType t))
               $ S.map (\v -> (v, ctxt M.! v)) vs
       in Annotation fixed fixed vs' t)
 

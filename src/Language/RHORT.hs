@@ -6,6 +6,7 @@ import           Control.Monad.State
 import           Control.Monad.Writer
 import           Control.Monad
 import           Data.Data (Data)
+import           Data.Foldable (foldrM)
 import           Data.Tree
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -93,23 +94,13 @@ mkFlatType ty = evalState (go ty) 1
   where
     go :: Type -> State Int FlatType
     go t = do
-      let (basicTypes, highOrderTypes) = L.partition isPrimitiveType (flattenType t)
-      uniqueTypeId <- increment
-      let flatType = FlatType uniqueTypeId basicTypes
-      if null highOrderTypes
-      then return flatType
-      else do
-        allFlattenTypes <- mapM go highOrderTypes
-        constructFlatType (allFlattenTypes++[flatType])
-
-    constructFlatType :: [FlatType] -> State Int FlatType
-    constructFlatType = \case
-      [] -> error "construct flat type cannot accept empty list"
-      [x] -> return x
-      (x:xs) -> do
-        uniqueTypeId <- increment
-        secondIdType <- constructFlatType xs
-        return (FlatTypeArr uniqueTypeId x secondIdType)
+      let (basicTs, hoTs) = L.partition isPrimitiveType (flattenType t)
+      -- Construct the type which represents all primitive types in the given signature.
+      flatType <- FlatType <$> increment <*> pure basicTs
+      -- Recursively construct flat types for the non-primitive types in the signature
+      -- and construct arrow types between them.
+      foldrM (\t1 t2 -> FlatTypeArr <$> increment <*> go t1 <*> pure t2)
+        flatType hoTs
 
 flattenType :: Type -> [Type]
 flattenType = \case
