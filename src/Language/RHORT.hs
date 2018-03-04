@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 module Language.RHORT where
 
+import           Control.Arrow
 import           Control.Monad.State
 import           Control.Monad.Writer
 import           Control.Monad
@@ -44,11 +45,6 @@ getEdges = \case
   SimpleRHORT{} -> []
   CompositeRHORT es -> es
 
-getPredicate :: RHORTNode -> Maybe ([Int], Nonterminal)
-getPredicate = \case
-  SimpleRHORT is nt -> Just (is, nt)
-  CompositeRHORT{} -> Nothing
-
 -- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index list of this unwinding
 -- getNodes returns the RHORT nodes this edge points to.
 data RHORTEdge = RHORTEdge
@@ -64,8 +60,8 @@ valueOf uniqueId index rhort =
       prims = filter isPrimitiveType (flattenType t)
       lastT = L.last prims
     in case lastT of
-          TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, (length prims))
-          TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, (length prims))
+          TBool -> mkVarArg ("arg#" ++ show uniqueId) (TBool, length prims)
+          TInt  -> mkVarArg ("arg#" ++ show uniqueId) (TInt, length prims)
           _ -> error "this type is not supported (argumentOf in RHORT)"
 
 -- | Given a relational higher order refinement type, the unique id of the expression and the corresponding index, 
@@ -130,11 +126,11 @@ isPrim index rhort =
 
 freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
 freshType  varTypesSet types uniqueIds = do
-  let flattenTypeList = map (\(v,t)->(v,(getFlatType t))) (S.toList varTypesSet)
+  let flattenTypeList = map (second getFlatType) (S.toList varTypesSet)
   let exprTypeList = map getFlatType (toList types)
   rhortNode <- evalStateT (getDAGNode flattenTypeList (toList uniqueIds) exprTypeList) M.empty
   let basicTypes = toList types
-  let varTypes = map (\(_,t) -> t) (S.toList varTypesSet)
+  let varTypes = map snd (S.toList varTypesSet)
   return (RHORT rhortNode varTypes basicTypes)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
@@ -241,7 +237,7 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
   TArr t1 t2 -> 
     let dagNode = getRHORT rhort
         availableVar = getAvailable rhort
-        varLength = length (availableVar)
+        varLength = length availableVar
         validEdges = filter (\(RHORTEdge indexs _) -> indexs == [index+varLength]) (getEdges dagNode)
         nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
         leftNode = safeGet "split should find left node" 0 nodes
@@ -261,8 +257,8 @@ split index rhort = case safeGet "split is over index" index (getBasicTypes rhor
 addNewVarIntoContext :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORT -> RHORT -> RHORT -> m ()
 addNewVarIntoContext newVar uniqueId index varHort oldContext newContext = do
   let samePairNodes = getAllSamePairNodes index (getRHORT varHort) (getRHORT newContext)
-  let rightPairs =map (\(varHort,newContext)-> (getAnLeafNode varHort,newContext) ) samePairNodes
-  let types = getOrderOfFlattenType (getFlatType ((getBasicTypes varHort) !! index) )
+  let rightPairs = map (first getAnLeafNode) samePairNodes
+  let types = getOrderOfFlattenType (getFlatType (getBasicTypes varHort !! index) )
   _ <- zipWithM (buildConstrainForAddNewVar newVar uniqueId index (getRHORT oldContext)) types rightPairs
   return () 
 
@@ -271,25 +267,24 @@ buildConstrainForAddNewVar var uniqueId index oldContext t (newVar,newContext) =
   let vcs = mkVarArgs var t
   let ecs = mkExprArgs uniqueId t
   let f = F.manyAnd (zipWith (\v1 v2 -> [F.expr|@v1 = @v2|]) vcs ecs)
-  _ <- witnessNode f [(safeGetNonterminal newVar)] [oldContext] newContext
+  _ <- witnessNode f [safeGetNonterminal newVar] [oldContext] newContext
   return ()
 
 getAllSamePairNodes :: Int -> RHORTNode -> RHORTNode -> [(RHORTNode,RHORTNode)]
 getAllSamePairNodes index varNode newContextNode = 
-  let validEdges = findEdges [index] (getEdges varNode)
-    in if (null validEdges) then [(varNode,newContextNode)]
-      else 
-        let correspondingEdge = safeFind [0] (getEdges newContextNode)
-            theEdge = validEdges !! 0
-            leftNode1 = safeGet "there is no left node" 0 (getNodes theEdge)
-            leftNode2 = safeGet "there is no left node" 0 (getNodes correspondingEdge)
-            rightNode1 = safeGet "there is no right node" 1 (getNodes theEdge)
-            rightNode2 = safeGet "there is no right node" 1 (getNodes correspondingEdge)
-          in (getAllSamePairNodes index leftNode1 leftNode2) ++ (getAllSamePairNodes index rightNode1 rightNode2)
+  let validEdges = findEdges [index] (getEdges varNode) in
+  if null validEdges then [(varNode,newContextNode)]
+  else let correspondingEdge = safeFind [0] (getEdges newContextNode)
+           theEdge = head validEdges
+           leftNode1 = safeGet "there is no left node" 0 (getNodes theEdge)
+           leftNode2 = safeGet "there is no left node" 0 (getNodes correspondingEdge)
+           rightNode1 = safeGet "there is no right node" 1 (getNodes theEdge)
+           rightNode2 = safeGet "there is no right node" 1 (getNodes correspondingEdge)
+       in getAllSamePairNodes index leftNode1 leftNode2 ++ getAllSamePairNodes index rightNode1 rightNode2
 
 getOrderOfFlattenType :: FlatType -> [FlatType]
 getOrderOfFlattenType t@(FlatType _ _) = [t]
-getOrderOfFlattenType (FlatTypeArr _ t1 t2) = (getOrderOfFlattenType t1) ++ (getOrderOfFlattenType t2)
+getOrderOfFlattenType (FlatTypeArr _ t1 t2) = getOrderOfFlattenType t1 ++ getOrderOfFlattenType t2
 
 -- given three rhrot, condition, oldContext, and newContext to build the subtype relations
 ctxtJoin :: MonadWriter [Rule] m => F.Expr -> RHORT -> RHORT -> RHORT -> m ()
@@ -319,8 +314,8 @@ getRightMostNode :: Int -> RHORTNode -> RHORTNode
 getRightMostNode index node =
   let edges = getEdges node
       oneEdge = filter (\edge -> getIndexs edge == [index]) edges
-  in if length oneEdge == 0 then node
-       else if length oneEdge == 1 then getRightMostNode index (safeGet "there is no right node" 1 (getNodes (oneEdge !! 0)))
+  in if null oneEdge then node
+     else if length oneEdge == 1 then getRightMostNode index (safeGet "there is no right node" 1 (getNodes (head oneEdge)))
           else error "there is error in get rightMostNode"
 
 constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
@@ -413,7 +408,8 @@ safeFind indexs edges =
 
 
 findEdges :: [Int] -> [RHORTEdge] -> [RHORTEdge]
-findEdges indexs edges = filter (\edge -> getIndexs edge == indexs) edges
+findEdges indexs = filter (\edge -> getIndexs edge == indexs)
+
 -- | print an given the message is current list is less then the index
 safeGet :: String -> Int -> [a] -> a
 safeGet message index list =
