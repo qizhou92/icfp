@@ -1,1 +1,0 @@
-Proving equivalence of functional programs would be very good
