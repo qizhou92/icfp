@@ -33,13 +33,13 @@ data RHORT = RHORT
 -- is a leaf node, getEdges returns the outgoing edge of this node
 data RefinementDAG
   = SimpleRHORT (Seq Int) Nonterminal
-  | CompositeRHORT (Seq RHORTEdge)
+  | CompositeRHORT [RHORTEdge]
   deriving (Show, Read, Eq, Ord, Data)
 
 getEdges :: RefinementDAG -> [RHORTEdge]
 getEdges = \case
-  SimpleRHORT{} -> []
-  CompositeRHORT es -> toList es
+  SimpleRHORT{} -> Empty
+  CompositeRHORT es -> es
 
 -- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index list of this unwinding
 -- getNodes returns the RHORT nodes this edge points to.
@@ -165,7 +165,6 @@ mkTypeDAG varPairs exprIds exprTypes =
             zip (toList flatTypes) ([0..] :: [Int])
             & filter (not . isPrimFlatType . fst)
             & map snd
-            & Seq.fromList
       case possibleIndexes of
         Empty -> do
           predicate <- lift (mkPredicate flatTypes varName exprIds)
@@ -228,13 +227,11 @@ split idx rhort = case safeGet "split is over index" idx (getBasicTypes rhort) o
     validEdges = filter (\(RHORTEdge idxs _) -> idxs == [idx+varLength])
       (getEdges (refinementDAG rhort))
     types = getBasicTypes rhort
-    -- (leftTypes,rightTypes) = L.splitAt (idx+1) types
     nodes = getNodes (safeGet' "split should find one valid edge" 0 validEdges)
 
     child msg idx' t =
       let node = safeGet' msg idx' nodes
           newTs = Seq.update idx t types
-          -- newTs = L.init leftTypes ++ [t] ++ rightTypes
       in RHORT node availableVar newTs
 
 -- given the new var, the id of this lambada expression, the index of this expression
@@ -291,9 +288,10 @@ appJoin :: MonadWriter [Rule] m => Int -> F.Expr -> RHORT -> RHORT -> RHORT -> m
 appJoin idx constraint absRhort argRhort appRhort = do
   let rightMostNode1 = rightmostNode idx (refinementDAG absRhort)
   let rightMostNode2 = rightmostNode idx (refinementDAG appRhort)
-  visitedSet <- witnessNode constraint [] [rightMostNode1, refinementDAG argRhort] rightMostNode2
-  _ <- execStateT (witnessNode' constraint [] [refinementDAG absRhort, refinementDAG argRhort] (refinementDAG appRhort)) visitedSet
-  return ()
+  evalStateT (do
+    witnessNode' constraint [] [rightMostNode1, refinementDAG argRhort] rightMostNode2
+    witnessNode' constraint [] [refinementDAG absRhort, refinementDAG argRhort]
+      (refinementDAG appRhort)) S.empty
 
 -- The rightmost node, respecting the given index.
 rightmostNode :: Int -> RefinementDAG -> RefinementDAG
@@ -301,8 +299,9 @@ rightmostNode idx node =
   let edges = getEdges node
       oneEdge = filter (\edge -> getIndexs edge == [idx]) edges
   in if null oneEdge then node
-     else if length oneEdge == 1 then rightmostNode idx (safeGet' "there is no right node" 1 (getNodes (head oneEdge)))
-          else error "there is error in get rightMostNode"
+     else if length oneEdge == 1
+     then rightmostNode idx (safeGet' "there is no right node" 1 (getNodes (head oneEdge)))
+     else error "there is error in get rightMostNode"
 
 constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
 constrain e = constrain' e []
@@ -310,9 +309,8 @@ constrain e = constrain' e []
 -- given two HORT has same structure and the constraint, build the
 -- subtype relations between two HORT
 constrain' :: MonadWriter [Rule] m => F.Expr -> [Nonterminal] -> [RHORT] -> RHORT -> m ()
-constrain' constraint fixTerminals bodys headNode = do
-  _ <- witnessNode constraint fixTerminals (map refinementDAG bodys) (refinementDAG headNode)
-  return ()
+constrain' constraint fixTerminals bodys headNode =
+  witnessNode constraint fixTerminals (map refinementDAG bodys) (refinementDAG headNode)
 
 -- given two RHORT has same structure, build the subtype relations between two RHORT
 subtype :: MonadWriter [Rule] m => RHORT -> RHORT -> m ()
@@ -345,29 +343,34 @@ buildEqExpr fVars vars1 vars2 =
 
 
 -- given the witnessNode position to build the corresponding constrains and return the visited Node
-witnessNode :: MonadWriter [Rule] m => F.Expr ->[Nonterminal] -> [RefinementDAG] -> RefinementDAG -> m (Set RefinementDAG) 
-witnessNode constraint fixTerminals bodys node = execStateT (witnessNode' constraint fixTerminals bodys node) S.empty
+witnessNode :: MonadWriter [Rule] m
+            => F.Expr -> [Nonterminal] -> [RefinementDAG] -> RefinementDAG
+            -> m ()
+witnessNode constraint fixTerminals bodys node =
+  evalStateT (witnessNode' constraint fixTerminals bodys node) S.empty
 
 witnessNode' :: MonadWriter [Rule] m
              => F.Expr -> [Nonterminal] -> [RefinementDAG] -> RefinementDAG
              -> StateT (Set RefinementDAG) m ()
-witnessNode' constraint fixTerminals bodys node = do
-  visitedNodes <- get
-  if S.member node visitedNodes then return ()
-  else do
-    put (S.insert node visitedNodes)
-    case node of
-      SimpleRHORT _ nonterminal ->lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
-      CompositeRHORT{} -> do
-        let headEdges = getEdges node
-        let validEdgesList = map (sameEdges (map getEdges bodys)) headEdges
-        let leftNodesList = map getLeftNodes validEdgesList 
-        let rightNodesList = map getRightNodes validEdgesList
-        let leftNodes = getLeftNodes headEdges
-        let rightNodes = getRightNodes headEdges
-        _ <- zipWithM (witnessNode' constraint fixTerminals) leftNodesList leftNodes
-        _ <- zipWithM (witnessNode' constraint fixTerminals) rightNodesList rightNodes
-        return ()
+witnessNode' constraint fixTerminals bodys node =
+  S.member node <$> get >>= \case
+    True -> pure ()
+    False -> do
+      modify (S.insert node)
+      case node of
+        SimpleRHORT _ nonterminal ->
+          lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
+        CompositeRHORT{} -> do
+          constrainChild getLeftNodes
+          constrainChild getRightNodes
+  where
+    hdEdges = getEdges node
+    validEdges = map (sameEdges (map getEdges bodys)) hdEdges
+    constrainChild accessor =
+      let body = map accessor validEdges
+          hd = accessor hdEdges
+      in zipWithM_ (witnessNode' constraint fixTerminals) body hd
+
 
 -- get the left side nodes based on the pair of given edges
 getLeftNodes :: [RHORTEdge] -> [RefinementDAG]
