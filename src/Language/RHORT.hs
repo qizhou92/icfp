@@ -32,14 +32,14 @@ data RHORT = RHORT
 -- RefinementDAG is the node of the RHORT DAG, get predicate returns the nonterminal if it
 -- is a leaf node, getEdges returns the outgoing edge of this node
 data RefinementDAG
-  = SimpleRHORT [Int] Nonterminal
-  | CompositeRHORT [RHORTEdge]
+  = SimpleRHORT (Seq Int) Nonterminal
+  | CompositeRHORT (Seq RHORTEdge)
   deriving (Show, Read, Eq, Ord, Data)
 
 getEdges :: RefinementDAG -> [RHORTEdge]
 getEdges = \case
   SimpleRHORT{} -> []
-  CompositeRHORT es -> es
+  CompositeRHORT es -> toList es
 
 -- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index list of this unwinding
 -- getNodes returns the RHORT nodes this edge points to.
@@ -128,11 +128,11 @@ isPrim idx rhort =
   let t = safeGet "is Prim get index over the length of list" idx (getBasicTypes rhort)
   in isPrimitiveType t
 
-freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq Int -> m RHORT
+freshType :: MonadState Int m => Set (Var, Type) -> Seq Type -> Seq ExprID -> m RHORT
 freshType varTypesSet types uniqueIds = do
   let flattenTypeList = map (second mkFlatType) (S.toList varTypesSet)
-  let exprTypeList = map mkFlatType (toList types)
-  dag <- evalStateT (mkTypeDAG flattenTypeList (toList uniqueIds) exprTypeList) M.empty
+  let exprTypes = fmap mkFlatType types
+  dag <- evalStateT (mkTypeDAG flattenTypeList uniqueIds exprTypes) M.empty
   let varTypes = map snd (S.toList varTypesSet)
   return (RHORT dag varTypes types)
 
@@ -143,10 +143,12 @@ fetchExprComponents :: ExprID -> Type -> [F.Var]
 fetchExprComponents i t= mkExprArgs i (mkFlatType t)
 
 mkTypeDAG :: MonadState Int m
-          => [(Var, FlatType)] -> [Int] -> [FlatType]
-          -> StateT (Map [Int] RefinementDAG) m RefinementDAG
+          => [(Var, FlatType)]
+          -> Seq ExprID
+          -> Seq FlatType
+          -> StateT (Map (Seq Int) RefinementDAG) m RefinementDAG
 mkTypeDAG varPairs exprIds exprTypes =
-  let indexList = map getFlatTypeId flatTypeList
+  let indexList = fmap getFlatTypeId flatTypes
   in M.lookup indexList <$> get >>= \case
     Just dagNode -> return dagNode
     Nothing -> do
@@ -156,45 +158,44 @@ mkTypeDAG varPairs exprIds exprTypes =
   where
     varName = map fst varPairs
     varTypes = map snd varPairs
-    flatTypeList = varTypes ++ exprTypes
+    flatTypes = Seq.fromList varTypes <> exprTypes
 
     freshDAGNode = do
       let possibleIndexes =
-            zip flatTypeList ([0..] :: [Int])
+            zip (toList flatTypes) ([0..] :: [Int])
             & filter (not . isPrimFlatType . fst)
             & map snd
+            & Seq.fromList
       case possibleIndexes of
         Empty -> do
-          predicate <- lift (mkPredicate flatTypeList varName exprIds)
-          let flatIdList = map getFlatTypeId flatTypeList
-          return (SimpleRHORT flatIdList predicate)
+          predicate <- lift (mkPredicate flatTypes varName exprIds)
+          let flatIds = fmap getFlatTypeId flatTypes
+          return (SimpleRHORT flatIds predicate)
         -- To construct a composite rhort, we have to continue building
         -- the dag by looking a potential children.
-        _ -> CompositeRHORT <$> mapM (mkEdge . (: [])) possibleIndexes
+        _ -> CompositeRHORT <$> traverse (mkEdge . (: [])) possibleIndexes
 
-    mkEdge edgeIndexs = do
+    mkEdge edgeIdxs = do
       leftNode  <- mkChild flatTypeApplicand
       rightNode <- mkChild flatTypeArgument
-      return (RHORTEdge edgeIndexs [leftNode, rightNode])
+      return (RHORTEdge edgeIdxs [leftNode, rightNode])
       where
         mkChild f = do
-          let childTypeList = foldr (unfoldChild f) flatTypeList edgeIndexs
-          let (childVarType,childExprType) = L.splitAt (length varTypes) childTypeList
-          mkTypeDAG (zip varName childVarType) exprIds childExprType
+          let childTypes = foldr (unfoldChild f) flatTypes edgeIdxs
+          let (childVarType,childExprType) = Seq.splitAt (length varTypes) childTypes
+          mkTypeDAG (zip varName (toList childVarType)) exprIds childExprType
 
-        unfoldChild f idx tList =
-          case f (safeGet' "cannot get this type from unfoldChild" idx flatTypeList) of
-            Just t ->
-              let (l,r) = L.splitAt (idx+1) tList
-              in (init l ++ [t] ++ r)
+        unfoldChild f idx ts =
+          case f (safeGet "cannot get this type from unfoldChild" idx flatTypes) of
+            Just t -> Seq.update idx t ts
             Nothing -> error "primitive type cannot get indexed type"
 
-mkPredicate :: MonadState Int m => [FlatType] -> [Var] -> [Int] -> m Nonterminal
+mkPredicate :: MonadState Int m => Seq FlatType -> [Var] -> Seq ExprID -> m Nonterminal
 mkPredicate flatTypes varName uniqueIds = do
   idNumber <- increment
-  let (aVarTypes, exprTypes) = L.splitAt (length varName) flatTypes
-  let varListArg = concat (zipWith mkVarArgs varName aVarTypes)
-  let exprListArg = concat (zipWith mkExprArgs uniqueIds exprTypes)
+  let (aVarTypes, exprTypes) = Seq.splitAt (length varName) flatTypes
+  let varListArg = concat (zipWith mkVarArgs varName (toList aVarTypes))
+  let exprListArg = concat (zipWith mkExprArgs (toList uniqueIds) (toList exprTypes))
   return $ Nonterminal (ConcreteID idNumber) (varListArg ++ exprListArg)
 
 mkVarArgs :: Var -> FlatType -> [F.Var]
