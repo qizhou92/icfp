@@ -41,8 +41,8 @@ getEdges = \case
   SimpleRHORT{} -> Empty
   CompositeRHORT es -> es
 
--- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index list of this unwinding
--- getNodes returns the RHORT nodes this edge points to.
+-- RHORTEdge is the directed edge of RHORT DAG, get indexs return the index
+-- list of this unwinding getNodes returns the RHORT nodes this edge points to.
 data RHORTEdge = RHORTEdge
   { getIndexs :: [Int]
   , getNodes  :: [RefinementDAG]
@@ -134,7 +134,7 @@ freshType varTypesSet types uniqueIds = do
   let exprTypes = fmap mkFlatType types
   dag <- evalStateT (mkTypeDAG flattenTypeList uniqueIds exprTypes) M.empty
   let varTypes = map snd (S.toList varTypesSet)
-  return (RHORT dag varTypes types)
+  pure (RHORT dag varTypes types)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
 fetchVarComponents v t = mkVarArgs v (mkFlatType t)
@@ -150,11 +150,11 @@ mkTypeDAG :: MonadState Int m
 mkTypeDAG varPairs exprIds exprTypes =
   let indexList = fmap getFlatTypeId flatTypes
   in M.lookup indexList <$> get >>= \case
-    Just dagNode -> return dagNode
+    Just n -> pure n
     Nothing -> do
-      newDAGNode <- freshDAGNode
-      modify (M.insert indexList newDAGNode)
-      return newDAGNode
+      new <- freshDAGNode
+      modify (M.insert indexList new)
+      pure new
   where
     varName = map fst varPairs
     varTypes = map snd varPairs
@@ -169,7 +169,7 @@ mkTypeDAG varPairs exprIds exprTypes =
         Empty -> do
           predicate <- lift (mkPredicate flatTypes varName exprIds)
           let flatIds = fmap getFlatTypeId flatTypes
-          return (SimpleRHORT flatIds predicate)
+          pure (SimpleRHORT flatIds predicate)
         -- To construct a composite rhort, we have to continue building
         -- the dag by looking a potential children.
         _ -> CompositeRHORT <$> traverse (mkEdge . (: [])) possibleIndexes
@@ -177,7 +177,7 @@ mkTypeDAG varPairs exprIds exprTypes =
     mkEdge edgeIdxs = do
       leftNode  <- mkChild flatTypeApplicand
       rightNode <- mkChild flatTypeArgument
-      return (RHORTEdge edgeIdxs [leftNode, rightNode])
+      pure (RHORTEdge edgeIdxs [leftNode, rightNode])
       where
         mkChild f = do
           let childTypes = foldr (unfoldChild f) flatTypes edgeIdxs
@@ -195,7 +195,7 @@ mkPredicate flatTypes varName uniqueIds = do
   let (aVarTypes, exprTypes) = Seq.splitAt (length varName) flatTypes
   let varListArg = concat (zipWith mkVarArgs varName (toList aVarTypes))
   let exprListArg = concat (zipWith mkExprArgs (toList uniqueIds) (toList exprTypes))
-  return $ Nonterminal (ConcreteID idNumber) (varListArg ++ exprListArg)
+  pure $ Nonterminal (ConcreteID idNumber) (varListArg ++ exprListArg)
 
 mkVarArgs :: Var -> FlatType -> [F.Var]
 mkVarArgs _ FlatTypeArr{} = error "`mkVarArgs` does not accept non-primitive flat types."
@@ -209,7 +209,7 @@ mkVarArg :: String -> Type -> Int -> F.Var
 mkVarArg name t uniqueId = case t of
   TInt -> F.Var (name ++ "/" ++ show uniqueId) F.Int
   TBool -> F.Var (name ++ "/" ++ show uniqueId) F.Bool
-  t -> error (show t ++ " is not an primitive type (mkVarArg in RHORT).")
+  _ -> error (show t ++ " is not an primitive type (mkVarArg in RHORT).")
 
 mkBoundVar :: Int -> Type -> Int -> F.Var
 mkBoundVar uid = mkVarArg ("arg#" ++ show uid)
@@ -241,16 +241,17 @@ addNewVarIntoContext newVar uniqueId idx varHort oldContext newContext = do
   let samePairNodes = pairDagsAtIdx idx (refinementDAG varHort) (refinementDAG newContext)
   let rightPairs = map (first getAnLeafNode) samePairNodes
   let types = getOrderOfFlattenType (mkFlatType (Seq.index (getBasicTypes varHort) idx) )
-  _ <- zipWithM (buildConstrainForAddNewVar newVar uniqueId idx (refinementDAG oldContext)) types rightPairs
-  return () 
+  zipWithM_ (buildConstrainForAddNewVar newVar uniqueId idx (refinementDAG oldContext)) types rightPairs
 
-buildConstrainForAddNewVar :: MonadWriter [Rule] m => Var -> Int -> Int -> RefinementDAG -> FlatType  -> (RefinementDAG,RefinementDAG)  -> m ()
-buildConstrainForAddNewVar var uniqueId idx oldContext t (newVar,newContext) = do
+buildConstrainForAddNewVar :: MonadWriter [Rule] m
+                           => Var -> Int -> Int -> RefinementDAG -> FlatType
+                           -> (RefinementDAG, RefinementDAG)
+                           -> m ()
+buildConstrainForAddNewVar var uniqueId _ oldContext t (newVar, newContext) =
   let vcs = mkVarArgs var t
-  let ecs = mkExprArgs uniqueId t
-  let f = F.manyAnd (zipWith (\v1 v2 -> [F.expr|@v1 = @v2|]) vcs ecs)
-  _ <- witnessNode f [safeGetNonterminal newVar] [oldContext] newContext
-  return ()
+      ecs = mkExprArgs uniqueId t
+      f = F.manyAnd (zipWith (\v1 v2 -> [F.expr|@v1 = @v2|]) vcs ecs)
+  in witnessNode f [safeGetNonterminal newVar] [oldContext] newContext
 
 pairDagsAtIdx :: Int -> RefinementDAG -> RefinementDAG -> [(RefinementDAG,RefinementDAG)]
 pairDagsAtIdx idx t1 t2 =
@@ -295,13 +296,10 @@ appJoin idx constraint absRhort argRhort appRhort = do
 
 -- The rightmost node, respecting the given index.
 rightmostNode :: Int -> RefinementDAG -> RefinementDAG
-rightmostNode idx node =
-  let edges = getEdges node
-      oneEdge = filter (\edge -> getIndexs edge == [idx]) edges
-  in if null oneEdge then node
-     else if length oneEdge == 1
-     then rightmostNode idx (safeGet' "there is no right node" 1 (getNodes (head oneEdge)))
-     else error "there is error in get rightMostNode"
+rightmostNode idx node = case findEdges [idx] (getEdges node) of
+  [] -> node
+  [e] -> rightmostNode idx (safeGet' "there is no right node" 1 (getNodes e))
+  _ -> error "there is error in rightmostNode"
 
 constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
 constrain e = constrain' e []
@@ -325,24 +323,24 @@ safeGetNonterminal node = case node of
   SimpleRHORT _ nonterminal -> nonterminal
   _ -> error "there is no nonterminal to get"
 
-
 -- TODO:  needs to get varlist not set to equall
-buildConstrains :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rule
-buildConstrains constraint fixTerminals bodys headN = 
+mkConstraints :: F.Expr ->[Nonterminal] -> [Nonterminal] -> Nonterminal -> Rule
+mkConstraints constraint fixTerminals bodys headN = 
  let varsLists = map (\(Nonterminal _ vars)->vars) bodys
      Nonterminal _ headVars = headN
      equalExprs =
        F.manyAnd (map (buildEqExpr (toListOf F.vars constraint) headVars) varsLists)
  in Rule L headN (equalExprs `F.mkAnd` constraint) (fixTerminals ++ bodys)
+ where
+    buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
+    buildEqExpr fVars vars1 vars2 =
+      let list1 = filter (`notElem` fVars) vars1
+          list2 = filter (`notElem` fVars) vars2
+      in F.manyAnd (zipWith (\x y -> F.mkEql (view F.varType x) (F.V x) (F.V y)) list1 list2)
 
-buildEqExpr :: [F.Var] -> [F.Var] -> [F.Var] -> F.Expr
-buildEqExpr fVars vars1 vars2 =
-  let list1 = filter (`notElem` fVars) vars1
-      list2 = filter (`notElem` fVars) vars2
-  in F.manyAnd (zipWith (\x y -> F.mkEql (view F.varType x) (F.V x) (F.V y)) list1 list2)
 
-
--- given the witnessNode position to build the corresponding constrains and return the visited Node
+-- given the witnessNode position to build the corresponding constrains and
+-- return the visited Node
 witnessNode :: MonadWriter [Rule] m
             => F.Expr -> [Nonterminal] -> [RefinementDAG] -> RefinementDAG
             -> m ()
@@ -359,7 +357,7 @@ witnessNode' constraint fixTerminals bodys node =
       modify (S.insert node)
       case node of
         SimpleRHORT _ nonterminal ->
-          lift (tell [buildConstrains constraint fixTerminals (getPredicates bodys) nonterminal])
+          lift (tell [mkConstraints constraint fixTerminals (getPredicates bodys) nonterminal])
         CompositeRHORT{} -> do
           constrainChild getLeftNodes
           constrainChild getRightNodes
@@ -390,7 +388,7 @@ sameEdges listOfEdges headEdge =
 
 safeFind :: [Int] -> [RHORTEdge] -> RHORTEdge
 safeFind idxs edges =
-  let oneEdge = filter (\edge -> getIndexs edge == idxs) edges
+  let oneEdge = findEdges idxs edges
   in if length oneEdge == 1 then head oneEdge
   else error "there is not right number of edge match the index"
 
