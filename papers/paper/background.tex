@@ -167,7 +167,7 @@ $\interp{\otimes} : \consts \times \consts \to \bools$.
     % evaluate target exp to a left injection,
     e_0 \evalsto \injr\ v_0 &
     \replace{ e_2 }{ y }{ v_0 } \evalsto v_2 }{ %
-    \matchexp{ e_0 }{ x }{ e_1 }{ y }{ e_2 } \evalsto v_2 } 
+    \matchexp{ e_0 }{ x }{ \sigma_x }{ e_1 }{ y }{ \sigma_y }{ e_2 } \evalsto v_2 } 
   % fix:
   \inference[ FIX ]{ \replace{e}{ f }{ \fix{ f }{\sigma}{ e } } \evalsto v } %
   { \fix{ f }{\sigma}{ e } \evalsto v }
