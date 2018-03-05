@@ -26,7 +26,7 @@ data RHORT = RHORT
   -- getAvailable returns the all basic types for the vecotr of available
    , getAvailable ::  [Type]
   -- getBasicTypes returns all basic types for the vector of expressions
-   , getBasicTypes :: [Type]
+   , getBasicTypes :: Seq Type
   } deriving (Show, Read, Eq, Ord, Data)
 
 -- RefinementDAG is the node of the RHORT DAG, get predicate returns the nonterminal if it
@@ -133,9 +133,8 @@ freshType varTypesSet types uniqueIds = do
   let flattenTypeList = map (second mkFlatType) (S.toList varTypesSet)
   let exprTypeList = map mkFlatType (toList types)
   dag <- evalStateT (mkTypeDAG flattenTypeList (toList uniqueIds) exprTypeList) M.empty
-  let basicTypes = toList types
   let varTypes = map snd (S.toList varTypesSet)
-  return (RHORT dag varTypes basicTypes)
+  return (RHORT dag varTypes types)
 
 fetchVarComponents :: Var -> Type -> [F.Var]
 fetchVarComponents v t = mkVarArgs v (mkFlatType t)
@@ -165,7 +164,7 @@ mkTypeDAG varPairs exprIds exprTypes =
             & filter (not . isPrimFlatType . fst)
             & map snd
       case possibleIndexes of
-        [] -> do
+        Empty -> do
           predicate <- lift (mkPredicate flatTypeList varName exprIds)
           let flatIdList = map getFlatTypeId flatTypeList
           return (SimpleRHORT flatIdList predicate)
@@ -184,7 +183,7 @@ mkTypeDAG varPairs exprIds exprTypes =
           mkTypeDAG (zip varName childVarType) exprIds childExprType
 
         unfoldChild f idx tList =
-          case f (safeGet "cannot get this type from unfoldChild" idx flatTypeList) of
+          case f (safeGet' "cannot get this type from unfoldChild" idx flatTypeList) of
             Just t ->
               let (l,r) = L.splitAt (idx+1) tList
               in (init l ++ [t] ++ r)
@@ -228,14 +227,14 @@ split idx rhort = case safeGet "split is over index" idx (getBasicTypes rhort) o
     validEdges = filter (\(RHORTEdge idxs _) -> idxs == [idx+varLength])
       (getEdges (refinementDAG rhort))
     types = getBasicTypes rhort
-    (leftTypes,rightTypes) = L.splitAt (idx+1) types
-    nodes = getNodes (safeGet "split should find one valid edge" 0 validEdges)
+    -- (leftTypes,rightTypes) = L.splitAt (idx+1) types
+    nodes = getNodes (safeGet' "split should find one valid edge" 0 validEdges)
 
     child msg idx' t =
-      let node = safeGet msg idx' nodes
-          newTs = L.init leftTypes ++ [t] ++ rightTypes
+      let node = safeGet' msg idx' nodes
+          newTs = Seq.update idx t types
+          -- newTs = L.init leftTypes ++ [t] ++ rightTypes
       in RHORT node availableVar newTs
-
 
 -- given the new var, the id of this lambada expression, the index of this expression
 -- the varHort, oldContext Hort, and newContext Hort to build the subtype relations
@@ -243,7 +242,7 @@ addNewVarIntoContext :: MonadWriter [Rule] m => Var -> Int -> Int -> RHORT -> RH
 addNewVarIntoContext newVar uniqueId idx varHort oldContext newContext = do
   let samePairNodes = pairDagsAtIdx idx (refinementDAG varHort) (refinementDAG newContext)
   let rightPairs = map (first getAnLeafNode) samePairNodes
-  let types = getOrderOfFlattenType (mkFlatType (getBasicTypes varHort !! idx) )
+  let types = getOrderOfFlattenType (mkFlatType (Seq.index (getBasicTypes varHort) idx) )
   _ <- zipWithM (buildConstrainForAddNewVar newVar uniqueId idx (refinementDAG oldContext)) types rightPairs
   return () 
 
@@ -261,10 +260,10 @@ pairDagsAtIdx idx t1 t2 =
   if null validEdges then [(t1, t2)]
   else let correspondingEdge = safeFind [0] (getEdges t2)
            theEdge = head validEdges
-           l1 = safeGet "there is no left node" 0 (getNodes theEdge)
-           l2 = safeGet "there is no left node" 0 (getNodes correspondingEdge)
-           r1 = safeGet "there is no right node" 1 (getNodes theEdge)
-           r2 = safeGet "there is no right node" 1 (getNodes correspondingEdge)
+           l1 = safeGet' "there is no left node" 0 (getNodes theEdge)
+           l2 = safeGet' "there is no left node" 0 (getNodes correspondingEdge)
+           r1 = safeGet' "there is no right node" 1 (getNodes theEdge)
+           r2 = safeGet' "there is no right node" 1 (getNodes correspondingEdge)
        in pairDagsAtIdx idx l1 l2 ++
           pairDagsAtIdx idx r1 r2
 
@@ -283,7 +282,7 @@ getAnLeafNode :: RefinementDAG -> RefinementDAG
 getAnLeafNode node =
   let edges = getEdges node
   in if null edges then node
-     else getAnLeafNode (safeGet "there is no node in get an leftNode" 0 (getNodes (head edges)))
+     else getAnLeafNode (safeGet' "there is no node in get an leftNode" 0 (getNodes (head edges)))
 
 -- given three rhrot, abs,arg, and app to build the subtype relations
 -- when arg is prim
@@ -301,7 +300,7 @@ rightmostNode idx node =
   let edges = getEdges node
       oneEdge = filter (\edge -> getIndexs edge == [idx]) edges
   in if null oneEdge then node
-     else if length oneEdge == 1 then rightmostNode idx (safeGet "there is no right node" 1 (getNodes (head oneEdge)))
+     else if length oneEdge == 1 then rightmostNode idx (safeGet' "there is no right node" 1 (getNodes (head oneEdge)))
           else error "there is error in get rightMostNode"
 
 constrain :: MonadWriter [Rule] m => F.Expr -> [RHORT] -> RHORT -> m ()
@@ -372,12 +371,12 @@ witnessNode' constraint fixTerminals bodys node = do
 -- get the left side nodes based on the pair of given edges
 getLeftNodes :: [RHORTEdge] -> [RefinementDAG]
 getLeftNodes = map getLeftNode
-  where getLeftNode edge = safeGet "there is no left node" 0 (getNodes edge)
+  where getLeftNode edge = safeGet' "there is no left node" 0 (getNodes edge)
 
 -- get the right side nodes based on the pair of given edges
 getRightNodes :: [RHORTEdge] -> [RefinementDAG]
 getRightNodes = map getRightNode
-  where getRightNode edge = safeGet "there is no right node" 1 (getNodes edge)
+  where getRightNode edge = safeGet' "there is no right node" 1 (getNodes edge)
 
 -- given a list of lists of edges, and the same edges, choose the edges has the same indexs
 sameEdges :: [[RHORTEdge]] -> RHORTEdge -> [RHORTEdge]
@@ -391,13 +390,18 @@ safeFind idxs edges =
   in if length oneEdge == 1 then head oneEdge
   else error "there is not right number of edge match the index"
 
-
 findEdges :: [Int] -> [RHORTEdge] -> [RHORTEdge]
 findEdges idxs = filter (\edge -> getIndexs edge == idxs)
 
 -- | print an given the message is current list is less then the index
-safeGet :: String -> Int -> [a] -> a
-safeGet message idx list =
-  if length list <= idx
+safeGet :: String -> Int -> Seq a -> a
+safeGet message idx s =
+  if length s <= idx
   then error message
-  else list !! idx
+  else Seq.index s idx
+
+safeGet' :: String -> Int -> [a] -> a
+safeGet' message idx s =
+  if length s <= idx
+  then error message
+  else s !! idx
